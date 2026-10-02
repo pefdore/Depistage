@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Check-list de dépistage — Consultation</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>🩺 Check-list de dépistage</h1>
+  <p class="subtitle">Outil de consultation — rappel des points de surveillance et de dépistage. Recommandations HAS / systèmes de dépistage organisés français. Aide-mémoire, ne remplace pas le jugement clinique.</p>
+</header>
+
+<main id="app">
+
+  <section id="patient-info" class="card">
+    <h2>Patient</h2>
+    <div class="patient-grid">
+      <label>Nom / Initiales <input type="text" id="pat-name" placeholder="Initiales ou nom"></label>
+      <label>Âge <input type="number" id="pat-age" min="0" max="120" placeholder="ans"></label>
+      <label>Sexe
+        <select id="pat-sex">
+          <option value="">—</option>
+          <option value="F">Femme</option>
+          <option value="M">Homme</option>
+        </select>
+      </label>
+      <label>Date <input type="date" id="pat-date"></label>
+    </div>
+    <div id="age-sex-warn" class="warn hidden">⚠️ Renseignez l'âge (et le sexe pour certains items) pour activer les critères automatiques.</div>
+  </section>
+
+  <section id="summary-bar" class="summary-bar">
+    <div id="progress-info">0 / 0 items évalués</div>
+    <div class="progress"><div id="progress-fill"></div></div>
+    <div class="summary-actions">
+      <button id="btn-print">🖨️ Fiche patient (imprimer / PDF)</button>
+      <button id="btn-reset" class="secondary">↺ Réinitialiser</button>
+      <button id="btn-save" class="secondary">💾 Sauvegarder</button>
+      <button id="btn-load" class="secondary">📂 Charger</button>
+    </div>
+  </section>
+
+  <div id="sections"></div>
+
+</main>
+
+<div id="print-area" class="hidden"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
