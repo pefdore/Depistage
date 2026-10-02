@@ -1,5 +1,9 @@
-/* Tour d'horizon 360° — check-list de dépistage par appareil.
-   100 % local, intégrable dans une app Python (voir integration.md). */
+/* Tour d'horizon 360° — dépistage. 100 % local, intégrable dans une app Python (integration.md).
+   Structure : SECTIONS → blocs.
+   - type 'depistage' : liste d'indications à cocher → conclusion automatique « EXAMEN à réaliser car : … »
+     (indications 'auto' déduites de l'âge/sexe, déjà cochées et verrouillées)
+   - type 'checklist' : items avec statut Fait / À faire / N/A
+*/
 
 // ---------- Patient ----------
 let PATIENT = { nom: '', prenom: '', ddn: '', sex: '' };
@@ -12,269 +16,365 @@ function computeAge(ddn, refDate) {
   let age = ref.getFullYear() - d.getFullYear();
   const m = ref.getMonth() - d.getMonth();
   if (m < 0 || (m === 0 && ref.getDate() < d.getDate())) age--;
-  return age < 0 || age > 130 ? null : age;
+  return (age < 0 || age > 130) ? null : age;
 }
-
-const P = () => {
-  const age = computeAge(PATIENT.ddn, document.getElementById('pat-date').value);
-  return { age, sex: PATIENT.sex };
-};
-
-const adult   = p => p.age !== null && p.age >= 18;
-const minor   = p => p.age !== null && p.age < 18;
+const P = () => ({ age: computeAge(PATIENT.ddn, document.getElementById('pat-date').value), sex: PATIENT.sex });
 const between = (p, a, b) => p.age !== null && p.age >= a && p.age <= b;
 const isF = p => p.sex === 'F';
 const isM = p => p.sex === 'M';
 
-/* ---------- Structure des items ----------
-   { id, label, detail, show(patient), why(patient) }
-   show : condition d'affichage (sexe/âge).
-   why  : justification / critère affiché en drapeau ⓘ.
-   input: 'text' | 'date' | 'note' — champ libre optionnel.
-   statuts : null | 'oui' (fait / à jour / présent) | 'non' (à faire) | 'na' */
-
+// ---------- Données ----------
 const SECTIONS = [
-// ============================ PNEUMOLOGIE ============================
-{
-  id: 'pneumo', title: '🫁 Pneumologie',
-  items: [
-    { id: 'pneumo-tabac', label: 'Statut tabagique évalué (jamais / sevré / actif — paquets-années)', show: () => true,
-      why: () => 'Dépistage du tabagisme à chaque consultation (HAS).' },
-    { id: 'pneumo-tabac-aide', label: 'Si fumeur : aide au sevrage proposée (substitution, consultation, TCC)', show: () => true, input: 'note' },
-    { id: 'pneumo-bpco-sympt', label: 'BPCO : symptômes recherchés (toux chronique, expectorations, dyspnée, sifflements)', show: () => true,
-      why: p => (p.age >= 40) ? 'Fumeur/ex-fumeur ≥ 40 ans avec symptômes → spirométrie indiquée.' : null },
-    { id: 'pneumo-bpco-spiro', label: 'BPCO : spirométrie / EFR avec test de réversibilité', show: () => true },
-    { id: 'pneumo-a1at', label: 'Déficit en alpha-1-antitrypsine : à évoquer si BPCO < 45 ans ou non-fumeur', show: p => p.age !== null && p.age < 60 },
-    { id: 'pneumo-saos', label: 'Syndrome d\'apnées du sommeil : dépistage (STOP-BANG, ronflements, somnolence)', show: () => true },
-    { id: 'pneumo-asthma', label: 'Asthme : contrôle, DEP, observance, technique d\'inhalation', show: () => true },
-    { id: 'pneumo-tub', label: 'Tuberculose : dépistage (LGRA/IGRA) si exposition, immunodépression, origine à risque', show: () => true },
-    { id: 'pneumo-poumon-scanner', label: 'Cancer du poumon : scanner low-dose annuel si fumeur/ex-fumeur 50–74 ans avec tabagisme important', show: p => between(p, 50, 74),
-      why: p => between(p, 50, 74) ? 'Dépistage individuel à envisager : 50–74 ans, tabagisme ≥ 20 PA (HAS).' : null },
-    { id: 'pneumo-vacc', label: 'Vaccins respiratoires à jour : grippe, pneumocoque, COVID, VRS (voir section Immunologie)', show: () => true },
-    { id: 'pneumo-exacerb', label: 'Antécédents d\'exacerbations / hospitalisations respiratoires', show: () => true },
-    { id: 'pneumo-dmep', label: 'DMP en cours (ergothérapie respiratoire) proposée si dyspnée chronique', show: () => true },
-  ]
-},
-// ============================ RHUMATOLOGIE / OS ============================
-{
-  id: 'rhumato', title: '🦴 Rhumatologie — Ostéoporose',
-  items: [
-    { id: 'osteo-indications', label: 'INDICATIONS d\'ostéodensitométrie (DMO) — cocher chaque indication présente :', show: () => true },
-    { id: 'osteo-fem65', label: 'Femme ≥ 65 ans', show: p => isF(p) && p.age >= 65,
-      why: p => 'Indication systématique : femme ≥ 65 ans (HAS).' },
-    { id: 'osteo-menop40', label: 'Ménopause précoce (< 40 ans) ou ménopause avant 45 ans', show: p => isF(p) && p.age >= 40,
-      why: () => 'Indication de DMO : ménopause précoce (avant 40–45 ans).' },
-    { id: 'osteo-imc19', label: 'IMC < 19 (ou perte de poids importante)', show: () => true,
-      why: () => 'Indication de DMO : maigreur (IMC < 19).' },
-    { id: 'osteo-fracture', label: 'Fracture de faible énergie après 50 ans (poignet, vertèbre, col du fémur…)', show: p => p.age !== null && p.age >= 50,
-      why: () => 'Fracture de faible énergie = indication de DMO (fragilité osseuse).' },
-    { id: 'osteo-cortico', label: 'Corticothérapie prolongée (≥ 7,5 mg/j prednisone ≥ 3 mois) ou prévue', show: () => true,
-      why: () => 'Indication de DMO : corticothérapie prolongée.' },
-    { id: 'osteo-ATCDfam', label: 'Antécédent familial d\'ostéoporose (fracture du col fémoral chez un parent au 1er degré)', show: () => true },
-    { id: 'osteo-fdr', label: 'Autres FDR : tabac, alcool ≥ 3 verres/j, ménopause < 45 ans, hyperthyroïdie, hyperparathyroïdie, hypogonadisme, maladie inflammatoire chronique (RCH, PR), malabsorption, immobilisation prolongée', show: () => true },
-    { id: 'osteo-homme70', label: 'Homme ≥ 70 ans : dépistage possible (HAS 2024)', show: p => isM(p) && p.age >= 70,
-      why: () => 'HAS 2024 : dépistage possible chez l\'homme ≥ 70 ans.' },
-    { id: 'osteo-frax', label: 'FRAX calculé ≥ seuil d\'intervention → DMO ou traitement direct', show: () => true },
-    { id: 'osteo-dmo', label: 'DMO réalisée / à prescrire selon les indications ci-dessus', show: () => true },
-    { id: 'osteo-vitd', label: 'Vitamine D et apports calciques : évaluation / supplémentation si carence', show: () => true },
-    { id: 'osteo-trt', label: 'Si ostéoporose connue : traitement, observance, contrôle', show: () => true },
-    { id: 'osteo-chutes', label: 'Risque de chute évalué (traitements, vision, marche)', show: p => p.age !== null && p.age >= 65 },
-    { id: 'rhumato-pr', label: 'Polyarthrite / douleurs inflammatoires : dépistage rhumatismal si symptômes', show: () => true },
-    { id: 'rhumato-goutte', label: 'Goutte : uricémie si crises / syndrome métabolique', show: () => true },
-    { id: 'rhumato-lomb', label: 'Lombalgie chronique / examen rachis', show: () => true },
-  ]
-},
-// ============================ CARDIOLOGIE (hors RCV global → risquecv.fr) ============================
-{
-  id: 'cardio', title: '❤️ Cardiologie (RCV global : risquecv.fr)',
-  items: [
-    { id: 'cardio-ta', label: 'Pression artérielle mesurée (HTA : dépistage au moins tous les 2 ans si TA normale)', show: () => true,
-      why: () => 'Le score RCV global se calcule sur risquecv.fr — ici : dépistage HTA seulement.' },
-    { id: 'cardio-aaa', label: 'Anévrisme aorte abdominale : échographie si fumeur/ex-fumeur 65–85 ans', show: p => between(p, 65, 85),
-      why: p => between(p, 65, 85) ? 'Dépistage AAA : une échographie chez fumeur/ex-fumeur 65–85 ans (HAS).' : null },
-    { id: 'cardio-arih', label: 'Fibrillation auriculaire : ARIH ≥ 65 ans (palpation pouls / auto-mesure)', show: p => p.age !== null && p.age >= 65,
-      why: () => 'Dépistage FA par palpation du pouls ≥ 65 ans (prévention AVC).' },
-    { id: 'cardio-ic', label: 'Insuffisance cardiaque : dépistage si dyspnée / œdèmes / fatigabilité', show: () => true },
-    { id: 'cardio-ep', label: 'Artériopathie des membres inférieurs : pouls périphériques, claudication (diabétiques, fumeurs)', show: () => true },
-    { id: 'cardio-mv', label: 'Souffle cardiaque / valvulopathie : auscultation à l\'occasion de l\'examen', show: () => true },
-  ]
-},
-// ============================ MÉTABOLISME / ENDOCRINO ============================
-{
-  id: 'metabolisme', title: '🍬 Métabolisme / Endocrinologie',
-  items: [
-    { id: 'meta-diabete', label: 'Diabète type 2 : glycémie à jeun ou HbA1c', show: () => true,
-      why: p => between(p, 45, 75) ? 'Dépistage recommandé tous les 3 ans entre 45 et 75 ans (HAS).' : 'À faire avant 45 ans si FDR (obésité, ATCD familiaux, HTA, SAS, diabète gestationnel).' },
-    { id: 'meta-fdr-diab', label: 'FDR diabète : obésité/tour de taille, ATCD familial, HTA, dyslipidémie, sédentarité, origine à risque', show: () => true },
-    { id: 'meta-prediab', label: 'Si prediabète : contrôle annuel HbA1c/glycémie', show: () => true },
-    { id: 'meta-obesite', label: 'IMC + tour de taille mesurés', show: () => true },
-    { id: 'meta-thyroide', label: 'TSH si signes d\'hypothyroïdie, goitre, ≥ 60 ans ou facteurs de risque thyroïdiens', show: () => true },
-    { id: 'meta-hemochro', label: 'Hémochromatose : ferritinémie/TRANSFERRINE si symptômes ou ATCD familial (C282Y)', show: () => true },
-    { id: 'meta-dyslipid', label: 'Bilan lipidique : LDL selon risque (voir risquecv.fr pour le calcul du risque global)', show: () => true },
-  ]
-},
-// ============================ NÉPHROLOGIE / UROLOGIE ============================
-{
-  id: 'nephro-uro', title: '🫘 Néphrologie / Urologie',
-  items: [
-    { id: 'uro-dfg', label: 'Fonction rénale : DFG + protéinurie/créatinurie si HTA, diabète, âge, traitement néphrotoxique', show: () => true },
-    { id: 'uro-prostate-territ', label: 'Hypertrophie bénigne de la prostate : symptômes du bas appareil urinaire (IPSS)', show: p => isM(p) && p.age !== null && p.age >= 50 },
-    { id: 'uro-prostate-psa', label: 'Cancer de la prostate : PSA à discuter (décision partagée, informer bénéfices/risques)', show: p => isM(p) && p.age !== null && p.age >= 50,
-      why: p => 'PSA : dépistage individuel à discuter ≥ 50 ans (ou ≥ 45 ans si ATCD familial / origine afro-antillaise) — HAS.' },
-    { id: 'uro-tur', label: 'Toucher rectal si symptômes urinaires ou PSA élevé', show: p => isM(p) && p.age !== null && p.age >= 50 },
-    { id: 'uro-incont', label: 'Incontinence / troubles mictionnels : dépistage (femmes, sujet âgé)', show: () => true },
-    { id: 'uro-lithiasis', label: 'Lithiase urinaire : bilan si coliques néphrétiques récidivantes', show: () => true },
-  ]
-},
-// ============================ GYNÉCOLOGIE / OBSTÉTRIQUE ============================
-{
-  id: 'gyneco', title: '🌸 Gynécologie (femmes)',
-  items: [
-    { id: 'gyn-cervix', label: 'Frottis cervico-utérin (ou test HPV) tous les 3 ans / HPV tous les 5 ans', show: p => isF(p) && between(p, 25, 65),
-      why: p => 'Dépistage organisé : 25–65 ans (HPV tous les 5 ans depuis 25 ans).' },
-    { id: 'gyn-hpv-vacc', label: 'Vaccination HPV : statut à proposer si < 20 ans (rattrapage 15–19 ans)', show: p => isF(p) && p.age !== null && p.age < 20 },
-    { id: 'gyn-mammo', label: 'Mammographie tous les 2 ans (dépistage organisé)', show: p => isF(p) && between(p, 50, 74),
-      why: p => 'Dépistage organisé : 50–74 ans, tous les 2 ans.' },
-    { id: 'gyn-mammo-fdr', label: 'Mammographie avant 50 ans si ATCD familial / BRCA / irradiation thoracique', show: p => isF(p) && p.age !== null && p.age < 50 && p.age >= 25 },
-    { id: 'gyn-seins-exam', label: 'Examen clinique des seins + éducation à l\'auto-palpation', show: p => isF(p) },
-    { id: 'gyn-ovaire', label: 'Cancer de l\'ovaire : pas de dépistage systématique, mais symptômes évocateurs à connaître', show: p => isF(p) && p.age !== null && p.age >= 50 },
-    { id: 'gyn-endometre', label: 'Cancer de l\'endomètre : métrorragies post-ménopause → avis gynéco rapide', show: p => isF(p) && p.age !== null && p.age >= 50 },
-    { id: 'gyn-contraception', label: 'Contraception : adaptée, tolérée, à jour', show: p => isF(p) && between(p, 15, 55) },
-    { id: 'gyn-grossesse', label: 'Grossesse : désir / en cours / post-partum (acide folique, sérologies)', show: p => isF(p) && between(p, 18, 51) },
-    { id: 'gyn-menopause', label: 'Ménopause : symptômes, troubles génito-urinaires, TRH à évaluer', show: p => isF(p) && p.age !== null && p.age >= 45 },
-    { id: 'gyn-diab-gest', label: 'ATCD de diabète gestationnel ou prééclampsie → surveillance cardio-métabolique renforcée', show: p => isF(p) },
-  ]
-},
-// ============================ GASTRO-ENTÉROLOGIE ============================
-{
-  id: 'gastro', title: '🩻 Gastro-entérologie',
-  items: [
-    { id: 'gas-crc', label: 'Cancer colorectal : test immunologique (recherche sang occulte) tous les 2 ans', show: p => between(p, 50, 74),
-      why: p => 'Dépistage organisé : 50–74 ans, tous les 2 ans.' },
-    { id: 'gas-coloscopie', label: 'Coloscopie si test positif, ATCD familial (HNPCC, polypose), ou signes d\'alerte', show: () => true },
-    { id: 'gas-signes', label: 'Signes d\'alerte digestive : rectorragies, melena, dysphagie, amaigrissement, douleurs chroniques, alternating bowel habit', show: () => true },
-    { id: 'gas-helicobacter', label: 'Helicobacter pylori : dépistage/éradication si ulcère, ATCD, dyspepsie, origine à risque', show: () => true },
-    { id: 'gas-hbp', label: 'Hépatite B : statut vaccinal / sérologie si risque', show: () => true },
-    { id: 'gas-hcv', label: 'Hépatite C : sérologie au moins une fois chez 18–59 ans (recommandation HAS)', show: p => between(p, 18, 59),
-      why: p => 'Dépistage HCV au moins une fois chez les adultes 18–59 ans (HAS).' },
-    { id: 'gas-cirrhose', label: 'Si consommation d\'alcool à risque ou stéatose : bilan hépatique / FibroScan', show: () => true },
-    { id: 'gas-micronutriments', label: 'Carence en fer / B12 / folates : NFS si fatigue, carence martiale (femmes, végétariens, âgés)', show: () => true },
-  ]
-},
-// ============================ IMMUNOLOGIE / VACCINS ============================
-{
-  id: 'immuno', title: '💉 Immunologie — Vaccinations',
-  items: [
-    { id: 'vacc-carnet', label: 'Carnet vaccinal vérifié (MesVaccins.net, carnet de santé)', show: () => true },
-    { id: 'vacc-dtp', label: 'Diphtérie / tétanos / poliomyélite : rappel à jour (rappel à 25, 45, 65 ans puis tous les 10 ans)', show: () => true,
-      why: p => (p.age !== null && p.age >= 65) ? '≥ 65 ans : rappel DTP tous les 10 ans.' : null },
-    { id: 'vacc-grippe', label: 'Grippe saisonnière', show: () => true,
-      why: p => (p.age !== null && p.age >= 65) ? 'Recommandée chaque année dès 65 ans (ou maladie chronique).' : null },
-    { id: 'vacc-covid', label: 'COVID-19 : à jour selon recommandations (≥ 65 ans, comorbidités)', show: () => true },
-    { id: 'vacc-pneumo', label: 'Pneumocoque : schéma à jour (65–85 ans ou pathologie chronique)', show: p => p.age !== null && p.age >= 65,
-      why: p => between(p, 65, 85) ? 'Vaccination pneumococcique recommandée 65–85 ans (schéma adapté selon statut).' : null },
-    { id: 'vacc-rsv', label: 'VRS : vaccination ≥ 75 ans (ou ≥ 65 ans avec comorbidités)', show: p => p.age !== null && p.age >= 65,
-      why: p => (p.age >= 75) ? 'Recommandée à partir de 75 ans (HAS 2024–2025).' : '≥ 65 ans avec comorbidités : possible.' },
-    { id: 'vacc-zona', label: 'Zona (Shingrix) : 65–74 ans (ou 50–64 ans avec comorbidités)', show: p => p.age !== null && p.age >= 65,
-      why: p => between(p, 65, 74) ? 'Recommandée entre 65 et 74 ans.' : null },
-    { id: 'vacc-hpv', label: 'HPV : 11–14 ans (rattrapage 15–19 ans)', show: p => p.age !== null && p.age >= 11 && p.age <= 19,
-      why: () => 'Vaccination recommandée à 11–14 ans (rattrapage jusqu\'à 19 ans révolus).' },
-    { id: 'vacc-rub-int', label: 'Rappel rougeole (ROR) : statut vérifié (né après 1980, 2 doses)', show: p => p.age !== null && p.age >= 18 },
-    { id: 'vacc-hepb', label: 'Hépatite B : statut vaccinal (sérologie si risque)', show: () => true },
-    { id: 'vacc-menin', label: 'Méningocoque ABCYW : à jour selon âge/situation (avis patients 16–24 ans, aspiration)', show: p => p.age !== null && p.age <= 24 },
-    { id: 'vacc-grossesse', label: 'Vaccins grossesse : rappel coqueluche (Tdap) à chaque grossesse, VRS/grpe pendant la grossesse selon calendrier', show: p => isF(p) && between(p, 18, 50) },
-  ]
-},
-// ============================ NÉOPLASIES (vue transversale) ============================
-{
-  id: 'neo', title: '🔎 Néoplasies — points de vigilance',
-  items: [
-    { id: 'neo-signes', label: 'Signes d\'alerte généraux : amaigrissement inexpliqué, hémorragies, adénopathies, toux > 3 sem, dysphagie, douleur chronique inhabituelle', show: () => true },
-    { id: 'neo-peau', label: 'Cancer de la peau : examen des lésions suspectes / éducation à l\'auto-examen (photoprotection)', show: () => true },
-    { id: 'neo-genet', label: 'ATCD familiaux de cancers (sein/ovaire/colon/pancréas/prostate) : consultation d\'oncogénétique à envisager', show: () => true },
-    { id: 'neo-suivi', label: 'Suivi oncologique si ATCD personnel : examens programmés, biologiste référent', show: () => true },
-  ]
-},
-// ============================ NEURO / PSYCHIAATRIE ============================
-{
-  id: 'neuro', title: '🧠 Neurologie / Psychiatrie',
-  items: [
-    { id: 'neuro-depression', label: 'Dépression : dépistage (PHQ-2, questions simples) si contexte', show: () => true },
-    { id: 'neuro-anxiete', label: 'Anxiété / trouble anxieux généralisé (GAD-2)', show: () => true },
-    { id: 'neuro-cognitif', label: 'Troubles cognitifs : repérage si plainte (patient/entourage) ≥ 70 ans (MMS, consultation mémoire)', show: p => p.age !== null && p.age >= 70,
-      why: () => 'Repérage des troubles cognitifs chez le sujet âgé (HAS).' },
-    { id: 'neuro-avc', label: 'Facteurs de risque d\'AVC connus et contrôlés (FA, HTA, tabac — RCV : risquecv.fr)', show: () => true },
-    { id: 'neuro-cephalees', label: 'Céphalées chroniques / migraines : recherche de signes de gravité', show: () => true },
-    { id: 'neuro-epilepsie', label: 'Épilepsie : contrôle des crises, observance, permis/plan de conduite', show: () => true },
-    { id: 'neuro-parkinson', label: 'Syndrome parkinsonien : dépistage moteur si signes (tremblement, rigidité, lenteur)', show: p => p.age !== null && p.age >= 60 },
-    { id: 'neuro-suicide', label: 'Risque suicidaire évalué si détresse psychique', show: () => true },
-  ]
-},
-// ============================ ORL / OPHTALMO ============================
-{
-  id: 'orl', title: '👂 ORL / Ophtalmologie',
-  items: [
-    { id: 'orl-audition', label: 'Audition : dépistage de la déficience auditive (60–74 ans, HAS)', show: p => p.age !== null && p.age >= 60,
-      why: () => 'Dépistage de la déficience auditive recommandé chez les 60–74 ans (HAS).' },
-    { id: 'orl-vision', label: 'Vision : acuité visuelle, cataracte, DMLA (examen ophtalmo si signes)', show: p => p.age !== null && p.age >= 50 },
-    { id: 'orl-glaucome', label: 'Glaucoma : dépistage ophtalmologique si ≥ 40 ans avec FDR (ATCD familial, myopie forte, corticoïdes)', show: p => p.age !== null && p.age >= 40 },
-    { id: 'orl-diabete-fond', label: 'Fond d\'œil annuel si diabète (rétinopathie diabétique)', show: () => true },
-    { id: 'orl-angine', label: 'Angine : streptotest si symptomatologie (pédiatrie/adulte jeune)', show: p => p.age !== null && p.age < 40 },
-    { id: 'orl-saos-ent', label: 'ORL : hypertrophie amygdalienne / SAOS de l\'enfant (attention pédiatrie)', show: p => minor(p) },
-  ]
-},
-// ============================ DERMATOLOGIE ============================
-{
-  id: 'dermato', title: '☀️ Dermatologie',
-  items: [
-    { p: true, id: 'derm-examen', label: 'Examen cutané : lésions suspectes, naevi atypiques', show: () => true },
-    { id: 'derm-photoprotection', label: 'Photoprotection / éducation solaire (sujets à peau claire, immunodéprimés)', show: () => true },
-    { id: 'derm-dermato-onco', label: 'ATCD de mélanome / carcinome : suivi dermatologique annuel', show: () => true },
-  ]
-},
-// ============================ INFECTIOLOGIE / IST ============================
-{
-  id: 'infectio', title: '🦠 Infectiologie / IST',
-  items: [
-    { id: 'ist-vih', label: 'VIH : dépistage au moins une fois si situation à risque, ou proposition systématique (18–65 ans)', show: p => between(p, 18, 65) },
-    { id: 'ist-chlamydia', label: 'Chlamydia/gonocoque : dépistage < 30 ans avec partenaires multiples / nouveaux partenaire', show: p => p.age !== null && p.age < 30 },
-    { id: 'ist-syphilis', label: 'Syphilis : sérologie si situation à risque / grossesse', show: () => true },
-    { id: 'ist-hepatites', label: 'Hépatites B/C : statut vérifié (sérologie B, PCR C si risque)', show: () => true },
-    { id: 'ist-grossesse-sero', label: 'Sérologies grossesse : toxoplasmose, rubéole, VIH, syphilis, VHB (obligatoires)', show: p => isF(p) && between(p, 18, 50) },
-  ]
-},
-// ============================ GÉRIATRIE / SOCIAL ============================
-{
-  id: 'geri', title: '🧓 Gériatrie / Social (≥ 65 ans)',
-  items: [
-    { id: 'geri-chutes', label: 'Chutes (antécédents, équilibre, environnement, kiné)', show: p => p.age !== null && p.age >= 65 },
-    { id: 'geri-denutrition', label: 'Dénutrition : dépistage (MNA, perte de poids, albumine)', show: p => p.age !== null && p.age >= 70 },
-    { id: 'geri-isolement', label: 'Isolement social / réseau de proximité, aidants', show: p => p.age !== null && p.age >= 65 },
-    { id: 'geri-iatrogenie', label: 'Revue des traitements : iatrogénie, interactions, observance', show: p => p.age !== null && p.age >= 65 },
-    { id: 'geri-autonomie', label: 'Autonomie (IADL/ADL), aides à domicile, APA', show: p => p.age !== null && p.age >= 65 },
-    { id: 'geri-avancee', label: 'Directives anticipées / personne de confiance à identifier', show: p => p.age !== null && p.age >= 65 },
-    { id: 'geri-continence', label: 'Continence : rechercher troubles mictionnels / fécaux', show: p => p.age !== null && p.age >= 65 },
-  ]
-},
-// ============================ ADDICTOLOGIE ============================
-{
-  id: 'addicto', title: '🍷 Addictologie',
-  items: [
-    { id: 'addict-alcool', label: 'Alcool : dépistage (AUDIT-C / FACE) — repérage et IBAA si positif', show: () => true,
-      why: () => 'Dépistage des consommations d\'alcool à risque (remboursement SI ≥ 1 si/an).' },
-    { id: 'addict-tabac', label: 'Tabac : statut et sevrage (voir Pneumologie)', show: () => true },
-    { id: 'addict-cannabis', label: 'Cannabis / opioïdes / autres : dépistage si contexte', show: () => true },
-    { id: 'addict-jeu', label: 'Jeu pathologique / écrans : repérage si contexte', show: () => true },
-  ]
-}
+
+// ==================== PNEUMOLOGIE ====================
+{ id: 'pneumo', title: '🫁 Pneumologie', blocks: [
+  { id: 'bpco', type: 'depistage', title: 'BPCO', exam: 'Spirométrie / EFR avec test de réversibilité', show: () => true,
+    auto: [{ label: 'Âge ≥ 40 ans + tabagisme (actif ou sevré)', cond: p => p.age !== null && p.age >= 40 }],
+    indications: [
+      'Toux chronique / expectorations chroniques',
+      'Dyspnée chronique ou à l\'effort',
+      'Sifflements respiratoires',
+      'Tabagisme ≥ 20 paquets-années',
+      'Exacerbations respiratoires à répétition',
+      'Exposition professionnelle (poussières, fumées, solvants)'
+    ] },
+  { id: 'saos', type: 'depistage', title: 'Syndrome d\'apnées du sommeil (SAOS)', exam: 'Polygraphie / polysomnographie du sommeil', show: () => true,
+    auto: [],
+    indications: [
+      'Ronflements nocturnes + pauses respiratoires rapportées',
+      'Somnolence diurne excessive (score d\'Epworth élevé)',
+      'Obésité / tour de taille augmenté',
+      'HTA réfractaire, surtout nocturne',
+      'Pas de rafraîchissement au réveil, nycturie'
+    ] },
+  { id: 'a1at', type: 'depistage', title: 'Déficit en alpha-1-antitrypsine', exam: 'Dosage sanguin alpha-1-antitrypsine', show: () => true,
+    auto: [],
+    indications: [
+      'BPCO / emphysème diagnostiqué avant 45 ans',
+      'Emphysème chez un non-fumeur',
+      'ATCD familial de déficit en A1AT ou cirrhose inexpliquée'
+    ] },
+  { id: 'poumon-scanner', type: 'depistage', title: 'Cancer du poumon', exam: 'Scanner thoracique low-dose (à renouveler annuellement)', show: p => between(p, 50, 74),
+    auto: [{ label: 'Fumeur ou ex-fumeur de 50–74 ans (dépistage à envisager si tabagisme important)', cond: () => true }],
+    indications: ['Tabagisme ≥ 20 paquets-années', 'BPCO / fibrose pulmonaire associée', 'ATCD personnel de cancer (poumon, tête et cou)'] },
+  { id: 'tb', type: 'depistage', title: 'Tuberculose (infection latente)', exam: 'Test IGRA (ou IDR)', show: () => true,
+    auto: [],
+    indications: ['Contage tuberculeux récent', 'Vivant ou retour de zone d\'endémie', 'Immunodépression / traitement immunosuppresseur', 'Profession de santé'] },
+  { id: 'asthme', type: 'checklist', title: 'Asthme (si connu)', show: () => true,
+    items: [
+      { id: 'asthme-controle', label: 'Contrôle de l\'asthme évalué (ACT), DEP' },
+      { id: 'asthme-technique', label: 'Technique d\'inhalation vérifiée' },
+      { id: 'asthme-observance', label: 'Observance du traitement de fond vérifiée' }
+    ] }
+]},
+
+// ==================== RHUMATOLOGIE / OSTÉOPOROSE ====================
+{ id: 'rhumato', title: '🦴 Rhumatologie — Ostéoporose', blocks: [
+  { id: 'osteo', type: 'depistage', title: 'Ostéoporose', exam: 'Ostéodensitométrie (DMO)', show: () => true,
+    auto: [
+      { label: 'Femme ≥ 65 ans', cond: p => isF(p) && p.age !== null && p.age >= 65 },
+      { label: 'Homme ≥ 70 ans (dépistage possible, HAS 2024)', cond: p => isM(p) && p.age !== null && p.age >= 70 }
+    ],
+    indications: [
+      'Ménopause précoce (< 40 ans, ou avant 45 ans)',
+      'IMC < 19 / maigreur importante',
+      'Fracture de faible énergie après 50 ans (poignet, vertèbre, col fémoral…)',
+      'Fracture de l\'extrémité supérieure du fémur chez un parent au 1er degré',
+      'Corticothérapie : ≥ 7,5 mg/j prednisone ≥ 3 mois (en cours ou prévue)',
+      'Tabagisme actif',
+      'Consommation d\'alcool ≥ 3 verres/j',
+      'Hyperthyroïdie ou hyperparathyroïdie',
+      'Hypogonadisme (homme) / ménopause < 45 ans',
+      'Maladie inflammatoire chronique (PR, RCH, Crohn…)',
+      'Malabsorption / gastrectomie / maladie cœliaque',
+      'Immobilité prolongée',
+      'Diabète traité par glitazones (femmes)',
+      'Traitements anti-hormonaux (hormonothérapie du cancer du sein ou de la prostate)',
+      'FRAX ≥ seuil d\'intervention'
+    ] },
+  { id: 'rhumato-inflammatory', type: 'depistage', title: 'Rhumatisme inflammatoire débutant', exam: 'Bilan biologique + avis rhumatologue', show: () => true,
+    auto: [],
+    indications: [
+      'Douleurs inflammatoires (réveil nocturne, raideur matinale > 30 min)',
+      'Gonflement articulaire persistant',
+      'Psoriasis / colopathie associée (rhumatisme psoriasique)'
+    ] },
+  { id: 'goutte', type: 'depistage', title: 'Goutte / hyperuricémie', exam: 'Uricémie', show: () => true,
+    auto: [],
+    indications: ['Crises de grosse articulation (orteil, pied)', 'Syndrome métabolique / insuffisance rénale', 'Diurétiques / immunosuppresseurs'] }
+]},
+
+// ==================== CARDIOLOGIE (RCV global → risquecv.fr) ====================
+{ id: 'cardio', title: '❤️ Cardiologie (risque global : risquecv.fr)', blocks: [
+  { id: 'hta', type: 'depistage', title: 'Hypertension artérielle', exam: 'Mesure de la pression artérielle (au besoin MAPA/MHM)', show: () => true,
+    auto: [{ label: 'Âge ≥ 65 ans : TA à mesurer au moins une fois/an', cond: p => p.age !== null && p.age >= 65 }],
+    indications: ['TA élevée mesurée précédemment', 'Surpoids/obésité', 'ATCD familial d\'HTA précoce', 'Diabète / dyslipidémie', 'Sédentarité, alcool, tabac', 'Grossesse : TA à chaque contact (femmes)', 'Apnées du sommeil'] },
+  { id: 'aaa', type: 'depistage', title: 'Anévrisme de l\'aorte abdominale (AAA)', exam: 'Échographie aorte abdominale', show: p => between(p, 65, 85),
+    auto: [{ label: 'Fumeur ou ex-fumeur de 65–85 ans', cond: () => true }],
+    indications: ['Tabagisme (actif ou passé)', 'ATCD familial d\'AAA', 'AAA, artériopathie ou anévrisme poplité/fémoral connus'] },
+  { id: 'fa', type: 'depistage', title: 'Fibrillation auriculaire', exam: 'Palpation du pouls / ECG / ARIH', show: p => p.age !== null && p.age >= 65,
+    auto: [{ label: 'Âge ≥ 65 ans (dépistage par ARIH/pouls)', cond: () => true }],
+    indications: ['Pouls irrégulier palpé', 'Palpitations rapportées', 'ATCD d\'AVC/AIT', 'Insuffisance cardiaque, HTA, obésité'] },
+  { id: 'ic', type: 'depistage', title: 'Insuffisance cardiaque', exam: 'BNP/NT-proBNP puis échographie cardiaque', show: () => true,
+    auto: [],
+    indications: ['Dyspnée d\'effort progressive', 'Œdèmes des membres inférieurs', 'Prise de poids rapide, orthopnée', 'Coronaropathie / HTA / diabète connus'] },
+  { id: 'amput', type: 'depistage', title: 'Artériopathie des membres inférieurs', exam: 'Pouls périphériques + IPS si doute', show: () => true,
+    auto: [],
+    indications: ['Claudication intermittente', 'Tabagisme, diabète, dyslipidémie', 'Ulcération/gangrène d\'orteil', 'Coronaropathie connue'] },
+  { id: 'valvulo', type: 'depistage', title: 'Valvulopathie', exam: 'Auscultation cardiaque ± échographie', show: () => true,
+    auto: [{ label: 'Souffle connu ou âge ≥ 75 ans (attention souffle aortique)', cond: p => p.age !== null && p.age >= 75 }],
+    indications: ['Souffle cardiaque à l\'auscultation', 'Dyspnée / syncopes / douleur thoracique', 'ATCD de rhumatisme articulaire aigu', 'BPCO (insuffisance tricuspide)'] }
+]},
+
+// ==================== MÉTABOLISME / ENDOCRINO ====================
+{ id: 'metabo', title: '🍬 Métabolisme / Endocrinologie', blocks: [
+  { id: 'diabete', type: 'depistage', title: 'Diabète de type 2', exam: 'Glycémie à jeun (ou HbA1c)', show: () => true,
+    auto: [
+      { label: 'Âge 45–75 ans : dépistage tous les 3 ans (HAS)', cond: p => between(p, 45, 75) },
+      { label: 'Femme : ATCD de diabète gestationnel → dépistage régulier', cond: p => isF(p) }
+    ],
+    indications: ['Obésité / tour de taille élevé', 'ATCD familial de diabète (parent du 1er degré)', 'Diabète gestationnel ou macrosomie antérieure', 'HTA ou dyslipidémie', 'Sédentarité', 'Syndrome d\'apnées du sommeil', 'Origine à risque (Afrique subsaharienne, Asie, Inde…)'] },
+  { id: 'dyslipid', type: 'depistage', title: 'Dyslipidémie', exam: 'Bilan lipidique (LDL — interprétation du risque global sur risquecv.fr)', show: () => true,
+    auto: [{ label: 'À l\'entrée en adultes puis selon risque', cond: p => p.age !== null && p.age >= 18 }],
+    indications: ['ATCD familial d\'hypercholestérolémie ou d\'accident cardiovasculaire précoce', 'Xanthomes / arc cornéen avant 50 ans', 'Diabète / HTA / tabac', 'Maladie rénale chronique', 'Surpoids'] },
+  { id: 'thyroide', type: 'depistage', title: 'Dysthyroïdie', exam: 'TSH', show: () => true,
+    auto: [],
+    indications: ['Fatigue inexpliquée, prise ou perte de poids', 'Intolérance au froid/chaleur, troubles du rythme', 'Goitre palpé / nodule thyroïdien', 'Femme ≥ 60 ans ou post-partum', 'Traitement par amiodarone / lithium', 'ATCD familial de maladie thyroïdienne'] },
+  { id: 'hemochromatose', type: 'depistage', title: 'Hémochromatose', exam: 'Transferrine saturation (SAT), ferritine', show: () => true,
+    auto: [],
+    indications: ['Asthenie, arthralgies méta­carpophalangiennes', 'ATCD familial (mutation C282Y)', 'Diabète / cardiopathie / cirrhose inexpliqués', 'Origine nord-européenne'] },
+  { id: 'obesite', type: 'checklist', title: 'Surpoids / obésité', show: () => true,
+    items: [
+      { id: 'ob-imc', label: 'IMC mesuré' },
+      { id: 'ob-tt', label: 'Tour de taille mesuré' },
+      { id: 'ob-orientation', label: 'Prise en charge / orientation proposée si IMC ≥ 25–30' }
+    ] }
+]},
+
+// ==================== NÉPHROLOGIE / UROLOGIE ====================
+{ id: 'uro', title: '🫘 Néphrologie / Urologie', blocks: [
+  { id: 'mrc', type: 'depistage', title: 'Maladie rénale chronique', exam: 'DFG estimé (créatinine) + rapport protéinurie/créatinurie', show: () => true,
+    auto: [{ label: 'Âge ≥ 65 ans : DFG à interpréter en fonction de l\'âge', cond: p => p.age !== null && p.age >= 65 }],
+    indications: ['Diabète', 'HTA', 'Maladie cardiovasculaire', 'Traitement néphrotoxique au long cours (AINS, lithium)', 'Obstruction urinaire / uropathie', 'ATCD familial de maladie rénale'] },
+  { id: 'prostate-psa', type: 'depistage', title: 'Cancer de la prostate', exam: 'PSA (après information bénéfices/risques — décision partagée)', show: p => isM(p) && p.age !== null && p.age >= 50,
+    auto: [
+      { label: 'Homme ≥ 50 ans (dépistage individuel à discuter)', cond: p => p.age !== null && p.age >= 50 },
+      { label: 'Homme ≥ 45 ans si ATCD familial ou origine afro-antillaise', cond: p => p.age !== null && p.age >= 45 }
+    ],
+    indications: ['Troubles urinaires du bas appareil (IPSS élevé)', 'ATCD familial de cancer de la prostate (père, frère)', 'Origine afro-antillaise', 'Hématurie inexpliquée'] },
+  { id: 'hbp', type: 'depistage', title: 'Hypertrophie bénigne de la prostate', exam: 'Toucher rectal ± débitmétrie, IPSS', show: p => isM(p) && p.age !== null && p.age >= 50,
+    auto: [{ label: 'Homme ≥ 50 ans', cond: () => true }],
+    indications: ['Nycturie, jets hachés, vidange incomplète', 'Rétention urinaire antérieure'] },
+  { id: 'incontinence', type: 'depistage', title: 'Incontinence urinaire', exam: 'Bilan simple (agenda mictionnel) puis avis spécialisé', show: () => true,
+    auto: [],
+    indications: ['Fuites urinaires rapportées (femme, post-partum)', 'Sujet âgé : fuites non évaluées', 'Impériosités'] }
+]},
+
+// ==================== GYNÉCOLOGIE ====================
+{ id: 'gyneco', title: '🌸 Gynécologie (femmes)', blocks: [
+  { id: 'cervix', type: 'depistage', title: 'Cancer du col de l\'utérus', exam: 'Test HPV tous les 5 ans (ou frottis cytologique tous les 3 ans)', show: p => isF(p) && between(p, 25, 65),
+    auto: [{ label: 'Femme de 25 à 65 ans (dépistage organisé)', cond: () => true }],
+    indications: ['Test non réalisé dans l\'intervalle', 'Frottis/HPV antérieur anormal (ASC-US+)', 'Immunodépression (VIH, transplantation) → dépistage plus fréquent'] },
+  { id: 'sein', type: 'depistage', title: 'Cancer du sein', exam: 'Mammographie tous les 2 ans ± échographie', show: p => isF(p) && p.age !== null && p.age >= 25,
+    auto: [
+      { label: 'Femme 50–74 ans (dépistage organisé)', cond: p => between(p, 50, 74) },
+      { label: 'Femme 25–49 ans : examen clinique annuel, imagerie seulement si signe ou FDR', cond: p => between(p, 25, 49) }
+    ],
+    indications: ['Nodule palpable / rétraction cutanée / écoulement mamelonnaire', 'ATCD familial de cancer du sein (1er degré, surtout < 50 ans)', 'Mutation BRCA1/2 ou syndrome de Lynch', 'Irradiation thoracique antérieure', 'Densité mammaire élevée connue'] },
+  { id: 'endometre', type: 'depistage', title: 'Cancer de l\'endomètre', exam: 'Avis gynécologique + échographie pelvienne', show: p => isF(p) && p.age !== null && p.age >= 45,
+    auto: [],
+    indications: ['Métrorragies post-ménopausiques', 'Ménopause tardive (> 55 ans)', 'Obésité / diabète / syndrome de Lynch', 'Traitement par tamoxifène'] },
+  { id: 'ovaire', type: 'checklist', title: 'Cancer de l\'ovaire', show: p => isF(p) && p.age !== null && p.age >= 50,
+    items: [
+      { id: 'ovaire-signes', label: 'Pas de dépistage systématique, mais symptômes évocateurs à rechercher (distension, douleurs, troubles digestifs)' }
+    ] },
+  { id: 'grossesse', type: 'checklist', title: 'Grossesse / pré-conceptionnel', show: p => isF(p) && between(p, 18, 51),
+    items: [
+      { id: 'gross-fol', label: 'Acide folique en péri-conceptionnel (0,4 mg/j)' },
+      { id: 'gross-sero', label: 'Sérologies obligatoires si grossesse : toxoplasmose, rubéole, VIH, syphilis, VHB' },
+      { id: 'gross-vacc', label: 'Rappel coqueluche (Tdap) à chaque grossesse' },
+      { id: 'gross-diab', label: 'HGPO 24–28 SA si FDR' }
+    ] },
+  { id: 'menopause', type: 'checklist', title: 'Ménopause', show: p => isF(p) && p.age !== null && p.age >= 45,
+    items: [
+      { id: 'meno-sympt', label: 'Symptômes climatériques évalués, troubles génito-urinaires (GSM)' },
+      { id: 'meno-trh', label: 'TRH discutée si symptômes gênants (bénéfices/risques)' }
+    ] },
+  { id: 'contraception', type: 'checklist', title: 'Contraception', show: p => isF(p) && between(p, 15, 55),
+    items: [
+      { id: 'contr-adaptee', label: 'Contraception adaptée, tolérée, à jour' },
+      { id: 'contr-info', label: 'Information contraception d\'urgence si besoin' }
+    ] }
+]},
+
+// ==================== GASTRO-ENTÉROLOGIE ====================
+{ id: 'gastro', title: '🩻 Gastro-entérologie', blocks: [
+  { id: 'crc', type: 'depistage', title: 'Cancer colorectal', exam: 'Test immunologique de recherche de sang occulte (tous les 2 ans) ou coloscopie', show: p => between(p, 50, 74),
+    auto: [{ label: 'Âge 50–74 ans (dépistage organisé)', cond: () => true }],
+    indications: ['Test non fait depuis > 2 ans', 'Test positif → coloscopie totale', 'ATCD familial au 1er degré avant 65 ans → coloscopie', 'Cas familiaux multiples / syndrome de Lynch / polypose', 'Rectorragies, syndrome rectal, altération du transit > 50 ans', 'Coloscopie antérieure avec polypes adénomateux'] },
+  { id: 'oesophage-estomac', type: 'depistage', title: 'Cancer de l\'œsophage / estomac', exam: 'Fibroscopie œso-gastro-duodénale', show: () => true,
+    auto: [],
+    indications: ['Dysphagie (blocage à la déglutition)', 'Douleur épigastrique persistante / anémie ferriprive', 'Âge > 55 ans avec reflux rebelle', 'ATCD familial de cancer de l\'estomac'] },
+  { id: 'helicobacter', type: 'depistage', title: 'Infection à Helicobacter pylori', exam: 'Test respiraire à l\'urée ou sérologie', show: () => true,
+    auto: [],
+    indications: ['Dyspepsie persistante', 'ATCD personnel ou familial d\'ulcère', 'ATCD familial de cancer gastrique', 'Origine / séjour en pays à haute prévalence'] },
+  { id: 'hcv', type: 'depistage', title: 'Hépatite C', exam: 'Sérologie HCV (au moins une fois)', show: p => between(p, 18, 59),
+    auto: [{ label: 'Adulte 18–59 ans : dépistage au moins une fois (HAS)', cond: () => true }],
+    indications: ['Sérologie jamais réalisée', 'Usage de drogues IV ou intra-nasale', 'Transfusion / geste invasif avant 1992', 'Tatouage / piercing à risque', 'VIH, hépatite B connue', 'Partenaire à risque'] },
+  { id: 'hbp', type: 'depistage', title: 'Hépatopathie / cirrhose', exam: 'Bilan hépatique ± FibroScan / échographie', show: () => true,
+    auto: [],
+    indications: ['Consommation d\'alcool à risque', 'Stéatose / NASH connue', 'Obésité, diabète, dyslipidémie', 'Hépatite B ou C chronique', 'Médicaments hépatotoxiques au long cours'] },
+  { id: 'carences', type: 'depistage', title: 'Carence martiale / B12 / folates', exam: 'NFS + ferritine (± B9, B12)', show: () => true,
+    auto: [{ label: 'Femme en âge de procréer : carence martiale fréquente', cond: p => isF(p) && between(p, 15, 50) }],
+    indications: ['Fatigue, pâleur, essoufflement', 'Saignements chroniques (règles abondantes, AINS)', 'Régime végétarien / végétalien', 'Âge > 65 ans', 'Gastrectomie / malabsorption (B12)', 'Grossesse'] }
+]},
+
+// ==================== IMMUNOLOGIE / VACCINATION ====================
+{ id: 'vaccins', title: '💉 Immunologie — Vaccinations', blocks: [
+  { id: 'vacc', type: 'checklist', title: 'Calendrier vaccinal', show: () => true,
+    items: [
+      { id: 'v-carnet', label: 'Carnet vaccinal vérifié (MesVaccins.net, carnet de santé)', why: () => 'Vérifier les dates de rappel dans le carnet.' },
+      { id: 'v-dtp', label: 'Diphtérie / Tétanos / Poliomyélite : rappel à jour (25, 45, 65 ans puis tous les 10 ans)', why: p => (p.age !== null && p.age >= 65) ? '≥ 65 ans : rappel tous les 10 ans.' : null },
+      { id: 'v-grippe', label: 'Grippe saisonnière', why: p => (p.age !== null && p.age >= 65) ? 'Recommandée chaque année dès 65 ans (ou maladie chronique).' : null },
+      { id: 'v-covid', label: 'COVID-19 : à jour selon recommandations', why: p => (p.age !== null && p.age >= 65) ? 'Rappel recommandé ≥ 65 ans et comorbidités.' : null },
+      { id: 'v-pneumo', label: 'Pneumocoque : à jour', why: p => between(p, 65, 85) ? 'Recommandée 65–85 ans (schéma selon statut immunitaire).' : (p.age !== null && p.age < 65 && p.age >= 18 ? 'Si maladie chronique : indication avant 65 ans.' : null) },
+      { id: 'v-rsv', label: 'VRS', why: p => (p.age !== null && p.age >= 75) ? 'Recommandée ≥ 75 ans (ou ≥ 65 ans avec comorbidités).' : null },
+      { id: 'v-zona', label: 'Zona (Shingrix)', why: p => between(p, 65, 74) ? 'Recommandée 65–74 ans (ou 50–64 ans avec comorbidités).' : null },
+      { id: 'v-hpv', label: 'HPV', why: p => (p.age !== null && p.age >= 11 && p.age <= 19) ? '11–14 ans, rattrapage jusqu\'à 19 ans révolus.' : null },
+      { id: 'v-ror', label: 'ROR : statut vérifié (2 doses, nés après 1980)' },
+      { id: 'v-hepb', label: 'Hépatite B : statut vaccinal' },
+      { id: 'v-meningo', label: 'Méningocoque ABCYW', why: p => (p.age !== null && p.age <= 24) ? 'À jour chez les 16–24 ans selon situations à risque.' : null }
+    ] }
+]},
+
+// ==================== NÉOPLASIES — VIGILANCE TRANSVERSALE ====================
+{ id: 'neo', title: '🔎 Néoplasies — vigilance', blocks: [
+  { id: 'neo-alerte', type: 'depistage', title: 'Signes d\'alerte de néoplasie', exam: 'Bilan d\'orientation (examen clinique + examens ciblés)', show: () => true,
+    auto: [],
+    indications: [
+      'Amaigrissement inexpliqué (> 5 % en 6 mois)',
+      'Hémorragie anormale (rectorragies, hémoptysie, hématurie, métrorragies)',
+      'Adénopathie persistante > 3 semaines',
+      'Toux ou dysphonie persistante > 3 semaines',
+      'Dysphagie persistante',
+      'Douleur chronique inhabituelle / nocturne',
+      'Nodule cutané modifié (mélanome : ABCDE)',
+      'Anémie inexpliquée'
+    ] },
+  { id: 'neo-genet', type: 'depistage', title: 'Prédisposition génétique', exam: 'Consultation d\'oncogénétique', show: () => true,
+    auto: [],
+    indications: [
+      'Cancers du sein/ovaire familiaux (≥ 2 cas, < 50 ans) → BRCA',
+      'Cancers colorectaux familiaux (Lynch, polypose)',
+      'Cancer de la prostate familial précoce',
+      'Cancer pancréatique familial'
+    ] },
+  { id: 'peau', type: 'checklist', title: 'Cancer de la peau', show: () => true,
+    items: [
+      { id: 'peau-exam', label: 'Examen cutané : lésions suspectes repérées' },
+      { id: 'peau-photo', label: 'Photoprotection / éducation solaire donnée' },
+      { id: 'peau-suivi', label: 'Suivi dermatologique annuel si ATCD de mélanome' }
+    ] }
+]},
+
+// ==================== NEURO / PSYCHIATRIE ====================
+{ id: 'neuro', title: '🧠 Neurologie / Psychiatrie', blocks: [
+  { id: 'depression', type: 'depistage', title: 'Dépression', exam: 'Évaluation (PHQ-9) puis prise en charge', show: () => true,
+    auto: [],
+    indications: ['Humeur triste / perte d\'intérêt > 2 semaines', 'PHQ-2 positif', 'Antécédent de dépression', 'Maladie chronique / événement de vie douloureux récent'] },
+  { id: 'anxiete', type: 'depistage', title: 'Trouble anxieux', exam: 'Évaluation (GAD-7) puis prise en charge', show: () => true,
+    auto: [],
+    indications: ['Inquiétudes non contrôlables > 6 mois', 'Signes physiques d\'anxiété', 'Évitement de situations'] },
+  { id: 'risque-suicide', type: 'depistage', title: 'Risque suicidaire', exam: 'Évaluation immédiate du risque, orientation si nécessaire', show: () => true,
+    auto: [],
+    indications: ['Idées suicidaires exprimées', 'Antécédent de tentative', 'Isolement majeur, perte récente', 'Addiction active + humeur basse'] },
+  { id: 'cognitif', type: 'depistage', title: 'Troubles cognitifs', exam: 'Repérage (MMS/MoCA) puis consultation mémoire', show: p => p.age !== null && p.age >= 70,
+    auto: [{ label: 'Âge ≥ 70 ans : repérage si plainte du patient ou de l\'entourage', cond: () => true }],
+    indications: ['Plainte cognitive confirmée par l\'entourage', 'Difficultés dans les activités instrumentales (IADL)', 'Troubles du comportement, désorientation'] },
+  { id: 'parkinson', type: 'depistage', title: 'Syndrome parkinsonien', exam: 'Examen moteur + avis neurologique', show: p => p.age !== null && p.age >= 60,
+    auto: [],
+    indications: ['Tremblement de repos', 'Lenteur des mouvements / rigidité', 'Chutes répétées inexpliquées', 'Trouble de l\'odorat ancien'] },
+  { id: 'cephalees', type: 'depistage', title: 'Céphalées chroniques', exam: 'Examen neuro + imagerie si signes de gravité', show: () => true,
+    auto: [],
+    indications: ['Céphalée nouvelle, d\'apparition brutale', 'Céphalée avec fièvre / troubles neurologiques', 'Céphalée du matin avec vomissements', 'Aggravation progressive'] }
+]},
+
+// ==================== ORL / OPHTALMOLOGIE ====================
+{ id: 'orl', title: '👂 ORL / Ophtalmologie', blocks: [
+  { id: 'audition', type: 'depistage', title: 'Déficience auditive', exam: 'Dépistage subjectif (questionnaire) puis audiométrie', show: p => p.age !== null && p.age >= 60,
+    auto: [{ label: 'Âge 60–74 ans : dépistage de la déficience auditive (HAS)', cond: p => p.age !== null && p.age <= 74 }],
+    indications: ['Difficulté à suivre une conversation', 'Volume TV élevé', 'Acouphènes', 'Difficulté dans le bruit'] },
+  { id: 'vision', type: 'depistage', title: 'Vision (acuité, DMLA, cataracte)', exam: 'Examen ophtalmologique', show: p => p.age !== null && p.age >= 50,
+    auto: [{ label: 'Âge ≥ 50 ans : DMLA et cataracte à rechercher', cond: () => true }],
+    indications: ['Baisse d\'acuité visuelle', 'Déformation des lignes droites (métamorphopsies)', 'Éblouissements / halos', 'Diabète (fond d\'œil annuel)', 'Dioptrie forte (myopie forte → risque rétinien)'] },
+  { id: 'glaucome', type: 'depistage', title: 'Glaucome chronique', exam: 'Examen ophtalmologique (PIO, papille)', show: p => p.age !== null && p.age >= 40,
+    auto: [],
+    indications: ['ATCD familial de glaucome', 'Myopie forte', 'Corticothérapie prolongée', 'Migraine / HTA / diabète', 'Âge ≥ 70 ans'] },
+  { id: 'angine', type: 'depistage', title: 'Angine streptococcique (si symptomatique)', exam: 'Streptotest (TDR)', show: p => p.age !== null && p.age < 40,
+    auto: [],
+    indications: ['Angine fébrile (score de Mac Isaac ≥ 2)', 'Scarlatine dans l\'entourage', 'Tonsilles purulentes + fièvre'] }
+]},
+
+// ==================== INFECTIOLOGIE / IST ====================
+{ id: 'infectio', title: '🦠 Infectiologie / IST', blocks: [
+  { id: 'vih', type: 'depistage', title: 'VIH', exam: 'Sérologie VIH (dépistage au moins une fois, ou selon situation)', show: p => between(p, 18, 65),
+    auto: [{ label: 'Adulte 18–65 ans : dépistage au moins une fois (proposition systématique)', cond: () => true }],
+    indications: ['Sérologie jamais réalisée', 'Partenaire(s) à risque / nouveaux partenaires', 'IST antérieure', 'Usage de drogues IV', 'Grossesse (dépistage obligatoire)', 'Signes cliniques évocateurs'] },
+  { id: 'ist', type: 'depistage', title: 'Autres IST (chlamydia, gonocoque, syphilis)', exam: 'PCR premier jet / ECBU / sérologie syphilis', show: () => true,
+    auto: [{ label: '< 30 ans : dépistage chlamydia à proposer si nouveaux partenaires', cond: p => p.age !== null && p.age < 30 }],
+    indications: ['Leucorrhées / urétrite', 'Partenaires multiples sans préservatif', 'Partenaire atteint d\'IST', 'Homme ayant des relations avec des hommes (dépistage régulier)', 'Grossesse (syphilis obligatoire)'] },
+  { id: 'hepb', type: 'depistage', title: 'Hépatite B', exam: 'Sérologie HBsAg + anti-HBs', show: () => true,
+    auto: [],
+    indications: ['Statut vaccinal inconnu', 'Entourage de porteur', 'Grossesse (dépistage obligatoire)', 'Situation à risque (même que VIH)', 'Origine de zone d\'endémie'] }
+]},
+
+// ==================== GÉRIATRIE / SOCIAL ====================
+{ id: 'geri', title: '🧓 Gériatrie / Social (≥ 65 ans)', blocks: [
+  { id: 'chutes', type: 'depistage', title: 'Risque de chute', exam: 'Évaluation (TUG, test de lever de chaise) ± kiné', show: p => p.age !== null && p.age >= 65,
+    auto: [{ label: 'Âge ≥ 65 ans : évaluation annuelle du risque de chute', cond: () => true }],
+    indications: ['Chute dans l\'année écoulée', 'Trouble de la marche / équilibre', 'Benzodiazépines, anticholinergiques, hypotenseurs', 'Déficit visuel', 'Ostéoporose associée'] },
+  { id: 'denutrition', type: 'depistage', title: 'Dénutrition', exam: 'Dépistage (MNA, poids, albumine)', show: p => p.age !== null && p.age >= 70,
+    auto: [{ label: 'Âge ≥ 70 ans : dépistage de la dénutrition (HAS)', cond: () => true }],
+    indications: ['Perte d\'appétit / perte de poids involontaire', 'Difficultés à faire les courses / cuisiner', 'Troubles de déglutition', 'Polymédication'] },
+  { id: 'iatrogenie', type: 'checklist', title: 'Iatrogénie / traitements', show: p => p.age !== null && p.age >= 65,
+    items: [
+      { id: 'iatro-revue', label: 'Revue de la liste des traitements (prescrits et automédication)' },
+      { id: 'iatro-observance', label: 'Observance vérifiée (ordre des prises, oudonnance comprise)' }
+    ] },
+  { id: 'social', type: 'checklist', title: 'Autonomie / social', show: p => p.age !== null && p.age >= 65,
+    items: [
+      { id: 'soc-isolement', label: 'Isolement social / aidants identifiés' },
+      { id: 'soc-iadl', label: 'Autonomie évaluée (IADL), aides à domicile / APA si besoin' },
+      { id: 'soc-confiance', label: 'Personne de confiance identifiée, directives anticipées évoquées' }
+    ] }
+]},
+
+// ==================== ADDICTOLOGIE ====================
+{ id: 'addicto', title: '🍷 Addictologie', blocks: [
+  { id: 'tabac', type: 'depistage', title: 'Tabagisme', exam: 'Intervention brève d\'aide au sevrage (substitution, consultation)', show: () => true,
+    auto: [],
+    indications: ['Fumeur actif (paquets-années : …)', 'Ex-fumeur < 3 ans (surveillance)', 'Envie d\'arrêter exprimée'] },
+  { id: 'alcool', type: 'depistage', title: 'Consommation d\'alcool à risque', exam: 'AUDIT-C complet + IBAA si positif', show: () => true,
+    auto: [],
+    indications: ['AUDIT-C ≥ 3 (H) / ≥ 2 (F) ou consommation ≥ 10 verres/semaine', 'Ivresses répétées', 'Pathologie hépatique, HTA, troubles du sommeil', 'Entourage inquiet'] },
+  { id: 'autres-addict', type: 'depistage', title: 'Autres addictions', exam: 'Repérage et orientation', show: () => true,
+    auto: [],
+    indications: ['Cannabis quotidien', 'Opioïdes / benzodiazépines : usage prolongé non adapté', 'Jeux / écrans problématiques', 'Usage de crack / cocaïne / amphétamines'] }
+]}
 ];
 
 // ---------- État ----------
 const state = {};
+// blockId -> { indications: Set(idx), auto: bool[], status: 'a-jour'|'non-concerne'|null, note }
+// checklist itemId -> { status: 'oui'|'non'|null, value }
 
-function visibleItems() {
-  const p = P();
-  return SECTIONS.flatMap(s => s.items.filter(i => !i.show || i.show(p)));
+function blockState(id) {
+  if (!state[id]) state[id] = { indications: new Set(), status: null, note: '' };
+  return state[id];
+}
+function itemState(id) {
+  if (!state[id]) state[id] = { status: null, value: '' };
+  return state[id];
 }
 
 // ---------- Rendu ----------
@@ -284,125 +384,192 @@ function render() {
   const p = P();
 
   SECTIONS.forEach(sec => {
-    const visItems = sec.items.filter(i => !i.show || i.show(p));
-    if (!visItems.length) return;
+    const visBlocks = sec.blocks.filter(b => !b.show || b.show(p));
+    if (!visBlocks.length) return;
     const card = document.createElement('section');
     card.className = 'card';
     card.innerHTML = `<h2>${sec.title}</h2>`;
-
-    visItems.forEach(it => {
-      const row = document.createElement('div');
-      row.className = 'item';
-      row.dataset.id = it.id;
-
-      const st = state[it.id]?.status || null;
-      if (st === 'na') row.classList.add('na');
-
-      const why = it.why ? it.why(p) : null;
-      let flags = '';
-      if (why) flags += `<span class="flag auto">ⓘ ${escapeHtml(why)}</span>`;
-      if (st === 'oui') flags += `<span class="flag done">✔ Fait / à jour</span>`;
-      if (st === 'non') flags += `<span class="flag todo">✖ À faire</span>`;
-
-      const inputHtml = it.input === 'text'
-        ? `<input type="text" data-input="${it.id}" placeholder="préciser" value="${escapeAttr(state[it.id]?.value || '')}">`
-        : it.input === 'date'
-        ? `<input type="date" data-input="${it.id}" value="${escapeAttr(state[it.id]?.value || '')}">`
-        : '';
-
-      row.innerHTML = `
-        <div class="q">
-          <span class="label">${escapeHtml(it.label)}${flags}</span>
-          ${it.detail ? `<div class="detail">${escapeHtml(it.detail)}</div>` : ''}
-          ${it.input === 'note' ? `<textarea data-input="${it.id}" rows="2" placeholder="note...">${escapeHtml(state[it.id]?.value || '')}</textarea>` : ''}
-        </div>
-        ${inputHtml}
-        <div class="status">
-          <button data-status="oui" class="${st === 'oui' ? 'active-oui' : ''}">Fait</button>
-          <button data-status="non" class="${st === 'non' ? 'active-non' : ''}">À faire</button>
-          <button data-status="na" class="${st === 'na' ? 'active-na' : ''}">N/A</button>
-        </div>`;
-      card.appendChild(row);
-    });
+    visBlocks.forEach(b => card.appendChild(renderBlock(b, p)));
     container.appendChild(card);
   });
 
   const age = p.age;
   document.getElementById('pat-age-line').textContent =
-    PATIENT.ddn && age !== null
-      ? `Âge calculé : ${age} an${age > 1 ? 's' : ''}`
-      : (PATIENT.ddn ? 'Date de naissance invalide' : 'Renseignez la date de naissance pour activer les critères automatiques');
+    PATIENT.ddn && age !== null ? `Âge calculé : ${age} an${age > 1 ? 's' : ''}`
+    : (PATIENT.ddn ? 'Date de naissance invalide' : 'Renseignez la date de naissance pour activer les critères automatiques');
 
   updateSummary();
 }
 
-function updateSummary() {
-  const items = visibleItems();
-  const evaluated = items.filter(i => state[i.id]?.status && state[i.id].status !== 'na');
-  const todo = evaluated.filter(i => state[i.id].status === 'non');
-  const fill = document.getElementById('progress-fill');
-  const pct = evaluated.length ? Math.round(100 * evaluated.length / items.length) : 0;
-  fill.style.width = pct + '%';
-  fill.style.background = todo.length ? '#dc3545' : '#198754';
-  document.getElementById('progress-info').textContent =
-    `${evaluated.length} / ${items.length} items évalués` + (todo.length ? ` — ${todo.length} à faire` : '');
+function renderBlock(b, p) {
+  const div = document.createElement('div');
+  div.className = 'block';
+  div.dataset.block = b.id;
+
+  if (b.type === 'depistage') {
+    const st = blockState(b.id);
+    const autoActive = (b.auto || []).filter(a => a.cond(p));
+    const manualActive = [...st.indications].map(i => b.indications[i]).filter(Boolean);
+    const reasons = [...autoActive.map(a => a.label), ...manualActive];
+    const todo = st.status !== 'a-jour' && st.status !== 'non-concerne' && reasons.length > 0;
+    const done = st.status === 'a-jour';
+    const nc = st.status === 'non-concerne';
+
+    let html = `<div class="block-head">
+      <span class="block-title">${escapeHtml(b.title)}</span>
+      <span class="block-actions">
+        <button data-blockstatus="a-jour" class="${done ? 'active-oui' : ''}" title="Examen déjà réalisé ou à jour">✔ Réalisé / à jour</button>
+        <button data-blockstatus="non-concerne" class="${nc ? 'active-na' : ''}" title="Ne concerne pas ce patient">N/A</button>
+      </span></div>`;
+    html += `<div class="block-exam">Examen : <strong>${escapeHtml(b.exam)}</strong></div>`;
+
+    if (autoActive.length) {
+      html += `<div class="indications-label">Automatique (âge / sexe) :</div><div class="indications">`;
+      autoActive.forEach(a => html += `<label class="ind auto"><input type="checkbox" checked disabled> ${escapeHtml(a.label)}</label>`);
+      html += `</div>`;
+    }
+    html += `<div class="indications-label">Indications à cocher si présentes :</div><div class="indications">`;
+    b.indications.forEach((ind, i) => {
+      html += `<label class="ind"><input type="checkbox" data-ind="${i}" ${st.indications.has(i) ? 'checked' : ''}> ${escapeHtml(ind)}</label>`;
+    });
+    html += `</div>`;
+
+    if (todo)
+      html += `<div class="conclusion todo">➡️ <strong>${escapeHtml(b.exam)} à réaliser</strong> car : ${escapeHtml(reasons.join(' ; '))}</div>`;
+    else if (done)
+      html += `<div class="conclusion done">✔ ${escapeHtml(b.title)} : examen réalisé / à jour</div>`;
+    else if (nc)
+      html += `<div class="conclusion na">N/A — ${escapeHtml(b.title)}</div>`;
+    else if (st.indications.size === 0 && autoActive.length === 0)
+      html += `<div class="conclusion none">Aucune indication cochée — pas de dépistage requis pour ce point</div>`;
+
+    div.innerHTML = html;
+    div.querySelectorAll('[data-ind]').forEach(cb => cb.addEventListener('change', () => {
+      const i = parseInt(cb.dataset.ind, 10);
+      if (cb.checked) st.indications.add(i); else st.indications.delete(i);
+      render();
+    }));
+    div.querySelectorAll('[data-blockstatus]').forEach(btn => btn.addEventListener('click', () => {
+      st.status = (st.status === btn.dataset.blockstatus) ? null : btn.dataset.blockstatus;
+      render();
+    }));
+  }
+
+  if (b.type === 'checklist') {
+    let html = `<div class="block-head"><span class="block-title">${escapeHtml(b.title)}</span></div>`;
+    b.items.forEach(it => {
+      if (it.show && !it.show(p)) return;
+      const st = itemState(it.id);
+      const why = it.why ? it.why(p) : null;
+      let flags = why ? `<span class="flag auto">ⓘ ${escapeHtml(why)}</span>` : '';
+      if (st.status === 'oui') flags += `<span class="flag done">✔ Fait / à jour</span>`;
+      if (st.status === 'non') flags += `<span class="flag todo">✖ À faire</span>`;
+      html += `<div class="item" data-item="${it.id}">
+        <div class="q"><span class="label">${escapeHtml(it.label)}${flags}</span></div>
+        <div class="status">
+          <button data-itemstatus="oui" class="${st.status === 'oui' ? 'active-oui' : ''}">Fait</button>
+          <button data-itemstatus="non" class="${st.status === 'non' ? 'active-non' : ''}">À faire</button>
+          <button data-itemstatus="na" class="${st.status === 'na' ? 'active-na' : ''}">N/A</button>
+        </div></div>`;
+    });
+    div.innerHTML = html;
+    div.querySelectorAll('[data-itemstatus]').forEach(btn => btn.addEventListener('click', () => {
+      const id = btn.closest('.item').dataset.item;
+      const st = itemState(id);
+      st.status = (st.status === btn.dataset.itemstatus) ? null : btn.dataset.itemstatus;
+      render();
+    }));
+  }
+  return div;
 }
 
-// ---------- Événements ----------
-document.addEventListener('click', e => {
-  const btn = e.target.closest('.status button');
-  if (btn) {
-    const id = btn.closest('.item').dataset.id;
-    if (!state[id]) state[id] = { status: null, value: '' };
-    const cur = state[id].status;
-    state[id].status = (cur === btn.dataset.status) ? null : btn.dataset.status;
-    render();
-  }
-});
+// ---------- Synthèse ----------
+function collectConclusions(p) {
+  const todo = [], done = [], nc = [];
+  SECTIONS.forEach(sec => {
+    sec.blocks.forEach(b => {
+      if (b.show && !b.show(p)) return;
+      if (b.type !== 'depistage') return;
+      const st = state[b.id] || { indications: new Set(), status: null };
+      const auto = (b.auto || []).filter(a => a.cond(p)).map(a => a.label);
+      const man = [...st.indications].map(i => b.indications[i]).filter(Boolean);
+      if (st.status === 'a-jour') done.push({ section: sec.title, title: b.title, exam: b.exam });
+      else if (st.status === 'non-concerne') nc.push({ section: sec.title, title: b.title });
+      else if (auto.length + man.length > 0) todo.push({ section: sec.title, title: b.title, exam: b.exam, reasons: [...auto, ...man] });
+    });
+  });
+  return { todo, done, nc };
+}
 
+function updateSummary() {
+  const p = P();
+  const { todo } = collectConclusions(p);
+  let checklistTodo = 0, checklistEval = 0, checklistTotal = 0;
+  SECTIONS.forEach(sec => sec.blocks.forEach(b => {
+    if (b.type === 'checklist' && (!b.show || b.show(p))) b.items.forEach(it => {
+      if (it.show && !it.show(p)) return;
+      checklistTotal++;
+      const st = state[it.id];
+      if (st?.status === 'non') checklistTodo++;
+      if (st?.status) checklistEval++;
+    });
+  }));
+  document.getElementById('progress-info').innerHTML =
+    `<strong>${todo.length}</strong> dépistage(s) à réaliser` +
+    (checklistTotal ? ` — ${checklistTodo} action(s) de suivi à faire (${checklistEval}/${checklistTotal} items évalués)` : '');
+}
+
+// ---------- Patient & boutons ----------
 document.addEventListener('input', e => {
-  const el = e.target.closest('[data-input]');
-  if (el) {
-    const id = el.dataset.input;
-    if (!state[id]) state[id] = { status: null, value: '' };
-    state[id].value = el.value;
-    updateSummary();
-  }
-  const pid = el?.id;
-  if (pid && pid.startsWith('pat-')) {
-    PATIENT[pid.slice(4)] = el.value;
-    render();
-  }
-});
-document.addEventListener('change', e => {
   const pid = e.target.id;
-  if (pid === 'pat-sex') { PATIENT.sex = e.target.value; render(); }
+  if (pid && pid.startsWith('pat-')) { PATIENT[pid.slice(4)] = e.target.value; render(); }
 });
-
+document.addEventListener('change', e => { if (e.target.id === 'pat-sex') { PATIENT.sex = e.target.value; render(); } });
 document.getElementById('pat-date').value = new Date().toISOString().slice(0, 10);
 
 document.getElementById('btn-reset').addEventListener('click', () => {
-  if (confirm('Réinitialiser toute la check-list ?')) {
-    Object.keys(state).forEach(k => delete state[k]);
-    render();
-  }
+  if (confirm('Réinitialiser toute la check-list ?')) { Object.keys(state).forEach(k => delete state[k]); render(); }
 });
 
-// ---------- Export JSON (pour l'app Python) ----------
+// ---------- Export ----------
 function getResult() {
   const p = P();
+  const sections = SECTIONS.map(sec => {
+    const blocks = sec.blocks.filter(b => !b.show || b.show(p)).map(b => {
+      if (b.type === 'depistage') {
+        const st = state[b.id] || { indications: [], status: null };
+        return {
+          type: 'depistage', id: b.id, title: b.title, exam: b.exam, status: st.status,
+          autoIndications: (b.auto || []).filter(a => a.cond(p)).map(a => a.label),
+          indicationsCochees: [...st.indications].map(i => b.indications[i]).filter(Boolean),
+          conclusion: conclusionText(b, p)
+        };
+      }
+      return {
+        type: 'checklist', id: b.id, title: b.title,
+        items: b.items.filter(it => !it.show || it.show(p)).map(it => ({
+          id: it.id, label: it.label, status: state[it.id]?.status || null
+        }))
+      };
+    });
+    return { id: sec.id, title: sec.title, blocks };
+  });
   return {
     patient: { ...PATIENT, age: p.age },
     consultDate: document.getElementById('pat-date').value,
-    sections: SECTIONS.map(s => ({
-      id: s.id, title: s.title,
-      items: s.items.filter(i => !i.show || i.show(p)).map(i => ({
-        id: i.id, label: i.label,
-        status: state[i.id]?.status || null,
-        value: state[i.id]?.value || ''
-      }))
-    }))
+    conclusions: collectConclusions(p),
+    sections
   };
+}
+
+function conclusionText(b, p) {
+  const st = state[b.id] || { indications: new Set(), status: null };
+  const auto = (b.auto || []).filter(a => a.cond(p)).map(a => a.label);
+  const man = [...st.indications].map(i => b.indications[i]).filter(Boolean);
+  if (st.status === 'a-jour') return `${b.exam} : réalisé / à jour`;
+  if (st.status === 'non-concerne') return 'non concerné';
+  if (auto.length + man.length) return `${b.exam} à réaliser car : ${[...auto, ...man].join(' ; ')}`;
+  return 'aucune indication';
 }
 
 document.getElementById('btn-export').addEventListener('click', () => {
@@ -421,52 +588,44 @@ document.getElementById('btn-print').addEventListener('click', () => {
   const date = document.getElementById('pat-date').value || '';
   const sexTxt = p.sex === 'F' ? 'Femme' : p.sex === 'M' ? 'Homme' : '—';
   const ageTxt = p.age !== null ? `${p.age} ans` : '—';
-  const ddnTxt = PATIENT.ddn || '—';
+  const { todo, done, nc } = collectConclusions(p);
 
-  let todoRows = '', doneRows = '', naRows = '';
-  SECTIONS.forEach(sec => {
-    const items = sec.items.filter(i => !i.show || i.show(p));
-    items.forEach(it => {
-      const st = state[it.id]?.status || null;
-      const val = state[it.id]?.value ? ` (${state[it.id].value})` : '';
-      const clean = it.label.trim();
-      if (st === 'non') todoRows += `<tr><td>${escapeHtml(sec.title.replace(/^\S+\s/, ''))}</td><td>${escapeHtml(clean)}${escapeHtml(val)}</td></tr>`;
-      else if (st === 'oui') doneRows += `<tr><td>${escapeHtml(clean)}${escapeHtml(val)}</td></tr>`;
-      else if (st === 'na') naRows += `<tr><td>${escapeHtml(clean)}</td></tr>`;
+  let todoRows = '', doneRows = '', ncRows = '', suiviRows = '';
+  todo.forEach(t => todoRows += `<tr><td>${escapeHtml(t.section.replace(/^\S+\s/, ''))}</td><td><strong>${escapeHtml(t.exam)}</strong><br>${escapeHtml(t.title)}</td><td>${escapeHtml(t.reasons.join(' ; '))}</td></tr>`);
+  done.forEach(t => doneRows += `<tr><td>${escapeHtml(t.title)}</td><td>${escapeHtml(t.exam)}</td></tr>`);
+  nc.forEach(t => ncRows += `<tr><td>${escapeHtml(t.title)}</td></tr>`);
+  SECTIONS.forEach(sec => sec.blocks.forEach(b => {
+    if (b.type === 'checklist' && (!b.show || b.show(p))) b.items.forEach(it => {
+      if (it.show && !it.show(p)) return;
+      if (state[it.id]?.status === 'non') suiviRows += `<tr><td>${escapeHtml(sec.title.replace(/^\S+\s/, ''))}</td><td>${escapeHtml(it.label)}</td></tr>`;
     });
-  });
+  }));
 
   const fmt = (rows, empty) => rows || `<tr><td>${empty}</td></tr>`;
 
   document.getElementById('print-area').innerHTML = `
-    <h1>Check-list de santé — tour d'horizon 360°</h1>
-    <p><strong>Patient :</strong> ${escapeHtml(name)} &nbsp;|&nbsp; <strong>Né(e) le :</strong> ${escapeHtml(ddnTxt)} (${escapeHtml(ageTxt)}) &nbsp;|&nbsp; <strong>Sexe :</strong> ${sexTxt} &nbsp;|&nbsp; <strong>Consultation du :</strong> ${escapeHtml(date)}</p>
+    <h1>Bilan de santé — points de dépistage</h1>
+    <p><strong>Patient :</strong> ${escapeHtml(name)} &nbsp;|&nbsp; <strong>Né(e) le :</strong> ${escapeHtml(PATIENT.ddn || '—')} (${escapeHtml(ageTxt)}) &nbsp;|&nbsp; <strong>Sexe :</strong> ${sexTxt} &nbsp;|&nbsp; <strong>Consultation du :</strong> ${escapeHtml(date)}</p>
 
-    <h2>✅ Déjà à jour / réalisé</h2>
-    <table><tr><th>Item</th></tr>${fmt(doneRows, 'Aucun point marqué « fait ».')}</table>
+    <h2>📋 Examens de dépistage à réaliser</h2>
+    <table><tr><th>Domaine</th><th>Examen</th><th>Car : indication(s) trouvée(s)</th></tr>${fmt(todoRows, 'Aucun dépistage supplémentaire à programmer.')}</table>
 
-    <h2>📋 À faire / à programmer</h2>
-    <table><tr><th>Domaine</th><th>Action recommandée</th></tr>${fmt(todoRows, 'Aucun point marqué « à faire » — pensez à cocher les items pendant la consultation.')}</table>
+    <h2>✔ Déjà réalisés / à jour</h2>
+    <table><tr><th>Dépistage</th><th>Examen</th></tr>${fmt(doneRows, 'Aucun.')}</table>
 
-    <h2>ℹ️ Non applicable / non concerné</h2>
-    <table><tr><th>Item</th></tr>${fmt(naRows, '—')}</table>
+    ${suiviRows ? `<h2>📌 Actions de suivi à faire</h2><table><tr><th>Domaine</th><th>Action</th></tr>${suiviRows}</table>` : ''}
 
-    <div class="plan">
-      <strong>Prochaines étapes :</strong> prenez rendez-vous pour les examens listés ci-dessus « à programmer ». Certains dépistages sont proposés automatiquement (courrier du programme national) ; les autres nécessitent une prescription de votre médecin. Le risque cardiovasculaire global est évalué par votre médecin via risquecv.fr.
-    </div>
-    <p class="foot">Document généré en consultation à titre d'aide-mémoire, conformément aux recommandations françaises (HAS / dépistage organisé). Ne remplace pas l'avis médical — toute question : contacter votre médecin.</p>`;
+    ${ncRows ? `<h2>ℹ️ Non concerné</h2><table>${ncRows}</table>` : ''}
+
+    <div class="plan"><strong>Prochaines étapes :</strong> prenez rendez-vous pour les examens listés ci-dessus. Certains dépistages sont proposés automatiquement (courrier du programme national) ; les autres nécessitent une prescription de votre médecin. Le risque cardiovasculaire global est évalué par votre médecin via risquecv.fr.</div>
+    <p class="foot">Document généré en consultation à titre d'aide-mémoire, conformément aux recommandations françaises (HAS / dépistage organisé). Ne remplace pas l'avis médical.</p>`;
   window.print();
 });
 
-// ---------- API pour l'app Python hôte ----------
+// ---------- API Python ----------
 window.Depistage = {
   setData(d) {
-    PATIENT = {
-      nom: d.nom || '',
-      prenom: d.prenom || '',
-      ddn: d.ddn || d.dateNaissance || '',
-      sex: d.sex || d.sexe || ''
-    };
+    PATIENT = { nom: d.nom || '', prenom: d.prenom || '', ddn: d.ddn || d.dateNaissance || '', sex: d.sex || d.sexe || '' };
     document.getElementById('pat-nom').value = PATIENT.nom;
     document.getElementById('pat-prenom').value = PATIENT.prenom;
     document.getElementById('pat-ddn').value = PATIENT.ddn;
@@ -476,7 +635,6 @@ window.Depistage = {
   getResult
 };
 
-// Injection initiale : window.PATIENT_DATA ou paramètres URL (?nom=...&prenom=...&ddn=...&sex=F)
 (function init() {
   if (window.PATIENT_DATA) { window.Depistage.setData(window.PATIENT_DATA); return; }
   const q = new URLSearchParams(location.search);
@@ -489,4 +647,3 @@ window.Depistage = {
 
 // ---------- Utilitaires ----------
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function escapeAttr(s) { return String(s).replace(/"/g, '&quot;').replace(/</g, '&lt;'); }

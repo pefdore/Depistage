@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Check-list de dépistage — Tour d'horizon 360°</title>
+<title>Tour d'horizon 360° — dépistage</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header>
   <h1>🩺 Tour d'horizon 360° — dépistage</h1>
-  <p class="subtitle">Check-list par appareil, adaptée au patient (sexe, âge). Recommandations HAS / dépistage organisé français. Aide-mémoire, ne remplace pas le jugement clinique. Risque cardiovasculaire global : voir risquecv.fr</p>
+  <p class="subtitle">Cocher les indications présentes : la conclusion (« à réaliser car… ») s'écrit automatiquement. Recommandations HAS / dépistage organisé français. Risque cardiovasculaire global : risquecv.fr</p>
 </header>
 
 <main id="app">
@@ -33,11 +33,10 @@
   </section>
 
   <section class="summary-bar">
-    <div id="progress-info">0 / 0 items évalués</div>
-    <div class="progress"><div id="progress-fill"></div></div>
+    <div id="progress-info"></div>
     <div class="summary-actions">
       <button id="btn-print">🖨️ Fiche patient (imprimer / PDF)</button>
-      <button id="btn-export" class="secondary">📤 Exporter résultat (JSON)</button>
+      <button id="btn-export" class="secondary">📤 Exporter (JSON)</button>
       <button id="btn-reset" class="secondary">↺ Réinitialiser</button>
     </div>
   </section>
@@ -48,11 +47,7 @@
 
 <div id="print-area" class="hidden"></div>
 
-<script>
-/* Intégration Python : l'app hôte peut définir window.PATIENT_DATA avant le chargement,
-   ou appeler Depistage.setData({...}) (voir integration.md). */
-window.PATIENT_DATA = window.PATIENT_DATA || null;
-</script>
+<script>window.PATIENT_DATA = window.PATIENT_DATA || null;</script>
 <script src="app.js"></script>
 </body>
 </html>
