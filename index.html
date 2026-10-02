@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Check-list de dépistage — Consultation</title>
+<title>Check-list de dépistage — Tour d'horizon 360°</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header>
-  <h1>🩺 Check-list de dépistage</h1>
-  <p class="subtitle">Outil de consultation — rappel des points de surveillance et de dépistage. Recommandations HAS / systèmes de dépistage organisés français. Aide-mémoire, ne remplace pas le jugement clinique.</p>
+  <h1>🩺 Tour d'horizon 360° — dépistage</h1>
+  <p class="subtitle">Check-list par appareil, adaptée au patient (sexe, âge). Recommandations HAS / dépistage organisé français. Aide-mémoire, ne remplace pas le jugement clinique. Risque cardiovasculaire global : voir risquecv.fr</p>
 </header>
 
 <main id="app">
@@ -17,8 +17,9 @@
   <section id="patient-info" class="card">
     <h2>Patient</h2>
     <div class="patient-grid">
-      <label>Nom / Initiales <input type="text" id="pat-name" placeholder="Initiales ou nom"></label>
-      <label>Âge <input type="number" id="pat-age" min="0" max="120" placeholder="ans"></label>
+      <label>Nom <input type="text" id="pat-nom"></label>
+      <label>Prénom <input type="text" id="pat-prenom"></label>
+      <label>Date de naissance <input type="date" id="pat-ddn"></label>
       <label>Sexe
         <select id="pat-sex">
           <option value="">—</option>
@@ -26,19 +27,18 @@
           <option value="M">Homme</option>
         </select>
       </label>
-      <label>Date <input type="date" id="pat-date"></label>
+      <label>Consultation du <input type="date" id="pat-date"></label>
     </div>
-    <div id="age-sex-warn" class="warn hidden">⚠️ Renseignez l'âge (et le sexe pour certains items) pour activer les critères automatiques.</div>
+    <div id="pat-age-line" class="age-line"></div>
   </section>
 
-  <section id="summary-bar" class="summary-bar">
+  <section class="summary-bar">
     <div id="progress-info">0 / 0 items évalués</div>
     <div class="progress"><div id="progress-fill"></div></div>
     <div class="summary-actions">
       <button id="btn-print">🖨️ Fiche patient (imprimer / PDF)</button>
+      <button id="btn-export" class="secondary">📤 Exporter résultat (JSON)</button>
       <button id="btn-reset" class="secondary">↺ Réinitialiser</button>
-      <button id="btn-save" class="secondary">💾 Sauvegarder</button>
-      <button id="btn-load" class="secondary">📂 Charger</button>
     </div>
   </section>
 
@@ -48,6 +48,11 @@
 
 <div id="print-area" class="hidden"></div>
 
+<script>
+/* Intégration Python : l'app hôte peut définir window.PATIENT_DATA avant le chargement,
+   ou appeler Depistage.setData({...}) (voir integration.md). */
+window.PATIENT_DATA = window.PATIENT_DATA || null;
+</script>
 <script src="app.js"></script>
 </body>
 </html>

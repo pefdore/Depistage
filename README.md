@@ -5,7 +5,8 @@ Outil web simple, **100 % local** (aucune donnée envoyée sur le réseau), util
 ## Utilisation
 
 1. Ouvrir `index.html` dans un navigateur (double-clic suffit — aucun serveur requis).
-2. Renseigner **âge** et **sexe** du patient : les items pertinents s'affichent automatiquement avec les critères HAS (drapeaux « ⓘ »).
+2. Renseigner **nom, prénom, date de naissance et sexe** du patient : l'âge est calculé automatiquement et les items pertinents s'affichent avec les critères HAS (drapeaux « ⓘ »).
+3. **Intégration Python** : voir `integration.md` (injection des données patient via URL `?nom=…&prenom=…&ddn=…&sex=F`, `Depistage.setData()`, récupération du résultat via `Depistage.getResult()` ou export JSON).
 3. Pour chaque item : **Fait** (à jour), **À faire** (à programmer) ou **N/A**.
 4. Cliquer sur **🖨️ Fiche patient** : génère et imprime (ou exporte en PDF via « Enregistrer au format PDF ») une fiche de synthèse pour le patient avec les points à jour et les points à programmer.
 5. **💾 Sauvegarder / 📂 Charger** : stockage local du navigateur (une seule check-list à la fois).
