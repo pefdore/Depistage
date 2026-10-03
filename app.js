@@ -30,15 +30,8 @@ const SECTIONS = [
 {
   id: 'tabac', title: '🚬 Tabac / addictions',
   items: [
-    { id: 'tabac-status', label: 'Statut tabagique évalué', detail: 'Jamais / sevré (préciser l\'année) / actif', show: adult,
-      why: p => {
-        if (p.tabac === 'actif') return 'Fumeur actif (donnée Doctolib) : sevrage à proposer à chaque consultation (HAS).';
-        if (p.tabac === 'ex') return 'Ex-fumeur : préciser l\'année d\'arrêt et le niveau d\'exposition (PA).';
-        return 'Le dépistage du tabagisme est recommandé à chaque consultation (HAS).';
-      } },
-    { id: 'tabac-pa', label: 'Si fumeur : nombre de paquets-années', detail: '(cigarettes/jour × années) / 20', show: p => adult(p) && p.fumeur,
-      why: p => p.fumeur && p.pa === null ? 'Paquets-années non renseignés : nécessaires pour BPCO, cancer du poumon, AAA.' : null },
-    { id: 'tabac-aide', label: 'Si fumeur : sevrage proposé / aide proposée (substitution, consultation, TCC)', show: adult, input: 'note' },
+    { id: 'tabac-aide', label: 'Si fumeur : sevrage proposé / aide proposée (substitution, consultation, TCC)', show: p => adult(p) && p.tabac === 'actif', input: 'note',
+      why: p => p.tabac === 'actif' ? 'Patient fumeur (statut Doctolib) : sevrage à proposer à chaque consultation (HAS).' : null },
     { id: 'alcool-audit', label: 'Alcool : dépistage (AUDIT-C / FACE)', detail: 'Remboursement SI : au moins 1 si/an (adulte)', show: adult },
     { id: 'cannabis', label: 'Autres addictions : cannabis, opioïdes, alcoolisation dangereuse — dépistage si contexte', show: adult },
   ]
