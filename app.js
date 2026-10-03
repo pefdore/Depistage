@@ -131,8 +131,10 @@ const EXAMS = [
 {
   id: 'glp1', title: 'Traitement médicamenteux de l\'obésité — GLP-1 (Wegovy® / Mounjaro®)', icon: '💉', scoring: 'glp1',
   indications: [
-    { id: 'glp1-imc40', label: 'IMC ≥ 40 kg/m² (obésité massive, sans comorbidité requise)', auto: p => p.imc !== null && p.imc >= 40 },
-    { id: 'glp1-imc35-comorb', label: 'IMC ≥ 35 kg/m² + au moins une comorbidité sévère (HTA, diabète, dyslipidémie, SAS sévère, AOMI, arthrose invalidante, stéatohépatite)', auto: p => p.imc !== null && p.imc >= 35 && (p.diabete || p.hta || (p.ldl !== null && p.ldl >= 1.6)) },
+    { id: 'glp1-amm', label: 'PRESCRIPTION (AMM, tout médecin y compris MG depuis le 23/06/2025 — ANSM) : IMC ≥ 30 kg/m², ou IMC ≥ 27 + comorbidité liée au poids (HTA, diabète, dyslipidémie, SAS, maladie cardiovasculaire)', req: 'Critère AMM', auto: p => p.imc !== null && (p.imc >= 30 || (p.imc >= 27 && (p.diabete || p.hta || (p.ldl !== null && p.ldl >= 1.6)))) },
+    { id: 'glp1-ado', label: 'Adolescent ≥ 12 ans avec obésité et poids > 60 kg (AMM)', req: 'Critère AMM' },
+    { id: 'glp1-imc40', label: 'REMBOURSEMENT : IMC ≥ 40 kg/m² (obésité massive, sans comorbidité requise)', req: 'Critère remboursement', auto: p => p.imc !== null && p.imc >= 40 },
+    { id: 'glp1-imc35-comorb', label: 'REMBOURSEMENT : IMC ≥ 35 kg/m² + au moins une comorbidité sévère (HTA, diabète, dyslipidémie, SAS sévère, AOMI, arthrose invalidante, stéatohépatite)', req: 'Critère remboursement', auto: p => p.imc !== null && p.imc >= 35 && (p.diabete || p.hta || (p.ldl !== null && p.ldl >= 1.6)) },
     { id: 'glp1-nutrition', label: 'Échec d\'une prise en charge nutritionnelle bien conduite (< 5 % de perte de poids à 6 mois)' },
     { id: 'glp1-regle', label: 'En complément d\'un régime hypocalorique et d\'une activité physique accrue (obligatoire)', req: 'Condition de remboursement' },
     { id: 'glp1-prescripteur', label: 'Primo-prescription réservée aux structures spécialisées (CSO, CHU, service nutrition/endocrinologie) ; renouvellement possible par le médecin traitant', req: 'Condition de remboursement' },
@@ -296,10 +298,15 @@ function examState(exam) {
   }
   if (exam.scoring === 'glp1') {
     const idChecked = id => checked.some(i => i.id === id);
+    const ammOk = idChecked('glp1-amm') || idChecked('glp1-ado');
     const imcOk = idChecked('glp1-imc40') || idChecked('glp1-imc35-comorb');
     const nutOk = idChecked('glp1-nutrition');
-    const eligible = imcOk && nutOk;
-    const level = eligible ? 'ÉLIGIBLE remboursement (65 %)' : (imcOk ? 'IMC/comorbidités OK — documenter l\'échec nutritionnel (6 mois)' : 'Pas d\'éligibilité actuelle');
+    const eligible = ammOk && imcOk && nutOk;
+    let level;
+    if (eligible) level = 'Prescriptible (MG) ET remboursé 65 %';
+    else if (ammOk && imcOk) level = 'Échec nutritionnel à documenter (6 mois)';
+    else if (ammOk) level = 'AMM remplie — mais remboursement : IMC ≥ 40 ou ≥ 35 + comorbidité sévère';
+    else level = 'Pas de critère AMM rempli';
     return { checked, indicated: eligible, level };
   }
   return { checked, indicated: n > 0 };
