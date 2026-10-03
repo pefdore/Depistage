@@ -129,6 +129,41 @@ const EXAMS = [
   ],
 },
 {
+  id: 'ecg', title: 'ÉCG', icon: '💓',
+  indications: [
+    { id: 'ecg-fa', label: '≥ 65 ans : dépistage de la fibrillation atriale (palpation du pouls ; ECG si irrégulier ou suspicion)', auto: p => p.age !== null && p.age >= 65 },
+    { id: 'ecg-hta', label: 'HTA : ECG dans le bilan initial / suivi', auto: p => p.hta },
+    { id: 'ecg-cardio', label: 'Coronaropathie, valvulopathie ou cardiopathie connue : ECG de suivi' },
+    { id: 'ecg-sympt', label: 'Symptômes : douleur thoracique, palpitations, dyspnée, lipothymie/syncope' },
+    { id: 'ecg-sport', label: 'Bilan avant reprise d\'activité physique intense / compétition (> 35 ans)' },
+    { id: 'ecg-preop', label: 'Bilan pré-opératoire (chirurgie à risque cardiovasculaire)' },
+    { id: 'ecg-trt', label: 'Surveillance d\'un traitement cardiotoxique ou d\'un trouble ionique' },
+  ],
+},
+{
+  id: 'tsa', title: 'Doppler des troncs supra-aortiques (TSA)', icon: '🩸',
+  indications: [
+    { id: 'tsa-souffle', label: 'Souffle carotidien audible à l\'auscultation' },
+    { id: 'tsa-ait', label: 'AIT, AVC, amaurose transitoire : bilan urgent' },
+    { id: 'tsa-aomi', label: 'Artériopathie connue (coronaropathie, AOMI, anévrisme) : recherche de sténose associée' },
+    { id: 'tsa-radio', label: 'Radiothérapie cervicale antérieure' },
+    { id: 'tsa-fa', label: 'Fibrillation atriale (évaluation embolique)' },
+    { id: 'tsa-preop', label: 'Bilan pré-opératoire (chirurgie à risque, CEC)' },
+    { id: 'tsa-signe', label: 'Le dépistage systématique de la sténose carotidienne asymptomatique n\'est PAS recommandé (HAS) — cliquez uniquement si point ci-dessus' },
+  ],
+},
+{
+  id: 'aomi', title: 'Doppler artériel des membres inférieurs (AOMI)', icon: '🦵',
+  indications: [
+    { id: 'aomi-claudication', label: 'Claudication intermittente : douleur de marche soulagée par l\'arrêt' },
+    { id: 'aomi-tabac', label: 'Fumeur ou sevré ≥ 50 ans : dépistage (IPS)', auto: p => p.fumeur && p.age !== null && p.age >= 50 },
+    { id: 'aomi-diabete', label: 'Diabète ≥ 50 ans (ou ≥ 40 ans avec autre facteur de risque) : dépistage annuel par IPS', auto: p => p.diabete && p.age !== null && p.age >= 50 },
+    { id: 'aomi-hta', label: 'HTA + dyslipidémie : dépistage si contexte', auto: p => p.hta && p.ldl !== null && p.ldl >= 1.6 },
+    { id: 'aomi-signes', label: 'Signes d\'ischémie : ulcère, gangrène, douleur de décubitus, abolition d\'un pouls' },
+    { id: 'aomi-preop', label: 'Bilan pré-opératoire / avant chirurgie vasculaire ou orthopédique majeure' },
+  ],
+},
+{
   id: 'sas', title: 'Syndrome d\'apnées du sommeil (STOP-BANG)', icon: '😴', scoring: 'stopbang',
   indications: [
     { id: 'sas-s', label: 'S — Ronflements forts (observés par l\'entourage)' },
