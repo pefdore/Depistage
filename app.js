@@ -128,6 +128,19 @@ const EXAMS = [
     { id: 'hcv-risque', label: 'Usage de drogues IV/intranasal, transfusion avant 1992, tatouage/percing, prison' },
   ],
 },
+{
+  id: 'sas', title: 'Syndrome d\'apnées du sommeil (STOP-BANG)', icon: '😴', scoring: 'stopbang',
+  indications: [
+    { id: 'sas-s', label: 'S — Ronflements forts (observés par l\'entourage)' },
+    { id: 'sas-t', label: 'T — Fatigue diurne excessive / somnolence (endormissements)' },
+    { id: 'sas-o', label: 'O — Apnées observées pendant le sommeil' },
+    { id: 'sas-p', label: 'P — Pression artérielle élevée (HTA traitée ou non)', auto: p => p.hta },
+    { id: 'sas-b', label: 'B — IMC > 35 kg/m²', auto: p => p.imc !== null && p.imc > 35 },
+    { id: 'sas-a', label: 'A — Âge > 50 ans', auto: p => p.age !== null && p.age > 50 },
+    { id: 'sas-n', label: 'N — Tour de cou > 40 cm' },
+    { id: 'sas-g', label: 'G — Sexe masculin', auto: p => p.sex === 'M' },
+  ],
+},
 ];
 
 // ---------- Vaccins ----------
@@ -230,7 +243,11 @@ const isChecked = ind => {
 
 function examState(exam) {
   const checked = exam.indications.filter(isChecked);
-  return { checked, indicated: checked.length > 0 };
+  const n = checked.length;
+  if (exam.scoring === 'stopbang') {
+    return { checked, score: n, indicated: n >= 3, level: n >= 5 ? 'élevé' : (n >= 3 ? 'intermédiaire' : 'faible') };
+  }
+  return { checked, indicated: n > 0 };
 }
 
 // ---------- Rendu ----------
@@ -267,7 +284,7 @@ function render() {
     header.className = 'exam-header';
     header.innerHTML = `
       <h2>${exam.icon} ${escapeHtml(exam.title)}</h2>
-      <span class="verdict ${st.indicated ? 'yes' : 'no'}">${st.indicated ? 'INDIQUÉ' : 'Pas d\'indication'}</span>`;
+      <span class="verdict ${st.indicated ? 'yes' : 'no'}">${exam.scoring === 'stopbang' ? `STOP-BANG : ${st.score}/8 — risque ${st.level}` : (st.indicated ? 'INDIQUÉ' : 'Pas d\'indication')}</span>`;
     card.appendChild(header);
 
     exam.indications.forEach(ind => {
@@ -385,8 +402,9 @@ document.getElementById('btn-print').addEventListener('click', () => {
     const st = examState(exam);
     if (!st.indicated) return '';
     const inds = st.checked.map(i => `<li>${escapeHtml(i.label)}${i.req ? ` <em>(${escapeHtml(i.req)})</em>` : ''}</li>`).join('');
+    const scoreInfo = exam.scoring === 'stopbang' ? ` — score ${st.score}/8 (risque ${st.level})` : '';
     return `<div class="exam-box">
-      <div class="exam-title">${exam.icon} ${escapeHtml(exam.title)}</div>
+      <div class="exam-title">${exam.icon} ${escapeHtml(exam.title)}${scoreInfo}</div>
       <ul>${inds}</ul>
       <div class="exam-cta">→ À prescrire / à programmer avec votre médecin</div>
     </div>`;
