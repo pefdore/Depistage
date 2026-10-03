@@ -129,6 +129,18 @@ const EXAMS = [
   ],
 },
 {
+  id: 'glp1', title: 'Traitement médicamenteux de l\'obésité — GLP-1 (Wegovy® / Mounjaro®)', icon: '💉', scoring: 'glp1',
+  indications: [
+    { id: 'glp1-imc40', label: 'IMC ≥ 40 kg/m² (obésité massive, sans comorbidité requise)', auto: p => p.imc !== null && p.imc >= 40 },
+    { id: 'glp1-imc35-comorb', label: 'IMC ≥ 35 kg/m² + au moins une comorbidité sévère (HTA, diabète, dyslipidémie, SAS sévère, AOMI, arthrose invalidante, stéatohépatite)', auto: p => p.imc !== null && p.imc >= 35 && (p.diabete || p.hta || (p.ldl !== null && p.ldl >= 1.6)) },
+    { id: 'glp1-nutrition', label: 'Échec d\'une prise en charge nutritionnelle bien conduite (< 5 % de perte de poids à 6 mois)' },
+    { id: 'glp1-regle', label: 'En complément d\'un régime hypocalorique et d\'une activité physique accrue (obligatoire)', req: 'Condition de remboursement' },
+    { id: 'glp1-prescripteur', label: 'Primo-prescription réservée aux structures spécialisées (CSO, CHU, service nutrition/endocrinologie) ; renouvellement possible par le médecin traitant', req: 'Condition de remboursement' },
+    { id: 'glp1-formulaire', label: 'Justificatif d\'accompagnement obligatoire à saisir sur amelipro (téléservice Assurance Maladie)', req: 'Condition de remboursement' },
+    { id: 'glp1-prise', label: 'Remboursement 65 % par l\'Assurance Maladie (arrêtés du 28/05/2026, effectif 15/06/2026). Saxenda® n\'est PAS remboursé', req: 'Info remboursement' },
+  ],
+},
+{
   id: 'ecg', title: 'ÉCG', icon: '💓',
   indications: [
     { id: 'ecg-fa', label: '≥ 65 ans : dépistage de la fibrillation atriale (palpation du pouls ; ECG si irrégulier ou suspicion)', auto: p => p.age !== null && p.age >= 65 },
@@ -282,6 +294,14 @@ function examState(exam) {
   if (exam.scoring === 'stopbang') {
     return { checked, score: n, indicated: n >= 3, level: n >= 5 ? 'élevé' : (n >= 3 ? 'intermédiaire' : 'faible') };
   }
+  if (exam.scoring === 'glp1') {
+    const idChecked = id => checked.some(i => i.id === id);
+    const imcOk = idChecked('glp1-imc40') || idChecked('glp1-imc35-comorb');
+    const nutOk = idChecked('glp1-nutrition');
+    const eligible = imcOk && nutOk;
+    const level = eligible ? 'ÉLIGIBLE remboursement (65 %)' : (imcOk ? 'IMC/comorbidités OK — documenter l\'échec nutritionnel (6 mois)' : 'Pas d\'éligibilité actuelle');
+    return { checked, indicated: eligible, level };
+  }
   return { checked, indicated: n > 0 };
 }
 
@@ -319,7 +339,7 @@ function render() {
     header.className = 'exam-header';
     header.innerHTML = `
       <h2>${exam.icon} ${escapeHtml(exam.title)}</h2>
-      <span class="verdict ${st.indicated ? 'yes' : 'no'}">${exam.scoring === 'stopbang' ? `STOP-BANG : ${st.score}/8 — risque ${st.level}` : (st.indicated ? 'INDIQUÉ' : 'Pas d\'indication')}</span>`;
+      <span class="verdict ${st.indicated ? 'yes' : 'no'}">${exam.scoring && st.level ? st.level : (st.indicated ? 'INDIQUÉ' : 'Pas d\'indication')}</span>`;
     card.appendChild(header);
 
     exam.indications.forEach(ind => {
@@ -437,7 +457,7 @@ document.getElementById('btn-print').addEventListener('click', () => {
     const st = examState(exam);
     if (!st.indicated) return '';
     const inds = st.checked.map(i => `<li>${escapeHtml(i.label)}${i.req ? ` <em>(${escapeHtml(i.req)})</em>` : ''}</li>`).join('');
-    const scoreInfo = exam.scoring === 'stopbang' ? ` — score ${st.score}/8 (risque ${st.level})` : '';
+    const scoreInfo = exam.scoring === 'stopbang' ? ` — score ${st.score}/8 (risque ${st.level})` : (exam.scoring === 'glp1' && st.level ? ` — ${st.level}` : '');
     return `<div class="exam-box">
       <div class="exam-title">${exam.icon} ${escapeHtml(exam.title)}${scoreInfo}</div>
       <ul>${inds}</ul>
