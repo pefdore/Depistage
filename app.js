@@ -10,6 +10,7 @@ const P = () => {
   const sex = document.getElementById('pat-sex').value;
   const tabac = document.getElementById('pat-tabac').value;
   const pa = parseFloat(document.getElementById('pat-pa').value);
+  const dfg = parseFloat(document.getElementById('pat-dfg').value);
   return {
     age: isNaN(age) ? null : age,
     sex,
@@ -17,6 +18,9 @@ const P = () => {
     pa: isNaN(pa) ? null : pa,
     fumeur: tabac === 'actif' || tabac === 'sevré',
     grosFumeur: (tabac === 'actif' || tabac === 'sevré') && !isNaN(pa) && pa >= 20,
+    diabete: document.getElementById('pat-diabete').value === 'oui',
+    hta: document.getElementById('pat-hta').value === 'oui',
+    dfg: isNaN(dfg) ? null : dfg,
   };
 };
 
@@ -100,9 +104,17 @@ const EXAMS = [
   indications: [
     { id: 'diabete-age', label: '45–75 ans (tous les 3 ans)', auto: p => between(p, 45, 75) },
     { id: 'diabete-obesite', label: 'Surpoids/obésité (IMC ≥ 25, tour de taille élevé) + sédentarité' },
-    { id: 'diabete-hta', label: 'HTA ou dyslipidémie' },
+    { id: 'diabete-hta', label: 'HTA ou dyslipidémie', auto: p => p.hta },
     { id: 'diabete-fam', label: 'Antécédent familial de diabète type 2' },
     { id: 'diabete-gest', label: 'Diabète gestationnel, ou origine à risque (Afrique subsaharienne, Asie, Inde)' },
+    { id: 'diabete-connu', label: 'Diabète déjà connu : HbA1c à jour (objectif individualisé, en général < 7 %)', auto: p => p.diabete },
+  ],
+},
+{
+  id: 'foei', title: 'Fond d\'œil (rétinopathie diabétique)', icon: '👁️',
+  indications: [
+    { id: 'foei-diabete', label: 'Diabète de type 2 : examen annuel', auto: p => p.diabete },
+    { id: 'foei-dmla', label: 'Sujet ≥ 60 ans : DMLA (acuité visuelle, Ophtalmo si signes)', auto: p => p.age !== null && p.age >= 60 },
   ],
 },
 {
@@ -138,6 +150,8 @@ function render() {
   const reminders = [];
   if (p.tabac === 'actif') reminders.push('🚬 Patient fumeur : proposer une aide au sevrage (substitution, consultation).');
   if (p.fumeur && p.pa === null && p.age !== null && p.age >= 40) reminders.push('⚠️ Paquets-années non renseignées : nécessaires pour BPCO, cancer du poumon, AAA.');
+  if (p.diabete && p.dfg === null) reminders.push('🩸 Patient diabétique : vérifier la fonction rénale (DFG, rapport protéinurie/créatinurie).');
+  if (p.dfg !== null && p.dfg < 60) reminders.push('💧 DFG < 60 mL/min : maladie rénale chronique — adapter traitements, éviter néphrotoxiques.');
   document.getElementById('reminders').innerHTML = reminders.map(r => `<div>${escapeHtml(r)}</div>`).join('');
   document.getElementById('reminders').classList.toggle('hidden', !reminders.length);
 
@@ -191,7 +205,7 @@ document.addEventListener('change', e => {
   render();
 });
 
-['pat-age', 'pat-sex', 'pat-tabac', 'pat-pa'].forEach(idn =>
+['pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-dfg'].forEach(idn =>
   document.getElementById(idn).addEventListener('change', render));
 
 document.getElementById('pat-date').value = new Date().toISOString().slice(0, 10);
@@ -211,6 +225,9 @@ document.getElementById('btn-save').addEventListener('click', () => {
       sex: document.getElementById('pat-sex').value,
       tabac: document.getElementById('pat-tabac').value,
       pa: document.getElementById('pat-pa').value,
+      diabete: document.getElementById('pat-diabete').value,
+      hta: document.getElementById('pat-hta').value,
+      dfg: document.getElementById('pat-dfg').value,
       date: document.getElementById('pat-date').value,
     },
     overrides
@@ -228,6 +245,9 @@ document.getElementById('btn-load').addEventListener('click', () => {
   document.getElementById('pat-sex').value = data.patient?.sex || '';
   document.getElementById('pat-tabac').value = data.patient?.tabac || '';
   document.getElementById('pat-pa').value = data.patient?.pa || '';
+  document.getElementById('pat-diabete').value = data.patient?.diabete || '';
+  document.getElementById('pat-hta').value = data.patient?.hta || '';
+  document.getElementById('pat-dfg').value = data.patient?.dfg || '';
   document.getElementById('pat-date').value = data.patient?.date || new Date().toISOString().slice(0, 10);
   Object.keys(overrides).forEach(k => delete overrides[k]);
   Object.assign(overrides, data.overrides || {});
@@ -243,6 +263,10 @@ document.getElementById('btn-print').addEventListener('click', () => {
   const tabacTxt = p.tabac === 'actif' ? `Fumeur${p.pa !== null ? ` (${p.pa} PA)` : ''}`
     : p.tabac === 'sevré' ? `Sevré${p.pa !== null ? ` (${p.pa} PA)` : ''}`
     : p.tabac === 'jamais' ? 'Non fumeur' : '—';
+  const comorb = [];
+  if (p.diabete) comorb.push('Diabète');
+  if (p.hta) comorb.push('HTA');
+  if (p.dfg !== null) comorb.push(`DFG ${p.dfg} mL/min`);
 
 
   const examBlocks = EXAMS.map(exam => {
@@ -270,6 +294,7 @@ document.getElementById('btn-print').addEventListener('click', () => {
         <div><span class="k">Âge</span><span class="v">${p.age ?? '—'} ans</span></div>
         <div><span class="k">Sexe</span><span class="v">${sexTxt}</span></div>
         <div><span class="k">Tabac</span><span class="v">${escapeHtml(tabacTxt)}</span></div>
+        ${comorb.length ? `<div><span class="k">Antécédents</span><span class="v">${escapeHtml(comorb.join(', '))}</span></div>` : ''}
       </div>
 
       ${todoCount ? `<div class="intro">Lors de la consultation, nous avons repéré <strong>${todoCount} dépistage${todoCount > 1 ? 's' : ''}</strong> à planifier pour votre santé. Voici la liste et la raison pour chacun.</div>`
