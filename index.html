@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Check-list de dépistage — Consultation</title>
+<title>Indications de dépistage — Consultation</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header>
-  <h1>🩺 Check-list de dépistage</h1>
-  <p class="subtitle">Outil de consultation — rappel des points de surveillance et de dépistage. Recommandations HAS / systèmes de dépistage organisés français. Aide-mémoire, ne remplace pas le jugement clinique.</p>
+  <h1>🩺 Indications de dépistage</h1>
+  <p class="subtitle">Rappel des indications par examen. Les cases pré-cochées « auto » découlent de l'âge, du sexe et du statut tabagique ; les autres indications cliniques sont à vérifier en consultation. Aide-mémoire, ne remplace pas le jugement clinique.</p>
 </header>
 
 <main id="app">
@@ -30,19 +30,19 @@
         <select id="pat-tabac">
           <option value="">—</option>
           <option value="jamais">Non fumeur</option>
-          <option value="ex">Sevré</option>
+          <option value="sevré">Sevré</option>
           <option value="actif">Fumeur</option>
         </select>
       </label>
       <label>Paquets-années <input type="number" id="pat-pa" min="0" max="200" placeholder="PA"></label>
       <label>Date <input type="date" id="pat-date"></label>
     </div>
-    <div id="age-sex-warn" class="warn hidden">⚠️ Renseignez l'âge, le sexe et le statut tabagique : les critères automatiques (BPCO, AAA, cancer du poumon) en découlent.</div>
+    <div id="patient-warn" class="warn hidden">⚠️ Renseignez l'âge, le sexe et le statut tabagique : les indications « auto » en découlent.</div>
+    <div id="reminders" class="reminders hidden"></div>
   </section>
 
   <section id="summary-bar" class="summary-bar">
-    <div id="progress-info">0 / 0 items évalués</div>
-    <div class="progress"><div id="progress-fill"></div></div>
+    <div id="progress-info">—</div>
     <div class="summary-actions">
       <button id="btn-print">🖨️ Fiche patient (imprimer / PDF)</button>
       <button id="btn-reset" class="secondary">↺ Réinitialiser</button>
@@ -51,7 +51,7 @@
     </div>
   </section>
 
-  <div id="sections"></div>
+  <div id="exams"></div>
 
 </main>
 

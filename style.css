@@ -64,6 +64,27 @@ button {
 button:hover { filter: brightness(1.1); }
 button.secondary { background: #6c757d; }
 
+.reminders { margin-top: 10px; padding: 8px 10px; background: #f8d7da; border-radius: 6px; font-size: .85rem; }
+
+.exam-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.verdict { font-size: .72rem; font-weight: 700; padding: 3px 10px; border-radius: 14px; white-space: nowrap; }
+.verdict.yes { background: #f8d7da; color: #842029; }
+.verdict.no { background: #e9ecef; color: #6c757d; }
+.exam.indicated { border-color: #f1aeb5; }
+
+.ind {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 8px; border-radius: 6px; border-bottom: 1px solid #f0f2f5;
+  cursor: pointer; font-size: .92rem;
+}
+.ind:hover { background: #f8f9fb; }
+.ind input[type="checkbox"] { width: 17px; height: 17px; cursor: pointer; flex-shrink: 0; }
+.ind.checked span:first-of-type { font-weight: 600; }
+.tag { font-size: .68rem; padding: 1px 7px; border-radius: 10px; margin-left: auto; white-space: nowrap; }
+.tag.auto { background: #cfe2ff; color: #084298; }
+.tag.off { background: #e9ecef; color: #6c757d; }
+.tag.manual { background: #fff3cd; color: #664d03; }
+
 .item {
   display: flex; align-items: flex-start; gap: 10px;
   padding: 7px 8px; border-radius: 6px; border-bottom: 1px solid #f0f2f5;
