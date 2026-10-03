@@ -143,6 +143,18 @@ const EXAMS = [
   ],
 },
 {
+  id: 'isglt2', title: 'iSGLT2 (empagliflozine / dapagliflozine)', icon: '💊',
+  indications: [
+    { id: 'isglt2-dt2', label: 'Diabète de type 2 : adulte, en complément du régime et des autres antidiabétiques (bénéfice cardiovasculaire et rénal)', auto: p => p.diabete },
+    { id: 'isglt2-ic', label: 'Insuffisance cardiaque (HFrEF ou HFmrEF, avec ou sans diabète) : dapagliflozine (Forxiga®) : réduit hospitalisations et mortalité' },
+    { id: 'isglt2-irc', label: 'Maladie rénale chronique (DFG ≥ 25) : dapagliflozine — ralentit la progression', auto: p => p.dfg !== null && p.dfg < 60 },
+    { id: 'isglt2-ci-dt1', label: 'CONTRE-INDICATION : diabète de type 1 (risque d\'acidocétose)' },
+    { id: 'isglt2-ci-aco', label: 'CONTRE-INDICATION : antécédent d\'acidocétose sous iSGLT2 : ne pas réintroduire le traitement' },
+    { id: 'isglt2-ci-grossesse', label: 'PRÉCAUTION : grossesse / allaitement / projet de grossesse (contraception efficace nécessaire ; interaction avec les contraceptifs oraux signalée sous GLP-1)' },
+    { id: 'isglt2-effets', label: 'Information patient : infections génitales fréquentes, hydratation suffisante, arrêt 3-4 jours avant chirurgie ou contexte d\'acidose (jeûne, maladie aiguë)' },
+  ],
+},
+{
   id: 'ecg', title: 'ÉCG', icon: '💓',
   indications: [
     { id: 'ecg-fa', label: '≥ 65 ans : dépistage de la fibrillation atriale (palpation du pouls ; ECG si irrégulier ou suspicion)', auto: p => p.age !== null && p.age >= 65 },
