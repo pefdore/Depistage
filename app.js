@@ -130,6 +130,97 @@ const EXAMS = [
 },
 ];
 
+// ---------- Vaccins ----------
+const VACCINS = [
+{
+  id: 'v-menb', title: 'Vaccin méningocoque B (Bexsero®)', icon: '🦠',
+  indications: [
+    { id: 'v-menb-nour', label: 'Nourrisson (né depuis 2023) : schéma M3, M5, rappel M12', req: 'Obligatoire', auto: p => p.age !== null && p.age < 2 },
+    { id: 'v-menb-rat5', label: 'Enfant 2–4 ans révolus non vaccinés : rattrapage transitoire (2 doses)', req: 'Obligatoire', auto: p => p.age !== null && p.age >= 2 && p.age <= 4 },
+    { id: 'v-menb-1524', label: 'Personne de 15 à 24 ans révolus : vaccination à proposer', req: 'Recommandée', auto: p => p.age !== null && p.age >= 15 && p.age <= 24 },
+    { id: 'v-menb-risque', label: 'Personne à risque : déficit en complément / properdine, asplénie, greffe de CSH (rappel tous les 5 ans)', req: 'Recommandée' },
+  ],
+},
+{
+  id: 'v-menacwy', title: 'Vaccin méningocoque ACWY (Nimenrix® / Menquadfi® / Menveo®)', icon: '🦠',
+  indications: [
+    { id: 'v-acwy-nour', label: 'Nourrisson (né depuis 2023) : dose à 6 mois (Nimenrix) + rappel 12 mois (Nimenrix ou Menquadfi)', req: 'Obligatoire', auto: p => p.age !== null && p.age < 2 },
+    { id: 'v-acwy-rat', label: 'Rattrapage 12–24 mois : 1 dose ACWY ; 2–4 ans révolus non vaccinés : rattrapage transitoire, 1 dose', req: 'Obligatoire', auto: p => p.age !== null && p.age >= 1 && p.age <= 4 },
+    { id: 'v-acwy-ado', label: 'Adolescent 11–14 ans : 1 dose, indépendamment du statut vaccinal (campagne collèges)', req: 'Recommandée', auto: p => p.age !== null && p.age >= 11 && p.age <= 14 },
+    { id: 'v-acwy-1524', label: 'Rattrapage 15–24 ans révolus : 1 dose', req: 'Recommandée', auto: p => p.age !== null && p.age >= 15 && p.age <= 24 },
+    { id: 'v-acwy-risque', label: 'Personne à risque : déficit en complément / properdine, asplénie, greffe de CSH (rappel tous les 5 ans)', req: 'Recommandée' },
+  ],
+},
+{
+  id: 'v-grippe', title: 'Vaccin grippe saisonnière', icon: '💉',
+  indications: [
+    { id: 'v-grippe-65', label: 'Personne ≥ 65 ans : chaque année', req: 'Recommandée', auto: p => p.age !== null && p.age >= 65 },
+    { id: 'v-grippe-comorb', label: 'Comorbidité (diabète, HTA, maladie respiratoire ou cardiaque, obésité, DFG < 60)', req: 'Recommandée', auto: p => p.diabete || p.hta || (p.imc !== null && p.imc >= 30) || (p.dfg !== null && p.dfg < 60) },
+    { id: 'v-grippe-grossesse', label: 'Femme enceinte (tout trimestre)' },
+  ],
+},
+{
+  id: 'v-pneumo', title: 'Vaccin pneumocoque', icon: '💉',
+  indications: [
+    { id: 'v-pneumo-65', label: 'Personne ≥ 65 ans (schéma adapté selon antécédents)', req: 'Recommandée', auto: p => p.age !== null && p.age >= 65 },
+    { id: 'v-pneumo-comorb', label: 'Comorbidité avant 65 ans : diabète, maladie respiratoire, cardiaque, rénale (DFG < 60), immunodépression', req: 'Recommandée', auto: p => p.diabete || (p.dfg !== null && p.dfg < 60) },
+  ],
+},
+{
+  id: 'v-covid', title: 'Vaccin COVID-19 (rappel)', icon: '💉',
+  indications: [
+    { id: 'v-covid-65', label: 'Personne ≥ 65 ans et/ou comorbidités : rappel selon recommandations en vigueur', req: 'Recommandée', auto: p => p.age !== null && p.age >= 65 || p.diabete || p.hta || (p.imc !== null && p.imc >= 30) },
+  ],
+},
+{
+  id: 'v-rsv', title: 'Vaccin VRS / RSV (bronchiolite)', icon: '💉',
+  indications: [
+    { id: 'v-rsv-75', label: 'Personne ≥ 75 ans', req: 'Recommandée', auto: p => p.age !== null && p.age >= 75 },
+    { id: 'v-rsv-65', label: 'Personne 65–74 ans avec comorbidité (diabète, HTA, insuffisance respiratoire ou cardiaque, DFG < 60)', req: 'Recommandée', auto: p => p.age !== null && p.age >= 65 && p.age <= 74 && (p.diabete || p.hta || (p.dfg !== null && p.dfg < 60)) },
+    { id: 'v-rsv-femme-enceinte', label: 'Femme enceinte : vaccination de la mère (8e mois de grossesse, selon campagne en cours)' },
+  ],
+},
+{
+  id: 'v-zona', title: 'Vaccin zona (Shingrix®)', icon: '💉',
+  indications: [
+    { id: 'v-zona-6574', label: 'Personne 65–74 ans', req: 'Recommandée', auto: p => p.age !== null && p.age >= 65 && p.age <= 74 },
+    { id: 'v-zona-5064', label: 'Personne 50–64 ans avec comorbidité (diabète, HTA, DFG < 60, immunodépression)', req: 'Recommandée', auto: p => p.age !== null && p.age >= 50 && p.age <= 64 && (p.diabete || p.hta || (p.dfg !== null && p.dfg < 60)) },
+  ],
+},
+{
+  id: 'v-dtp', title: 'Rappel diphtérie / tétanos / poliomyélite (DTP)', icon: '💉',
+  indications: [
+    { id: 'v-dtp-adulte', label: 'Adulte : rappel dTP tous les 10 ans (ou 20 ans si rappels à jour et primovaccination complète)', req: 'Recommandée', auto: p => p.age !== null && p.age >= 18 },
+    { id: 'v-dtp-bles', label: 'Plaie : rappel tétanos si dernier rappel > 10 ans (plaie souillée : > 5 ans)' },
+  ],
+},
+{
+  id: 'v-hpv', title: 'Vaccin HPV (papillomavirus)', icon: '💉',
+  indications: [
+    { id: 'v-hpv-1114', label: 'Adolescent·e 11–14 ans (2 doses)', req: 'Recommandée', auto: p => p.age !== null && p.age >= 11 && p.age <= 14 },
+    { id: 'v-hpv-1519', label: 'Rattrapage 15–19 ans (3 doses)', req: 'Recommandée', auto: p => p.age !== null && p.age >= 15 && p.age <= 19 },
+  ],
+},
+{
+  id: 'v-hepb', title: 'Vaccin hépatite B', icon: '💉',
+  indications: [
+    { id: 'v-hepb-rat', label: 'Rattrapage jusqu\'à 18 ans révolus', req: 'Recommandée', auto: p => p.age !== null && p.age <= 18 },
+    { id: 'v-hepb-risque', label: 'Personne à risque : multiples partenaires, IST, usager de drogues, voyage en zone d\'endémie, profession de santé, entourage d\'un porteur', req: 'Recommandée' },
+  ],
+},
+{
+  id: 'v-rougeole', title: 'Vaccin rougeole (ROR — rattrapage)', icon: '💉',
+  indications: [
+    { id: 'v-ror-1980', label: 'Né·e après 1980 : 2 doses de vaccin trivalent ROR à jour', req: 'Recommandée', auto: p => p.age !== null && p.age <= 45 },
+  ],
+},
+];
+
+const ALL_GROUPS = [
+  { title: 'Examens de dépistage', exams: EXAMS },
+  { title: 'Vaccinations', exams: VACCINS },
+];
+
 // ---------- État ----------
 const overrides = {}; // indicationId -> true | false (coche manuelle)
 const isChecked = ind => {
@@ -162,7 +253,12 @@ function render() {
   document.getElementById('reminders').innerHTML = reminders.map(r => `<div>${escapeHtml(r)}</div>`).join('');
   document.getElementById('reminders').classList.toggle('hidden', !reminders.length);
 
-  EXAMS.forEach(exam => {
+  ALL_GROUPS.forEach(group => {
+    const groupTitle = document.createElement('h3');
+    groupTitle.className = 'group-title';
+    groupTitle.textContent = group.title;
+    container.appendChild(groupTitle);
+    group.exams.forEach(exam => {
     const st = examState(exam);
     const card = document.createElement('section');
     card.className = 'card exam' + (st.indicated ? ' indicated' : '');
@@ -182,6 +278,7 @@ function render() {
       row.innerHTML = `
         <input type="checkbox" data-ind="${ind.id}" ${checked ? 'checked' : ''}>
         <span>${escapeHtml(ind.label)}</span>
+        ${ind.req ? `<span class="tag req ${ind.req === 'Obligatoire' ? 'req-ob' : 'req-rec'}">${escapeHtml(ind.req)}</span>` : ''}
         ${auto === true && checked ? '<span class="tag auto">auto</span>' : ''}
         ${auto === true && !checked ? '<span class="tag off">auto (décoché)</span>' : ''}
         ${auto === false && checked ? '<span class="tag manual">ajout manuel</span>' : ''}`;
@@ -189,13 +286,15 @@ function render() {
     });
 
     container.appendChild(card);
+    });
   });
 
   updateSummary();
 }
 
 function updateSummary() {
-  const indicated = EXAMS.filter(e => examState(e).indicated);
+  const all = ALL_GROUPS.flatMap(g => g.exams);
+  const indicated = all.filter(e => examState(e).indicated);
   document.getElementById('progress-info').textContent =
     `${indicated.length} examen${indicated.length > 1 ? 's' : ''} avec indication` +
     (indicated.length ? ` : ${indicated.map(e => e.title.split(' (')[0]).join(', ')}` : '');
@@ -206,7 +305,7 @@ document.addEventListener('change', e => {
   const cb = e.target.closest('input[data-ind]');
   if (!cb) return;
   const id = cb.dataset.ind;
-  const exam = EXAMS.find(x => x.indications.some(i => i.id === id));
+  const exam = ALL_GROUPS.flatMap(g => g.exams).find(x => x.indications.some(i => i.id === id));
   const ind = exam.indications.find(i => i.id === id);
   overrides[id] = cb.checked;
   render();
@@ -282,10 +381,10 @@ document.getElementById('btn-print').addEventListener('click', () => {
   if (p.ldl !== null) comorb.push(`LDL ${String(p.ldl).replace('.', ',')} g/L`);
 
 
-  const examBlocks = EXAMS.map(exam => {
+  const examBlocks = ALL_GROUPS.flatMap(g => g.exams).map(exam => {
     const st = examState(exam);
     if (!st.indicated) return '';
-    const inds = st.checked.map(i => `<li>${escapeHtml(i.label)}</li>`).join('');
+    const inds = st.checked.map(i => `<li>${escapeHtml(i.label)}${i.req ? ` <em>(${escapeHtml(i.req)})</em>` : ''}</li>`).join('');
     return `<div class="exam-box">
       <div class="exam-title">${exam.icon} ${escapeHtml(exam.title)}</div>
       <ul>${inds}</ul>
@@ -293,7 +392,7 @@ document.getElementById('btn-print').addEventListener('click', () => {
     </div>`;
   }).join('');
 
-  const todoCount = EXAMS.filter(e => examState(e).indicated).length;
+  const todoCount = ALL_GROUPS.flatMap(g => g.exams).filter(e => examState(e).indicated).length;
 
   document.getElementById('print-area').innerHTML = `
     <div class="doc">
