@@ -244,32 +244,50 @@ document.getElementById('btn-print').addEventListener('click', () => {
     : p.tabac === 'sevré' ? `Sevré${p.pa !== null ? ` (${p.pa} PA)` : ''}`
     : p.tabac === 'jamais' ? 'Non fumeur' : '—';
 
-  let todoRows = '', naRows = '';
-  EXAMS.forEach(exam => {
+
+  const examBlocks = EXAMS.map(exam => {
     const st = examState(exam);
-    if (st.indicated) {
-      const inds = st.checked.map(i => escapeHtml(i.label)).join(' • ');
-      todoRows += `<tr><td>${escapeHtml(exam.title)}</td><td>${inds}</td></tr>`;
-    } else {
-      naRows += `<tr><td>${escapeHtml(exam.title)}</td></tr>`;
-    }
-  });
+    if (!st.indicated) return '';
+    const inds = st.checked.map(i => `<li>${escapeHtml(i.label)}</li>`).join('');
+    return `<div class="exam-box">
+      <div class="exam-title">${exam.icon} ${escapeHtml(exam.title)}</div>
+      <ul>${inds}</ul>
+      <div class="exam-cta">→ À prescrire / à programmer avec votre médecin</div>
+    </div>`;
+  }).join('');
+
+  const todoCount = EXAMS.filter(e => examState(e).indicated).length;
 
   document.getElementById('print-area').innerHTML = `
-    <h1>Points de dépistage à planifier</h1>
-    <p><strong>Patient :</strong> ${escapeHtml(name)} &nbsp;|&nbsp; <strong>Âge :</strong> ${p.age ?? '—'} ans &nbsp;|&nbsp; <strong>Sexe :</strong> ${sexTxt} &nbsp;|&nbsp; <strong>Tabac :</strong> ${escapeHtml(tabacTxt)} &nbsp;|&nbsp; <strong>Date :</strong> ${escapeHtml(date)}</p>
+    <div class="doc">
+      <div class="doc-head">
+        <h1>Votre programme de dépistage</h1>
+        <p class="doc-date">Consultation du ${escapeHtml(date.split('-').reverse().join('/'))}</p>
+      </div>
 
-    <h2>📋 Examens indiqués — à prescrire / à programmer</h2>
-    <table><tr><th>Examen</th><th>Indication(s) retrouvée(s)</th></tr>
-    ${todoRows || '<tr><td colspan="2">Aucun examen indiqué à ce jour.</td></tr>'}</table>
+      <div class="patient-band">
+        <div><span class="k">Patient</span><span class="v">${escapeHtml(name)}</span></div>
+        <div><span class="k">Âge</span><span class="v">${p.age ?? '—'} ans</span></div>
+        <div><span class="k">Sexe</span><span class="v">${sexTxt}</span></div>
+        <div><span class="k">Tabac</span><span class="v">${escapeHtml(tabacTxt)}</span></div>
+      </div>
 
-    <h2>ℹ️ Non indiqués actuellement</h2>
-    <table>${naRows || '<tr><td>—</td></tr>'}</table>
+      ${todoCount ? `<div class="intro">Lors de la consultation, nous avons repéré <strong>${todoCount} dépistage${todoCount > 1 ? 's' : ''}</strong> à planifier pour votre santé. Voici la liste et la raison pour chacun.</div>`
+        : '<div class="intro ok">Aucun dépistage supplémentaire n\'est nécessaire aujourd\'hui. Votre suivi est à jour — pensez aux prochains rendez-vous de routine.</div>'}
 
-    <div class="plan">
-      <strong>Prochaines étapes :</strong> prenez rendez-vous pour les examens listés ci-dessus, avec l'ordonnance de votre médecin. Certains dépistages sont proposés automatiquement (courrier du programme national).
-    </div>
-    <p class="foot">Document d'aide-mémoire généré en consultation, conformément aux recommandations françaises (HAS / dépistage organisé). Ne remplace pas l'avis médical.</p>`;
+      ${examBlocks || ''}
+
+      <div class="plan">
+        <strong>Comment faire ?</strong>
+        <ol>
+          <li>Prenez rendez-vous pour les examens listés ci-dessus (certains nécessitent une ordonnance de votre médecin).</li>
+          <li>Certains dépistages vous seront proposés automatiquement par courrier (programme national de dépistage).</li>
+          <li>En cas de question ou de résultat anormal, contactez votre médecin traitant.</li>
+        </ol>
+      </div>
+
+      <p class="foot">Document remis en consultation — rappel des recommandations françaises de dépistage (HAS, dépistage organisé). Ne remplace pas l'avis médical.</p>
+    </div>`;
   window.print();
 });
 
