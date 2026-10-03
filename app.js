@@ -11,6 +11,7 @@ const P = () => {
   const tabac = document.getElementById('pat-tabac').value;
   const pa = parseFloat(document.getElementById('pat-pa').value);
   const dfg = parseFloat(document.getElementById('pat-dfg').value);
+  const imc = parseFloat(document.getElementById('pat-imc').value);
   return {
     age: isNaN(age) ? null : age,
     sex,
@@ -21,6 +22,7 @@ const P = () => {
     diabete: document.getElementById('pat-diabete').value === 'oui',
     hta: document.getElementById('pat-hta').value === 'oui',
     dfg: isNaN(dfg) ? null : dfg,
+    imc: isNaN(imc) ? null : imc,
   };
 };
 
@@ -38,7 +40,7 @@ const EXAMS = [
     { id: 'osteo-fracture', label: 'Fracture de faible énergie après 50 ans (poignet, vertèbre, fémur...)' },
     { id: 'osteo-cortico', label: 'Corticothérapie ≥ 3 mois, ≥ 7,5 mg/j prednisone' },
     { id: 'osteo-menop-precoc', label: 'Ménopause précoce (< 40 ans) ou hypogonadisme' },
-    { id: 'osteo-imc', label: 'IMC < 19, ou perte de poids' },
+    { id: 'osteo-imc', label: 'IMC < 19, ou perte de poids', auto: p => p.imc !== null && p.imc < 19 },
     { id: 'osteo-fam', label: 'Antécédent familial de fracture du col du fémur' },
     { id: 'osteo-fdr', label: 'Femme ménopausée avec autre facteur de risque (tabac, alcool, FRAX élevé)' },
   ],
@@ -103,7 +105,7 @@ const EXAMS = [
   id: 'diabete', title: 'Glycémie à jeun / HbA1c (diabète de type 2)', icon: '🍪',
   indications: [
     { id: 'diabete-age', label: '45–75 ans (tous les 3 ans)', auto: p => between(p, 45, 75) },
-    { id: 'diabete-obesite', label: 'Surpoids/obésité (IMC ≥ 25, tour de taille élevé) + sédentarité' },
+    { id: 'diabete-obesite', label: 'Surpoids/obésité (IMC ≥ 25, tour de taille élevé) + sédentarité', auto: p => p.imc !== null && p.imc >= 25 },
     { id: 'diabete-hta', label: 'HTA ou dyslipidémie', auto: p => p.hta },
     { id: 'diabete-fam', label: 'Antécédent familial de diabète type 2' },
     { id: 'diabete-gest', label: 'Diabète gestationnel, ou origine à risque (Afrique subsaharienne, Asie, Inde)' },
@@ -152,6 +154,7 @@ function render() {
   if (p.fumeur && p.pa === null && p.age !== null && p.age >= 40) reminders.push('⚠️ Paquets-années non renseignées : nécessaires pour BPCO, cancer du poumon, AAA.');
   if (p.diabete && p.dfg === null) reminders.push('🩸 Patient diabétique : vérifier la fonction rénale (DFG, rapport protéinurie/créatinurie).');
   if (p.dfg !== null && p.dfg < 60) reminders.push('💧 DFG < 60 mL/min : maladie rénale chronique — adapter traitements, éviter néphrotoxiques.');
+  if (p.imc !== null && p.imc >= 30) reminders.push('⚖️ Obésité (IMC ≥ 30) : évaluer, proposer prise en charge (activité physique, diététique, chirurgie si indication).');
   document.getElementById('reminders').innerHTML = reminders.map(r => `<div>${escapeHtml(r)}</div>`).join('');
   document.getElementById('reminders').classList.toggle('hidden', !reminders.length);
 
@@ -205,7 +208,7 @@ document.addEventListener('change', e => {
   render();
 });
 
-['pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-dfg'].forEach(idn =>
+['pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-dfg', 'pat-imc'].forEach(idn =>
   document.getElementById(idn).addEventListener('change', render));
 
 document.getElementById('pat-date').value = new Date().toISOString().slice(0, 10);
@@ -228,6 +231,7 @@ document.getElementById('btn-save').addEventListener('click', () => {
       diabete: document.getElementById('pat-diabete').value,
       hta: document.getElementById('pat-hta').value,
       dfg: document.getElementById('pat-dfg').value,
+      imc: document.getElementById('pat-imc').value,
       date: document.getElementById('pat-date').value,
     },
     overrides
@@ -248,6 +252,7 @@ document.getElementById('btn-load').addEventListener('click', () => {
   document.getElementById('pat-diabete').value = data.patient?.diabete || '';
   document.getElementById('pat-hta').value = data.patient?.hta || '';
   document.getElementById('pat-dfg').value = data.patient?.dfg || '';
+  document.getElementById('pat-imc').value = data.patient?.imc || '';
   document.getElementById('pat-date').value = data.patient?.date || new Date().toISOString().slice(0, 10);
   Object.keys(overrides).forEach(k => delete overrides[k]);
   Object.assign(overrides, data.overrides || {});
@@ -267,6 +272,7 @@ document.getElementById('btn-print').addEventListener('click', () => {
   if (p.diabete) comorb.push('Diabète');
   if (p.hta) comorb.push('HTA');
   if (p.dfg !== null) comorb.push(`DFG ${p.dfg} mL/min`);
+  if (p.imc !== null) comorb.push(`IMC ${p.imc}`);
 
 
   const examBlocks = EXAMS.map(exam => {
