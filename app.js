@@ -8,7 +8,16 @@
 const P = () => {
   const age = parseInt(document.getElementById('pat-age').value, 10);
   const sex = document.getElementById('pat-sex').value;
-  return { age: isNaN(age) ? null : age, sex };
+  const tabac = document.getElementById('pat-tabac').value;
+  const pa = parseFloat(document.getElementById('pat-pa').value);
+  return {
+    age: isNaN(age) ? null : age,
+    sex,
+    tabac,                                   // '' | 'actif' | 'ex' | 'jamais'
+    pa: isNaN(pa) ? null : pa,               // paquets-années
+    fumeur: tabac === 'actif' || tabac === 'ex',
+    grosFumeur: (tabac === 'actif' || tabac === 'ex') && !isNaN(pa) && pa >= 20,
+  };
 };
 
 const adult = p => p.age !== null && p.age >= 18;
@@ -22,8 +31,13 @@ const SECTIONS = [
   id: 'tabac', title: '🚬 Tabac / addictions',
   items: [
     { id: 'tabac-status', label: 'Statut tabagique évalué', detail: 'Jamais / sevré (préciser l\'année) / actif', show: adult,
-      why: p => 'Le dépistage du tabagisme est recommandé à chaque consultation (HAS).' },
-    { id: 'tabac-pa', label: 'Si fumeur : nombre de paquets-années', detail: '(cigarettes/jour × années) / 20', show: adult, input: 'text' },
+      why: p => {
+        if (p.tabac === 'actif') return 'Fumeur actif (donnée Doctolib) : sevrage à proposer à chaque consultation (HAS).';
+        if (p.tabac === 'ex') return 'Ex-fumeur : préciser l\'année d\'arrêt et le niveau d\'exposition (PA).';
+        return 'Le dépistage du tabagisme est recommandé à chaque consultation (HAS).';
+      } },
+    { id: 'tabac-pa', label: 'Si fumeur : nombre de paquets-années', detail: '(cigarettes/jour × années) / 20', show: p => adult(p) && p.fumeur,
+      why: p => p.fumeur && p.pa === null ? 'Paquets-années non renseignés : nécessaires pour BPCO, cancer du poumon, AAA.' : null },
     { id: 'tabac-aide', label: 'Si fumeur : sevrage proposé / aide proposée (substitution, consultation, TCC)', show: adult, input: 'note' },
     { id: 'alcool-audit', label: 'Alcool : dépistage (AUDIT-C / FACE)', detail: 'Remboursement SI : au moins 1 si/an (adulte)', show: adult },
     { id: 'cannabis', label: 'Autres addictions : cannabis, opioïdes, alcoolisation dangereuse — dépistage si contexte', show: adult },
@@ -34,7 +48,9 @@ const SECTIONS = [
   items: [
     { id: 'bpco-critere', label: 'Critères de dépistage évalués (fumeur ou ex-fumeur ≥ 20 PA + ≥ 40 ans, ou symptomatique)', show: adult,
       why: p => {
-        if (p.age !== null && p.age >= 40) return 'Le dépistage de la BPCO est indiqué chez les fumeurs/ex-fumeurs de 40 ans et plus avec symptômes (toux, expectorations, dyspnée).';
+        if (!p.fumeur) return null;
+        if (p.age !== null && p.age >= 40 && p.grosFumeur) return 'Fumeur/ex-fumeur ≥ 20 PA et ≥ 40 ans : critères de dépistage de la BPCO réunis.';
+        if (p.age !== null && p.age >= 40 && p.pa === null) return 'Fumeur ≥ 40 ans : renseigner les paquets-années (seuil ≥ 20 PA).';
         return null;
       } },
     { id: 'bpco-sympt', label: 'Symptômes : toux chronique, expectorations, dyspnée, sifflements', show: adult },
@@ -53,7 +69,11 @@ const SECTIONS = [
     { id: 'osteo-femmes65', label: 'Ostéodensitométrie : femme ≥ 65 ans', show: p => adult(p) && isF(p) && p.age >= 65,
       why: p => p.age >= 65 ? 'Recommandée systématiquement chez la femme de 65 ans et plus (HAS).' : null },
     { id: 'osteo-menopause', label: 'Ostéodensitométrie : femme ménopausée avec facteur de risque', detail: 'FR : FRAX ≥ seuil, corticothérapie prolongée, antécédent de fracture de faible énergie, tabagisme, IMC < 19, alcool, ménopause précoce, antécédent familial', show: p => adult(p) && isF(p),
-      why: p => (p.age >= 50) ? 'À considérer dès 50 ans si facteur de risque (HAS).' : null },
+      why: p => {
+        if (p.age === null || p.age < 50) return null;
+        if (p.tabac === 'actif') return 'Tabagisme actif = facteur de risque ostéoporose : ostéodensitométrie à considérer dès 50 ans (HAS).';
+        return 'À considérer dès 50 ans si facteur de risque (HAS).';
+      } },
     { id: 'osteo-homme', label: 'Homme ≥ 70 ans : dépistage à considérer (HAS 2024 : dépistage possible chez l\'homme de 70 ans et plus)', show: p => adult(p) && isM(p) && p.age >= 70,
       why: p => p.age >= 70 ? 'Recommandation HAS 2024 : dépistage possible chez l\'homme ≥ 70 ans.' : null },
     { id: 'osteo-fracture', label: 'Antécédent de fracture de faible énergie après 50 ans / fracture de l\'extrémité supérieure du fémur', show: adult },
@@ -88,7 +108,7 @@ const SECTIONS = [
     { id: 'imc-tt', label: 'IMC et tour de taille', show: adult },
     { id: 'eas-score', label: 'Score SCORE2 / risque cardiovasculaire global', show: adult },
     { id: 'aa', label: 'Recherche d\'anévrisme aortique abdominale : ÉCHO aorte chez fumeur/ex-fumeur de 65 à 85 ans', show: adult,
-      why: p => (p.age !== null && p.age >= 65 && p.age <= 85) ? 'Dépistage de l\'AAA : une échographie chez les fumeurs/ex-fumeurs de 65 à 85 ans (HAS).' : null },
+      why: p => (p.age !== null && p.age >= 65 && p.age <= 85 && p.fumeur) ? 'Dépistage de l\'AAA : une échographie chez les fumeurs/ex-fumeurs de 65 à 85 ans (HAS).' : null },
     { id: 'arih', label: 'Dépistage de l\'arythmie par ARIH (auto-mesure à domicile chez ≥ 65 ans)', show: p => p.age !== null && p.age >= 65 },
     { id: 'fod', label: 'Cécité par BAV : détection de l\'arythmie par palpation du pouls ≥ 65 ans', show: p => p.age !== null && p.age >= 65 },
   ]
@@ -110,7 +130,12 @@ const SECTIONS = [
       why: p => (p.age !== null && p.age >= 50) ? 'PSA : à discuter (dépistage individuel, décision partagée) — HAS 2024.' : null },
     { id: 'cancer-prostate-dre', label: 'Toucher rectal si symptômes urinaires ou PSA élevé', show: p => adult(p) && isM(p) && p.age !== null && p.age >= 50 },
     { id: 'cancer-poumon', label: 'Cancer du poumon : scanner thoracique low-dose annuel, fumeur/ex-fumeur 50–74 ans avec tabagisme important', show: adult,
-      why: p => (p.age !== null && p.age >= 50 && p.age <= 74) ? 'Si tabagisme ≥ 20 PA : dépistage individuel à envisager (recommandation HAS 2022).' : null },
+      why: p => {
+        if (!p.fumeur) return null;
+        if (p.age !== null && p.age >= 50 && p.age <= 74 && p.grosFumeur) return 'Fumeur/ex-fumeur 50–74 ans avec ≥ 20 PA : scanner low-dose annuel à envisager (HAS).';
+        if (p.age !== null && p.age >= 50 && p.age <= 74 && p.pa === null) return '50–74 ans et fumeur/ex-fumeur : renseigner les paquets-années (seuil ≥ 20 PA).';
+        return null;
+      } },
     { id: 'cancer-peau', label: 'Cancer de la peau : examen des lésions suspectes / éducation à l\'auto-examen', show: adult },
     { id: 'cancer-signes', label: 'Signes d\'alerte généraux recherchés : amaigrissement inexpliqué, hémorragies, douleurs chroniques, adénopathies, toux > 3 semaines, dysphagie, sang dans les selles ou urines', show: adult },
     { id: 'cancer-hpv-cond', label: 'Conduite à tenir si test de dépistage positif : orientation rapide, examens complémentaires', show: adult },
@@ -277,7 +302,7 @@ document.addEventListener('input', e => {
   }
 });
 
-['pat-age', 'pat-sex'].forEach(idn =>
+['pat-age', 'pat-sex', 'pat-tabac', 'pat-pa'].forEach(idn =>
   document.getElementById(idn).addEventListener('change', render));
 
 document.getElementById('pat-date').value = new Date().toISOString().slice(0, 10);
@@ -295,6 +320,8 @@ document.getElementById('btn-save').addEventListener('click', () => {
       name: document.getElementById('pat-name').value,
       age: document.getElementById('pat-age').value,
       sex: document.getElementById('pat-sex').value,
+      tabac: document.getElementById('pat-tabac').value,
+      pa: document.getElementById('pat-pa').value,
       date: document.getElementById('pat-date').value,
     },
     state
@@ -310,6 +337,8 @@ document.getElementById('btn-load').addEventListener('click', () => {
   document.getElementById('pat-name').value = data.patient?.name || '';
   document.getElementById('pat-age').value = data.patient?.age || '';
   document.getElementById('pat-sex').value = data.patient?.sex || '';
+  document.getElementById('pat-tabac').value = data.patient?.tabac || '';
+  document.getElementById('pat-pa').value = data.patient?.pa || '';
   document.getElementById('pat-date').value = data.patient?.date || '';
   Object.keys(data.state || {}).forEach(k => state[k] = data.state[k]);
   render();
@@ -321,6 +350,9 @@ document.getElementById('btn-print').addEventListener('click', () => {
   const name = document.getElementById('pat-name').value || '__________';
   const date = document.getElementById('pat-date').value || new Date().toISOString().slice(0, 10);
   const sexTxt = p.sex === 'F' ? 'Femme' : p.sex === 'M' ? 'Homme' : '—';
+  const tabacTxt = p.tabac === 'actif' ? `Fumeur actif${p.pa !== null ? ' (' + p.pa + ' PA)' : ''}`
+    : p.tabac === 'ex' ? `Ex-fumeur${p.pa !== null ? ' (' + p.pa + ' PA)' : ''}`
+    : p.tabac === 'jamais' ? 'Non-fumeur' : '—';
 
   let todoRows = '', doneRows = '', naRows = '';
   SECTIONS.forEach(sec => {
@@ -339,7 +371,7 @@ document.getElementById('btn-print').addEventListener('click', () => {
 
   document.getElementById('print-area').innerHTML = `
     <h1>Check-list de santé — points de surveillance et de dépistage</h1>
-    <p><strong>Patient :</strong> ${escapeHtml(name)} &nbsp;|&nbsp; <strong>Âge :</strong> ${p.age ?? '—'} ans &nbsp;|&nbsp; <strong>Sexe :</strong> ${sexTxt} &nbsp;|&nbsp; <strong>Date :</strong> ${escapeHtml(date)}</p>
+    <p><strong>Patient :</strong> ${escapeHtml(name)} &nbsp;|&nbsp; <strong>Âge :</strong> ${p.age ?? '—'} ans &nbsp;|&nbsp; <strong>Sexe :</strong> ${sexTxt} &nbsp;|&nbsp; <strong>Tabac :</strong> ${escapeHtml(tabacTxt)} &nbsp;|&nbsp; <strong>Date :</strong> ${escapeHtml(date)}</p>
 
     <h2>✅ Déjà à jour / réalisé</h2>
     <table><tr><th>Item</th></tr>${fmt(doneRows, 'Aucun point marqué « fait ».')}</table>
