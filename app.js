@@ -26,6 +26,17 @@ const isM = p => p.sex === 'M';
 // ---------- Données ----------
 const SECTIONS = [
 
+// ==================== CONSULTATION DE PRÉVENTION (âges cibles cotées) ====================
+{ id: 'prevention', title: '🗓️ Consultation de prévention « Mon bilan prévention »', blocks: [
+  { id: 'bilan-prevention', type: 'checklist', title: 'Bilan prévention remboursé (100 %, sans avance de frais)', show: p => p.age !== null && p.age >= 18,
+    items: [
+      { id: 'bp-18-25', label: 'Rendez-vous « Mon bilan prévention » 18–25 ans à proposer (santé mentale, addictions, santé sexuelle)', show: p => between(p, 18, 25), why: () => 'Consultation de prévention cotée : 18–25 ans, prise en charge 100 %, une fois par tranche d\'âge.' },
+      { id: 'bp-45-50', label: 'Rendez-vous « Mon bilan prévention » 45–50 ans à proposer (dépistage cancers, risque cardio/métabolique)', show: p => between(p, 45, 50), why: () => 'Consultation de prévention cotée : 45–50 ans, prise en charge 100 %, une fois par tranche d\'âge.' },
+      { id: 'bp-60-65', label: 'Rendez-vous « Mon bilan prévention » 60–65 ans à proposer (fragilités, autonomie, vaccinations)', show: p => between(p, 60, 65), why: () => 'Consultation de prévention cotée : 60–65 ans, prise en charge 100 %, une fois par tranche d\'âge.' },
+      { id: 'bp-70-75', label: 'Rendez-vous « Mon bilan prévention » 70–75 ans à proposer (autonomie, chutes, isolement)', show: p => between(p, 70, 75), why: () => 'Consultation de prévention cotée : 70–75 ans, prise en charge 100 %, une fois par tranche d\'âge.' }
+    ] }
+]},
+
 // ==================== PNEUMOLOGIE ====================
 { id: 'pneumo', title: '🫁 Pneumologie', blocks: [
   { id: 'bpco', type: 'depistage', title: 'BPCO', exam: 'Spirométrie / EFR avec test de réversibilité', show: () => true,
@@ -143,12 +154,18 @@ const SECTIONS = [
   { id: 'hemochromatose', type: 'depistage', title: 'Hémochromatose', exam: 'Transferrine saturation (SAT), ferritine', show: () => true,
     auto: [],
     indications: ['Asthenie, arthralgies méta­carpophalangiennes', 'ATCD familial (mutation C282Y)', 'Diabète / cardiopathie / cirrhose inexpliqués', 'Origine nord-européenne'] },
-  { id: 'obesite', type: 'checklist', title: 'Surpoids / obésité', show: () => true,
-    items: [
-      { id: 'ob-imc', label: 'IMC mesuré' },
-      { id: 'ob-tt', label: 'Tour de taille mesuré' },
-      { id: 'ob-orientation', label: 'Prise en charge / orientation proposée si IMC ≥ 25–30' }
-    ] }
+  { id: 'obesite', type: 'depistage', title: 'Obésité / surpoids', exam: 'IMC + tour de taille, puis prise en charge si anormal', show: () => true,
+    auto: [],
+    indications: [
+      'IMC ≥ 25 (surpoids) ou ≥ 30 (obésité)',
+      'Tour de taille augmenté (≥ 94 cm H / ≥ 80 cm F)',
+      'Prise de poids récente inexpliquée',
+      'Diabète / HTA / dyslipidémie / SAS associés',
+      'Alimentation déséquilibrée / sédentarité',
+      'Traitement favorisant (corticoïdes, antipsychotiques, insuline)',
+      'Arrêt du tabac récent (prise de poids fréquente)',
+      'Bilan de prévention à valoriser (cf. tranche d\'âge)'
+    ] },
 ]},
 
 // ==================== NÉPHROLOGIE / UROLOGIE ====================
@@ -581,7 +598,52 @@ document.getElementById('btn-export').addEventListener('click', () => {
   URL.revokeObjectURL(a.href);
 });
 
-// ---------- Fiche patient ----------
+// ---------- Rapport médecin ----------
+function buildDoctorReport(p) {
+  const name = [PATIENT.nom, PATIENT.prenom].filter(Boolean).join(' ') || '—';
+  const date = document.getElementById('pat-date').value || '';
+  const sexTxt = p.sex === 'F' ? 'Femme' : p.sex === 'M' ? 'Homme' : '—';
+  const { todo, done, nc } = collectConclusions(p);
+
+  let rows = '';
+  SECTIONS.forEach(sec => {
+    sec.blocks.forEach(b => {
+      if (b.show && !b.show(p)) return;
+      if (b.type === 'depistage') {
+        const st = state[b.id] || { indications: new Set(), status: null };
+        const auto = (b.auto || []).filter(a => a.cond(p)).map(a => a.label);
+        const man = [...st.indications].map(i => b.indications[i]).filter(Boolean);
+        let conclusion;
+        if (st.status === 'a-jour') conclusion = 'RÉALISÉ / à jour';
+        else if (st.status === 'non-concerne') conclusion = 'N/A';
+        else if (auto.length + man.length) conclusion = `À RÉALISER — ${[...auto, ...man].join(' ; ')}`;
+        else conclusion = 'Pas d\'indication';
+        rows += `<tr><td>${escapeHtml(sec.title.replace(/^\S+\s/, ''))}</td><td>${escapeHtml(b.title)}</td><td>${escapeHtml(conclusion)}</td></tr>`;
+      } else {
+        b.items.forEach(it => {
+          if (it.show && !it.show(p)) return;
+          const st = state[it.id];
+          const s = st?.status === 'oui' ? 'Fait' : st?.status === 'non' ? 'À FAIRE' : st?.status === 'na' ? 'N/A' : '—';
+          rows += `<tr><td>${escapeHtml(sec.title.replace(/^\S+\s/, ''))}</td><td>${escapeHtml(it.label)}</td><td>${s}</td></tr>`;
+        });
+      }
+    });
+  });
+
+  return `<h1>Rapport médecin — check-list de dépistage 360°</h1>
+    <p><strong>${escapeHtml(name)}</strong> — ${p.age !== null ? p.age + ' ans' : 'âge ?'} — ${sexTxt} — le ${escapeHtml(date)}</p>
+    <p>Synthèse : <strong>${todo.length} dépistage(s) à réaliser</strong>, ${done.length} à jour, ${nc.length} non concernés. RCV global : depistagecv.fr / risquecv.fr.</p>
+    <table><tr><th>Appareil</th><th>Point</th><th>Conclusion</th></tr>${rows}</table>
+    <p class="foot">Aide-mémoire conforme aux recommandations HAS / dépistage organisé. Ne remplace pas le jugement clinique.</p>`;
+}
+
+document.getElementById('btn-print-med').addEventListener('click', () => {
+  const p = P();
+  document.getElementById('print-area').innerHTML = buildDoctorReport(p);
+  window.print();
+});
+
+// ---------- Rapport patient ----------
 document.getElementById('btn-print').addEventListener('click', () => {
   const p = P();
   const name = [PATIENT.nom, PATIENT.prenom].filter(Boolean).join(' ') || '__________';
