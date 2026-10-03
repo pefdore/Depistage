@@ -12,6 +12,7 @@ const P = () => {
   const pa = parseFloat(document.getElementById('pat-pa').value);
   const dfg = parseFloat(document.getElementById('pat-dfg').value);
   const imc = parseFloat(document.getElementById('pat-imc').value);
+  const ldl = parseFloat(document.getElementById('pat-ldl').value);
   return {
     age: isNaN(age) ? null : age,
     sex,
@@ -23,6 +24,7 @@ const P = () => {
     hta: document.getElementById('pat-hta').value === 'oui',
     dfg: isNaN(dfg) ? null : dfg,
     imc: isNaN(imc) ? null : imc,
+    ldl: isNaN(ldl) ? null : ldl,
   };
 };
 
@@ -155,6 +157,8 @@ function render() {
   if (p.diabete && p.dfg === null) reminders.push('🩸 Patient diabétique : vérifier la fonction rénale (DFG, rapport protéinurie/créatinurie).');
   if (p.dfg !== null && p.dfg < 60) reminders.push('💧 DFG < 60 mL/min : maladie rénale chronique — adapter traitements, éviter néphrotoxiques.');
   if (p.imc !== null && p.imc >= 30) reminders.push('⚖️ Obésité (IMC ≥ 30) : évaluer, proposer prise en charge (activité physique, diététique, chirurgie si indication).');
+  if (p.ldl !== null && p.ldl >= 1.9) reminders.push('🧬 LDL ≥ 1,9 g/L : évoquer une hypercholestérolémie familiale (dépistage familial, avis spécialisé).');
+  else if (p.ldl !== null && p.ldl >= 1.6) reminders.push('🫀 LDL ≥ 1,6 g/L : évaluer le risque cardiovasculaire global (SCORE2), adapter la prise en charge.');
   document.getElementById('reminders').innerHTML = reminders.map(r => `<div>${escapeHtml(r)}</div>`).join('');
   document.getElementById('reminders').classList.toggle('hidden', !reminders.length);
 
@@ -208,7 +212,7 @@ document.addEventListener('change', e => {
   render();
 });
 
-['pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-dfg', 'pat-imc'].forEach(idn =>
+['pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-dfg', 'pat-imc', 'pat-ldl'].forEach(idn =>
   document.getElementById(idn).addEventListener('change', render));
 
 document.getElementById('pat-date').value = new Date().toISOString().slice(0, 10);
@@ -232,6 +236,7 @@ document.getElementById('btn-save').addEventListener('click', () => {
       hta: document.getElementById('pat-hta').value,
       dfg: document.getElementById('pat-dfg').value,
       imc: document.getElementById('pat-imc').value,
+      ldl: document.getElementById('pat-ldl').value,
       date: document.getElementById('pat-date').value,
     },
     overrides
@@ -253,6 +258,7 @@ document.getElementById('btn-load').addEventListener('click', () => {
   document.getElementById('pat-hta').value = data.patient?.hta || '';
   document.getElementById('pat-dfg').value = data.patient?.dfg || '';
   document.getElementById('pat-imc').value = data.patient?.imc || '';
+  document.getElementById('pat-ldl').value = data.patient?.ldl || '';
   document.getElementById('pat-date').value = data.patient?.date || new Date().toISOString().slice(0, 10);
   Object.keys(overrides).forEach(k => delete overrides[k]);
   Object.assign(overrides, data.overrides || {});
@@ -273,6 +279,7 @@ document.getElementById('btn-print').addEventListener('click', () => {
   if (p.hta) comorb.push('HTA');
   if (p.dfg !== null) comorb.push(`DFG ${p.dfg} mL/min`);
   if (p.imc !== null) comorb.push(`IMC ${p.imc}`);
+  if (p.ldl !== null) comorb.push(`LDL ${String(p.ldl).replace('.', ',')} g/L`);
 
 
   const examBlocks = EXAMS.map(exam => {
