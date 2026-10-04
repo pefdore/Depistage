@@ -297,6 +297,7 @@ const ALL_GROUPS = [
 
 // ---------- État ----------
 const overrides = {}; // indicationId -> true | false (coche manuelle)
+const doneExams = {}; // examId -> true (examen traité / déjà fait)
 const isChecked = ind => {
   if (overrides[ind.id] !== undefined) return overrides[ind.id];
   return ind.auto ? !!ind.auto(P()) : false;
@@ -385,13 +386,41 @@ function render() {
 
 function updateSummary() {
   const all = ALL_GROUPS.flatMap(g => g.exams);
-  const indicated = all.filter(e => examState(e).indicated);
+  const todo = all.filter(e => examState(e).indicated && !doneExams[e.id]);
+  const doneCount = all.filter(e => examState(e).indicated && doneExams[e.id]).length;
+
+  const list = document.getElementById('todo-list');
+  list.innerHTML = '';
+  if (!todo.length) {
+    list.innerHTML = '<div class="todo-empty">' + (doneCount
+      ? '✅ Tout est traité pour ce patient.'
+      : 'Aucun examen indiqué actuellement.') + '</div>';
+  }
+  todo.forEach(exam => {
+    const st = examState(exam);
+    const chip = document.createElement('div');
+    chip.className = 'todo-chip';
+    chip.innerHTML = `
+      <span class="todo-label">${exam.icon} ${escapeHtml(exam.title.split(' (')[0])}
+        <em>${st.checked.length} indication${st.checked.length > 1 ? 's' : ''}${st.level && exam.scoring ? ' — ' + escapeHtml(st.level) : ''}</em></span>
+      <button class="todo-done" data-done="${exam.id}">✓ Fait</button>`;
+    list.appendChild(chip);
+  });
+
+  document.getElementById('todo-count').textContent =
+    todo.length ? `${todo.length} à faire${doneCount ? ` · ${doneCount} fait${doneCount > 1 ? 's' : ''}` : ''}` : (doneCount ? '✅ tout traité' : '—');
   document.getElementById('progress-info').textContent =
-    `${indicated.length} examen${indicated.length > 1 ? 's' : ''} avec indication` +
-    (indicated.length ? ` : ${indicated.map(e => e.title.split(' (')[0]).join(', ')}` : '');
+    `${todo.length} examen${todo.length > 1 ? 's' : ''} à faire`;
 }
 
 // ---------- Événements ----------
+document.addEventListener('click', e => {
+  const btn = e.target.closest('button[data-done]');
+  if (!btn) return;
+  doneExams[btn.dataset.done] = true;
+  render();
+});
+
 document.addEventListener('change', e => {
   const cb = e.target.closest('input[data-ind]');
   if (!cb) return;
@@ -410,6 +439,7 @@ document.getElementById('pat-date').value = new Date().toISOString().slice(0, 10
 document.getElementById('btn-reset').addEventListener('click', () => {
   if (confirm('Réinitialiser les coches ?')) {
     Object.keys(overrides).forEach(k => delete overrides[k]);
+    Object.keys(doneExams).forEach(k => delete doneExams[k]);
     render();
   }
 });
@@ -429,7 +459,8 @@ document.getElementById('btn-save').addEventListener('click', () => {
       ldl: document.getElementById('pat-ldl').value,
       date: document.getElementById('pat-date').value,
     },
-    overrides
+    overrides,
+    doneExams
   };
   localStorage.setItem('depistage-last', JSON.stringify(data));
   alert('Sauvegardé (stockage local du navigateur).');
@@ -452,6 +483,8 @@ document.getElementById('btn-load').addEventListener('click', () => {
   document.getElementById('pat-date').value = data.patient?.date || new Date().toISOString().slice(0, 10);
   Object.keys(overrides).forEach(k => delete overrides[k]);
   Object.assign(overrides, data.overrides || {});
+  Object.keys(doneExams).forEach(k => delete doneExams[k]);
+  Object.assign(doneExams, data.doneExams || {});
   render();
 });
 
@@ -474,7 +507,7 @@ document.getElementById('btn-print').addEventListener('click', () => {
 
   const examBlocks = ALL_GROUPS.flatMap(g => g.exams).map(exam => {
     const st = examState(exam);
-    if (!st.indicated) return '';
+    if (!st.indicated || doneExams[exam.id]) return '';
     const inds = st.checked.map(i => `<li>${escapeHtml(i.label)}${i.req ? ` <em>(${escapeHtml(i.req)})</em>` : ''}</li>`).join('');
     const scoreInfo = exam.scoring === 'stopbang' ? ` — score ${st.score}/8 (risque ${st.level})` : (exam.scoring === 'glp1' && st.level ? ` — ${st.level}` : '');
     return `<div class="exam-box">
@@ -484,7 +517,7 @@ document.getElementById('btn-print').addEventListener('click', () => {
     </div>`;
   }).join('');
 
-  const todoCount = ALL_GROUPS.flatMap(g => g.exams).filter(e => examState(e).indicated).length;
+  const todoCount = ALL_GROUPS.flatMap(g => g.exams).filter(e => examState(e).indicated && !doneExams[e.id]).length;
 
   document.getElementById('print-area').innerHTML = `
     <div class="doc">

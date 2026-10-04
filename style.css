@@ -122,6 +122,23 @@ button.secondary { background: #6c757d; }
   border-radius: 5px; font-size: .8rem; font-family: inherit; resize: vertical;
 }
 
+/* Panneau À faire */
+.todo-head { display: flex; align-items: baseline; justify-content: space-between; }
+.todo-head h2 { margin: 0; font-size: 1.05rem; color: var(--accent); }
+#todo-count { font-size: .8rem; color: #6c757d; }
+#todo-list { margin-top: 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 8px; }
+.todo-chip {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: #fff5f5; border: 1px solid #f1aeb5; border-radius: 8px; padding: 8px 12px;
+}
+.todo-label { font-size: .88rem; line-height: 1.25; }
+.todo-label em { display: block; font-style: normal; font-size: .72rem; color: #842029; }
+.todo-done {
+  background: var(--ok); color: #fff; border-radius: 20px; padding: 5px 12px;
+  font-size: .78rem; white-space: nowrap; flex-shrink: 0;
+}
+.todo-empty { font-size: .85rem; color: #6c757d; padding: 4px 0; }
+
 /* Impression : uniquement la fiche patient */
 @media print {
   @page { margin: 14mm 13mm; }
