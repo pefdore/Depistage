@@ -133,9 +133,18 @@ button.secondary { background: #6c757d; }
 }
 .todo-label { font-size: .88rem; line-height: 1.25; }
 .todo-label em { display: block; font-style: normal; font-size: .72rem; color: #842029; }
+.todo-actions { display: flex; gap: 5px; flex-shrink: 0; }
 .todo-done {
   background: var(--ok); color: #fff; border-radius: 20px; padding: 5px 12px;
-  font-size: .78rem; white-space: nowrap; flex-shrink: 0;
+  font-size: .78rem; white-space: nowrap;
+}
+.todo-nc {
+  background: #6c757d; color: #fff; border-radius: 20px; padding: 5px 10px;
+  font-size: .78rem; white-space: nowrap;
+}
+.todo-ns {
+  background: #b3541e; color: #fff; border-radius: 20px; padding: 5px 10px;
+  font-size: .78rem; white-space: nowrap;
 }
 .todo-empty { font-size: .85rem; color: #6c757d; padding: 4px 0; }
 

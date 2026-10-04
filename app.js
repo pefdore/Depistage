@@ -297,7 +297,7 @@ const ALL_GROUPS = [
 
 // ---------- État ----------
 const overrides = {}; // indicationId -> true | false (coche manuelle)
-const doneExams = {}; // examId -> true (examen traité / déjà fait)
+const doneExams = {}; // examId -> 'fait' | 'nc' | 'ns' (traité, non concerné, non souhaité)
 const isChecked = ind => {
   if (overrides[ind.id] !== undefined) return overrides[ind.id];
   return ind.auto ? !!ind.auto(P()) : false;
@@ -403,7 +403,11 @@ function updateSummary() {
     chip.innerHTML = `
       <span class="todo-label">${exam.icon} ${escapeHtml(exam.title.split(' (')[0])}
         <em>${st.checked.length} indication${st.checked.length > 1 ? 's' : ''}${st.level && exam.scoring ? ' — ' + escapeHtml(st.level) : ''}</em></span>
-      <button class="todo-done" data-done="${exam.id}">✓ Fait</button>`;
+      <span class="todo-actions">
+        <button class="todo-done" data-done="${exam.id}" data-st="fait">✓ Fait</button>
+        <button class="todo-nc" data-done="${exam.id}" data-st="nc">NC</button>
+        <button class="todo-ns" data-done="${exam.id}" data-st="ns">NS</button>
+      </span>`;
     list.appendChild(chip);
   });
 
@@ -417,7 +421,7 @@ function updateSummary() {
 document.addEventListener('click', e => {
   const btn = e.target.closest('button[data-done]');
   if (!btn) return;
-  doneExams[btn.dataset.done] = true;
+  doneExams[btn.dataset.done] = btn.dataset.st || 'fait';
   render();
 });
 
@@ -545,15 +549,6 @@ document.getElementById('btn-print').addEventListener('click', () => {
         : '<div class="intro ok">Aucun dépistage supplémentaire n\'est nécessaire aujourd\'hui. Votre suivi est à jour — pensez aux prochains rendez-vous de routine.</div>'}
 
       ${examBlocks || ''}
-
-      <div class="plan">
-        <strong>Comment faire ?</strong>
-        <ol>
-          <li>Prenez rendez-vous pour les examens listés ci-dessus (certains nécessitent une ordonnance de votre médecin).</li>
-          <li>Certains dépistages vous seront proposés automatiquement par courrier (programme national de dépistage).</li>
-          <li>En cas de question ou de résultat anormal, contactez votre médecin traitant.</li>
-        </ol>
-      </div>
 
       <p class="foot">Document remis en consultation — rappel des recommandations françaises de dépistage (HAS, dépistage organisé). Ne remplace pas l'avis médical.</p>
     </div>`;
