@@ -166,16 +166,24 @@ button.secondary { background: #6c757d; }
   .intro.ok { background: #e9f7ef; border-left-color: #198754; }
 
   .exam-box {
-    border: 1px solid #cfd8e3; border-radius: 7px;
+    border: 1px solid #cfd8e3; border-left: 4px solid #0d6efd; border-radius: 7px;
     padding: 9px 12px 7px;
-    margin-bottom: 9px;
+    margin-bottom: 10px;
     page-break-inside: avoid;
     break-inside: avoid;
   }
-  .exam-title { font-weight: 700; font-size: 13px; color: #0d3c8c; margin-bottom: 4px; }
-  .exam-box ul { margin: 0 0 5px; padding-left: 18px; }
-  .exam-box li { margin-bottom: 2px; font-size: 11px; }
-  .exam-cta { font-size: 10.5px; font-weight: 600; color: #b3541e; }
+  .exam-title { font-weight: 700; font-size: 13px; color: #0d3c8c; margin-bottom: 6px; }
+  .ind-table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+  .ind-table th {
+    font-size: 9px; text-transform: uppercase; letter-spacing: .04em; color: #5a6b8c;
+    text-align: left; padding: 2px 6px; border-bottom: 1px solid #d5dce8;
+  }
+  .ind-table td { vertical-align: top; padding: 4px 6px; border-bottom: 1px solid #eef1f6; }
+  .ind-table tr:last-child td { border-bottom: none; }
+  .ind-label { width: 52%; font-size: 10.5px; font-weight: 600; }
+  .ind-label .req { font-style: normal; font-size: 8.5px; color: #842029; font-weight: 700; }
+  .ind-why { width: 48%; font-size: 10px; color: #444; }
+  .exam-cta { font-size: 10.5px; font-weight: 600; color: #b3541e; margin-top: 2px; }
 
   .plan {
     background: #f2f6fb; border: 1px solid #c5d5f2; border-radius: 6px;
