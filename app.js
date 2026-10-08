@@ -296,16 +296,15 @@ document.addEventListener('click', e => {
 // ---------- Examens & indications ----------
 const EXAMS = [
 {
-  id: 'osteo', title: 'Ostéodensitométrie', icon: '🦴',
+  id: 'osteo', title: 'Ost\u00e9odensitom\u00e9trie (crit\u00e8res HAS / Assurance Maladie)', icon: '\ud83e\uddb4',
   indications: [
-    { id: 'osteo-f65', why: 'L\'âge augmente fortement le risque de fracture : la mesure de la densité osseuse permet de traiter avant qu\'une fracture ne survienne.', label: 'Femme ≥ 65 ans', auto: p => isF(p) && p.age !== null && p.age >= 65 },
-    { id: 'osteo-h70', why: 'Après 70 ans chez l\'homme, la perte osseuse s\'accélère : mesurer la densité osseuse permet de prévenir les fractures du col du fémur.', label: 'Homme ≥ 70 ans', auto: p => isM(p) && p.age !== null && p.age >= 70 },
-    { id: 'osteo-fracture', why: 'Une fracture après un choc minime signe un os fragile : évaluer la densité osseuse évite la fracture suivante, souvent plus grave.', label: 'Fracture de faible énergie après 50 ans (poignet, vertèbre, fémur...)' },
-    { id: 'osteo-cortico', why: 'La cortisone au long cours fragilise l\'os : un dépistage précoce permet d\'adapter le traitement protecteur.', label: 'Corticothérapie ≥ 3 mois, ≥ 7,5 mg/j prednisone' },
-    { id: 'osteo-menop-precoc', why: 'La ménopause précoce prive l\'os de protection hormonale plus longtemps : le risque d\'ostéoporose est augmenté.', label: 'Ménopause précoce (< 40 ans) ou hypogonadisme' },
-    { id: 'osteo-imc', why: 'Un IMC bas est un facteur de fragilité osseuse : à vérifier pour prévenir les fractures.', label: 'IMC < 19, ou perte de poids', auto: p => p.imc !== null && p.imc < 19 },
-    { id: 'osteo-fam', why: 'Les antécédents familiaux de fracture de la hanche multiplient votre risque personnel.', label: 'Antécédent familial de fracture du col du fémur' },
-    { id: 'osteo-fdr', why: 'Après la ménopause, certains facteurs fragilisent les os : la densité mérite d\'être mesurée.', label: 'Femme ménopausée avec autre facteur de risque (tabac, alcool, FRAX élevé)' },
+    { id: 'osteo-patho', why: 'Certaines maladies ou traitements fragilisent l\'os \u00e0 tout \u00e2ge : mesurer la densit\u00e9 osseuse permet de d\u00e9cider un traitement protecteur.', label: 'Pathologie ou traitement inducteur d\'ost\u00e9oporose, quel que soit l\u00e2ge et le sexe : corticoth\u00e9rapie \u2265 3 mois cons\u00e9cutifs, hyperthyro\u00efde non trait\u00e9e, hypogonadisme, m\u00e9nopause pr\u00e9coce (< 40 ans), malabsorption, polyarthrite, immobilisation prolong\u00e9e...', req: 'Remboursable 70 %' },
+    { id: 'osteo-fracture', why: 'Une fracture apr\u00e8s un choc minime signe un os fragile : la densitom\u00e9trie confirme l\'ost\u00e9oporose et permet d\'\u00e9viter la fracture suivante, souvent plus grave.', label: 'Fracture de faible \u00e9nergie (poignet, vert\u00e8bre, f\u00e9mur, c\u00f4tes...) apr\u00e8s 50 ans, sans traumatisme majeur', req: 'Remboursable 70 %' },
+    { id: 'osteo-femme-fdr', why: 'Chez la femme m\u00e9nopaus\u00e9e, ces facteurs justifient une mesure de la densit\u00e9 osseuse, rembours\u00e9e par l\'Assurance Maladie.', label: 'Femme m\u00e9nopaus\u00e9e avec facteur de risque : ant\u00e9c\u00e9dent de fracture du col du f\u00e9mur chez un parent au 1er degr\u00e9, IMC < 19 kg/m\u00b2, m\u00e9nopause pr\u00e9coce (< 40 ans)', req: 'Remboursable 70 %', auto: p => isF(p) && (p.imc !== null && p.imc < 19) },
+    { id: 'osteo-arret-trt', why: '\u00c0 l\'arr\u00eat d\'un traitement anti-ost\u00e9oporotique, contr\u00f4ler la densit\u00e9 osseuse guide la d\u00e9cision de reprise ou de surveillance.', label: '\u00c0 l\'arr\u00eat du traitement anti-ost\u00e9oporotique (hors arr\u00eat pr\u00e9coce pour effet ind\u00e9sirable), chez la femme m\u00e9nopaus\u00e9e', req: 'Remboursable 70 %' },
+    { id: 'osteo-controle', why: 'Si la premi\u00e8re densitom\u00e9trie \u00e9tait normale (ou ost\u00e9op\u00e9nie) sans traitement, un contr\u00f4le peut \u00eatre justifi\u00e9 si de nouveaux facteurs de risque apparaissent.', label: '2e examen chez la femme m\u00e9nopaus\u00e9e 3\u20135 ans apr\u00e8s un 1er examen normal/ost\u00e9op\u00e9nie sans traitement, si nouveaux facteurs de risque', req: 'Remboursable 70 %' },
+    { id: 'osteo-homme', why: 'Chez l\'homme, il n\'existe pas de d\u00e9pistage par l\'\u00e2ge : la densitom\u00e9trie ne se justifie qu\'avec une cause ou une fracture.', label: 'Homme : pas de d\u00e9pistage syst\u00e9matique \u2014 densitom\u00e9trie seulement si pathologie inductrice (cortico\u00efdes, hypogonadisme...) ou fracture de faible \u00e9nergie', req: 'Remboursable si cause' },
+    { id: 'osteo-info-age', label: 'INFO : la HAS ne recommande PAS de d\u00e9pistage syst\u00e9matique par l\'\u00e2ge (les seuils \u00ab femme 65 ans / homme 70 ans \u00bb sont am\u00e9ricains, USPSTF). Sans facteur de risque, l\'examen n\'est pas rembours\u00e9', req: 'Non rembours\u00e9 seul' },
   ],
 },
 {
