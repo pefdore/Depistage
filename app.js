@@ -158,9 +158,6 @@ function isglt2Advice(p) {
     reasons.push('Albuminurie ≥ 20 mg/mmol avec DFG ≥ 25 : dapagliflozine indiquée (KDIGO 2024) — ralentit la progression');
     remb.push('Dapagliflozine 10 mg : inscrite pour MRC avec albuminurie (remboursement 65 %)');
   }
-  if (p.dfg !== null && (p.dfg < 20 || p.dfg < 25) && !p.ic && !p.diabete) {
-    ci.push(`DFG ${p.dfg} < 25 : iSGLT2 pour MRC non initiée (sous le seuil d\'initiation) — néphrologie`);
-  }
   if (p.dfg !== null && p.dfg < 20) {
     ci.push('DFG < 20 : initiation d\'un iSGLT2 pour la MRC non recommandée (discuter en néphrologie, poursuite possible si déjà sous traitement)');
   }
