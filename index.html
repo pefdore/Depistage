@@ -50,10 +50,12 @@
         </select>
       </label>
       <label>DFG <input type="number" id="pat-dfg" min="0" max="200" placeholder="mL/min"></label>
+      <label>RAC (albuminurie) <input type="number" id="pat-rac" min="0" max="2000" step="0.1" placeholder="mg/g"></label>
       <label>IMC <input type="number" id="pat-imc" min="0" max="100" step="0.1" placeholder="kg/m²"></label>
       <label>LDL <input type="number" id="pat-ldl" min="0" max="10" step="0.01" placeholder="g/L"></label>
       <label>Date <input type="date" id="pat-date"></label>
     </div>
+    <div id="kdigo-panel"></div>
     <div id="patient-warn" class="warn hidden">⚠️ Renseignez l'âge, le sexe et le statut tabagique : les indications « auto » en découlent.</div>
     <div id="reminders" class="reminders hidden"></div>
   </section>

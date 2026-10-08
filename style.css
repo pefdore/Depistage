@@ -204,3 +204,19 @@ button.secondary { background: #6c757d; }
 
   .foot { margin-top: 12px; font-size: 8.5px; color: #777; border-top: 1px solid #ddd; padding-top: 5px; }
 }
+
+/* ---------- KDIGO ---------- */
+.kdigo-box {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  background: #fafafa;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 10px;
+  font-size: 0.95em;
+}
+.kdigo-box strong { font-size: 1.05em; }
+.kdigo-box span { color: #444; }

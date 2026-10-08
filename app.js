@@ -23,6 +23,7 @@ const P = () => {
     diabete: document.getElementById('pat-diabete').value === 'oui',
     hta: document.getElementById('pat-hta').value === 'oui',
     dfg: isNaN(dfg) ? null : dfg,
+    rac: (() => { const v = parseFloat(document.getElementById('pat-rac').value); return isNaN(v) ? null : v; })(),
     imc: isNaN(imc) ? null : imc,
     ldl: isNaN(ldl) ? null : ldl,
   };
@@ -31,6 +32,58 @@ const P = () => {
 const between = (p, a, b) => p.age !== null && p.age >= a && p.age <= b;
 const isF = p => p.sex === 'F';
 const isM = p => p.sex === 'M';
+
+// ---------- KDIGO ----------
+function kdigoCategory(p) {
+  if (p.dfg === null || p.dfg === undefined) return null;
+  if (p.dfg >= 90) return 'G1';
+  if (p.dfg >= 60) return 'G2';
+  if (p.dfg >= 45) return 'G3a';
+  if (p.dfg >= 30) return 'G3b';
+  if (p.dfg >= 15) return 'G4';
+  return 'G5';
+}
+function albuminuriaCategory(p) {
+  if (p.rac === null || p.rac === undefined) return null;
+  if (p.rac < 30) return 'A1';
+  if (p.rac < 300) return 'A2';
+  return 'A3';
+}
+const KDIGO_RISK = {
+  G1:  { A1: 1, A2: 2, A3: 3 },
+  G2:  { A1: 1, A2: 2, A3: 3 },
+  G3a: { A1: 2, A2: 3, A3: 4 },
+  G3b: { A1: 3, A2: 4, A3: 4 },
+  G4:  { A1: 4, A2: 4, A3: 4 },
+  G5:  { A1: 4, A2: 4, A3: 4 },
+};
+const KDIGO_RISK_LABEL = { 1: 'Risque bas', 2: 'Risque modérément élevé', 3: 'Risque élevé', 4: 'Risque très élevé' };
+const KDIGO_RISK_COLOR = { 1: '#c8e6c9', 2: '#fff9c4', 3: '#ffe0b2', 4: '#ffcdd2' };
+
+function kdigoStage(p) {
+  const g = kdigoCategory(p);
+  const a = albuminuriaCategory(p);
+  if (!g) return null;
+  const risk = (a && KDIGO_RISK[g][a]) || null;
+  return { g, a, risk };
+}
+
+function renderKdigo(p) {
+  const panel = document.getElementById('kdigo-panel');
+  const st = kdigoStage(p);
+  if (!st) { panel.innerHTML = ''; return; }
+  const riskTxt = st.risk ? KDIGO_RISK_LABEL[st.risk] : 'RAC manquant — à doser';
+  const color = st.risk ? KDIGO_RISK_COLOR[st.risk] : '#e0e0e0';
+  let html = `<div class="kdigo-box" style="border-left: 6px solid ${color}">
+    <strong>Stade KDIGO : ${st.g}${st.a ? ' ' + st.a : ''}</strong>
+    <span>DFG ${p.dfg} mL/min/1,73 m²${p.rac !== null && p.rac !== undefined ? ' — RAC ' + String(p.rac).replace('.', ',') + ' mg/g' : ' — RAC non renseigné'}</span>
+    <span style="background:${color};padding:2px 8px;border-radius:10px;font-size:0.85em">${riskTxt}</span>`;
+  if (p.dfg < 60 || (st.a && st.a !== 'A1')) {
+    html += `<span>Maladie rénale chronique ${p.dfg < 60 ? '(DFG < 60)' : ''}${p.dfg < 60 && st.a && st.a !== 'A1' ? ' + ' : ''}${st.a && st.a !== 'A1' ? '(' + st.a + ')' : ''} — chronicité > 3 mois à confirmer</span>`;
+  }
+  html += `</div>`;
+  panel.innerHTML = html;
+}
 
 // ---------- Examens & indications ----------
 const EXAMS = [
@@ -143,11 +196,23 @@ const EXAMS = [
   ],
 },
 {
+  id: 'ieciara2', title: 'IEC / ARA2 (néphroprotection)', icon: '💊',
+  indications: [
+    { id: 'ie-hta', why: 'L\'IEC/ARA2 abaisse la tension et protège les reins et le cœur à long terme.', label: 'HTA : IEC (ou ARA2 si intolérance) en 1re intention, particulièrement si albuminurie', req: 'Recommandation HAS', auto: p => p.hta },
+    { id: 'ie-dfg-albu', why: 'En cas de maladie rénale chronique avec albuminurie, l\'IEC/ARA2 réduit la progression vers l\'insuffisance rénale terminale.', label: 'MRC avec albuminurie (RAC ≥ 30 mg/g) : IEC/ARA2 pour néphroprotection, dose maximale tolérée', req: 'Recommandation KDIGO/HAS', auto: p => p.rac !== null && p.rac >= 30 },
+    { id: 'ie-dt2-albu', why: 'Chez le diabétique, l\'IEC/ARA2 prévient la néphropathie diabétique et protège le cœur.', label: 'Diabète (type 1 ou 2) avec albuminurie ou HTA : IEC/ARA2 systématiquement', req: 'Recommandation', auto: p => p.diabete && (p.hta || (p.rac !== null && p.rac >= 30)) },
+    { id: 'ie-albuminurie-severe', why: 'Une albuminurie marquée signe des reins fragiles : l\'IEC/ARA2 à pleine dose ralentit fortement la dégradation.', label: 'Albuminurie sévère (RAC ≥ 300 mg/g) : avis néphrologue + IEC/ARA2 pleine dose', req: 'Indication renforcée', auto: p => p.rac !== null && p.rac >= 300 },
+    { id: 'ie-surv', label: 'Surveillance : créatinine et K+ à 7–14 jours après instauration/augmentation (hausse ≤ 30 % de la créatinine attendue et tolérée)', req: 'Précaution' },
+    { id: 'ie-ci', label: 'CONTRE-INDICATIONS : grossesse (arrêt immédiat), sténose artère rénale bilatérale, angio-oedème sous IEC, hyperkaliémie non contrôlée', req: 'Contre-indications' },
+    { id: 'ie-remb', label: 'REMBOURSEMENT : HTA, insuffisance cardiaque, néphropathie (protéinurie ≥ 0,5 g/24 h ou RAC ≥ 30 mg/g) : traitement remboursé 65 % (génériques)', req: 'Remboursement' },
+  ],
+},
+{
   id: 'isglt2', title: 'iSGLT2 (empagliflozine / dapagliflozine)', icon: '💊',
   indications: [
     { id: 'isglt2-dt2', why: 'Ce médicament protège le cőur et les reins au-delà de son effet sur la glycémie.', label: 'Diabète de type 2 : adulte, en complément du régime et des autres antidiabétiques (bénéfice cardiovasculaire et rénal)', auto: p => p.diabete },
     { id: 'isglt2-ic', why: 'Dans l\'insuffisance cardiaque, il réduit les hospitalisations et la mortalité, avec ou sans diabète.', label: 'Insuffisance cardiaque (HFrEF ou HFmrEF, avec ou sans diabète) : dapagliflozine (Forxiga®) : réduit hospitalisations et mortalité' },
-    { id: 'isglt2-irc', why: 'Il ralentit la dégradation des reins, même sans diabète.', label: 'Maladie rénale chronique (DFG ≥ 25) : dapagliflozine — ralentit la progression', auto: p => p.dfg !== null && p.dfg < 60 },
+    { id: 'isglt2-irc', why: 'Il ralentit la dégradation des reins, même sans diabète.', label: 'Maladie rénale chronique (KDIGO 2024) : dapagliflozine si DFG ≥ 25 avec RAC ≥ 200 mg/g, ou empagliflozine si RAC ≥ 200 mg/g ; empagliflozine aussi si DFG 20–45 même sans albuminurie', auto: p => (p.dfg !== null && p.dfg < 60) || (p.rac !== null && p.rac >= 200) },
     { id: 'isglt2-ci-dt1', label: 'CONTRE-INDICATION : diabète de type 1 (risque d\'acidocétose)' },
     { id: 'isglt2-ci-aco', label: 'CONTRE-INDICATION : antécédent d\'acidocétose sous iSGLT2 : ne pas réintroduire le traitement' },
     { id: 'isglt2-ci-grossesse', label: 'PRÉCAUTION : grossesse / allaitement / projet de grossesse (contraception efficace nécessaire ; interaction avec les contraceptifs oraux signalée sous GLP-1)' },
@@ -335,10 +400,13 @@ function render() {
   document.getElementById('patient-warn').classList.toggle('hidden', !!complete);
 
   const reminders = [];
+  renderKdigo(p);
   if (p.tabac === 'actif') reminders.push('🚬 Patient fumeur : proposer une aide au sevrage (substitution, consultation).');
   if (p.fumeur && p.pa === null && p.age !== null && p.age >= 40) reminders.push('⚠️ Paquets-années non renseignées : nécessaires pour BPCO, cancer du poumon, AAA.');
   if (p.diabete && p.dfg === null) reminders.push('🩸 Patient diabétique : vérifier la fonction rénale (DFG, rapport protéinurie/créatinurie).');
   if (p.dfg !== null && p.dfg < 60) reminders.push('💧 DFG < 60 mL/min : maladie rénale chronique — adapter traitements, éviter néphrotoxiques.');
+  if (p.dfg !== null && p.dfg < 60 && p.rac === null) reminders.push('🧪 DFG < 60 : doser le RAC (rapport albuminurie/créatinurie) pour stader la MRC (KDIGO) et évaluer IEC/ARA2 et iSGLT2.');
+  if (p.rac !== null && p.rac >= 30) reminders.push('💊 Albuminurie ≥ 30 mg/g : IEC/ARA2 néphroprotecteur à dose maximale tolérée (KDIGO) — contrôle créatinine/K+ à 7–14 jours.');
   if (p.imc !== null && p.imc >= 30) reminders.push('⚖️ Obésité (IMC ≥ 30) : évaluer, proposer prise en charge (activité physique, diététique, chirurgie si indication).');
   if (p.ldl !== null && p.ldl >= 1.9) reminders.push('🧬 LDL ≥ 1,9 g/L : évoquer une hypercholestérolémie familiale (dépistage familial, avis spécialisé).');
   else if (p.ldl !== null && p.ldl >= 1.6) reminders.push('🫀 LDL ≥ 1,6 g/L : évaluer le risque cardiovasculaire global (SCORE2), adapter la prise en charge.');
@@ -435,7 +503,7 @@ document.addEventListener('change', e => {
   render();
 });
 
-['pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-dfg', 'pat-imc', 'pat-ldl'].forEach(idn =>
+['pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-dfg', 'pat-rac', 'pat-imc', 'pat-ldl'].forEach(idn =>
   document.getElementById(idn).addEventListener('change', render));
 
 document.getElementById('pat-date').value = new Date().toISOString().slice(0, 10);
@@ -459,6 +527,7 @@ document.getElementById('btn-save').addEventListener('click', () => {
       diabete: document.getElementById('pat-diabete').value,
       hta: document.getElementById('pat-hta').value,
       dfg: document.getElementById('pat-dfg').value,
+      rac: document.getElementById('pat-rac').value,
       imc: document.getElementById('pat-imc').value,
       ldl: document.getElementById('pat-ldl').value,
       date: document.getElementById('pat-date').value,
@@ -482,6 +551,7 @@ document.getElementById('btn-load').addEventListener('click', () => {
   document.getElementById('pat-diabete').value = data.patient?.diabete || '';
   document.getElementById('pat-hta').value = data.patient?.hta || '';
   document.getElementById('pat-dfg').value = data.patient?.dfg || '';
+  document.getElementById('pat-rac').value = data.patient?.rac || '';
   document.getElementById('pat-imc').value = data.patient?.imc || '';
   document.getElementById('pat-ldl').value = data.patient?.ldl || '';
   document.getElementById('pat-date').value = data.patient?.date || new Date().toISOString().slice(0, 10);
