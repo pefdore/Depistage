@@ -22,6 +22,7 @@ const P = () => {
     grosFumeur: (tabac === 'actif' || tabac === 'sevré') && !isNaN(pa) && pa >= 20,
     diabete: document.getElementById('pat-diabete').value === 'oui',
     hta: document.getElementById('pat-hta').value === 'oui',
+    ic: document.getElementById('pat-ic').value === 'oui',
     dfg: isNaN(dfg) ? null : dfg,
     rac: (() => { const v = parseFloat(document.getElementById('pat-rac').value); return isNaN(v) ? null : v; })(),
     imc: isNaN(imc) ? null : imc,
@@ -83,6 +84,119 @@ function renderKdigo(p) {
   }
   html += `</div>`;
   panel.innerHTML = html;
+}
+
+// ---------- Décision IEC/ARA2 & iSGLT2 (KDIGO 2024 / HAS / remboursement) ----------
+function iecara2Advice(p) {
+  const reasons = [];
+  let ok = false;
+  let remb = [];
+  let ci = [];
+  const st = kdigoStage(p);
+
+  if (p.hta) {
+    ok = true;
+    reasons.push('HTA : IEC ou ARA2 en 1re intention (recommandation HAS)');
+    remb.push('HTA : traitement remboursé (génériques, 65 %)');
+  }
+  if (p.rac !== null && p.rac >= 3 && p.dfg !== null) {
+    ok = true;
+    reasons.push(`Albuminurie (RAC ≥ 3 mg/mmol) ${st && st.a ? '(' + st.a + ') ' : ''}: IEC/ARA2 systématique, à dose maximale tolérée (KDIGO) — néphroprotection même sans HTA`);
+  }
+  if (p.diabete && (p.hta || (p.rac !== null && p.rac >= 3))) {
+    ok = true;
+    reasons.push('Diabète + HTA ou albuminurie : IEC/ARA2 recommandé (protection rénale et cardiaque)');
+  }
+  if (p.ic) {
+    ok = true;
+    reasons.push('Insuffisance cardiaque : IEC/ARA2 (ou ARNI selon FEVG) au bilan thérapeutique');
+    remb.push('Insuffisance cardiaque : indication remboursée');
+  }
+  if (p.rac !== null && p.rac >= 30) {
+    reasons.push('Albuminurie sévère (RAC ≥ 30 mg/mmol, A3) : IEC/ARA2 à pleine dose + avis néphrologue recommandé');
+  }
+  if (p.rac !== null && p.rac >= 3) {
+    remb.push('Néphropathie (protéinurie ≥ 0,5 g/24 h ou RAC ≥ 3 mg/mmol) : indication remboursée');
+  }
+  if (p.dfg !== null && p.dfg < 15) {
+    ci.push('DFG < 15 : prescription à discuter en néphrologie (dialyse imminente) — prudence');
+  }
+  if (p.rac === null && p.dfg !== null && p.dfg < 60) {
+    reasons.push('⚠ RAC non renseigné : doser le rapport albuminurie/créatinurie pour statuer');
+  }
+  return { ok, reasons, remb, ci };
+}
+
+function isglt2Advice(p) {
+  const reasons = [];
+  let ok = false;
+  let drug = null;
+  let remb = [];
+  let ci = [];
+
+  if (p.diabete) {
+    ok = true;
+    drug = drug || 'iSGLT2 antidiabétique (AMM DT2)';
+    reasons.push('Diabète de type 2 : iSGLT2 en complément du régime — bénéfice cardiovasculaire et rénal (HAS : 2e intention si besoin après/metformine, 1re intention si MRC/IC/risque CV élevé)');
+    remb.push('DT2 : remboursé si HbA1c > objectif sous traitement optimisé');
+  }
+  if (p.ic) {
+    ok = true;
+    drug = 'dapagliflozine ou empagliflozine (AMM insuffisance cardiaque)';
+    reasons.push('Insuffisance cardiaque (HFrEF/HFmrEF, avec ou sans diabète) : iSGLT2 recommandé — réduit hospitalisations et mortalité (ESC)');
+    remb.push('IC (FEVG réduite) : indication remboursée (dapagliflozine 10 mg, empagliflozine 10 mg)');
+  }
+  if (p.dfg !== null && p.dfg >= 20 && p.dfg < 45) {
+    ok = true;
+    drug = drug || 'empagliflozine 10 mg (AMM MRC, sans albuminurie requise)';
+    reasons.push('MRC DFG 20–45 : empagliflozine indiquée même sans albuminurie (KDIGO 2024)');
+    remb.push('Empagliflozine 10 mg : inscrite LPPR pour MRC (remboursement 65 %) ; dapagliflozine : MRC avec albuminurie');
+  }
+  if (p.rac !== null && p.rac >= 20 && p.dfg !== null && p.dfg >= 25) {
+    ok = true;
+    drug = drug || 'dapagliflozine 10 mg (AMM MRC)';
+    reasons.push('Albuminurie ≥ 20 mg/mmol avec DFG ≥ 25 : dapagliflozine indiquée (KDIGO 2024) — ralentit la progression');
+    remb.push('Dapagliflozine 10 mg : inscrite pour MRC avec albuminurie (remboursement 65 %)');
+  }
+  if (p.dfg !== null && (p.dfg < 20 || p.dfg < 25) && !p.ic && !p.diabete) {
+    ci.push(`DFG ${p.dfg} < 25 : iSGLT2 pour MRC non initiée (sous le seuil d\'initiation) — néphrologie`);
+  }
+  if (p.dfg !== null && p.dfg < 20) {
+    ci.push('DFG < 20 : initiation d\'un iSGLT2 pour la MRC non recommandée (discuter en néphrologie, poursuite possible si déjà sous traitement)');
+  }
+  ci.push('Contre-indications : diabète de type 1, antécédent d\'acidocétose, grossesse/allaitement ; arrêt 3–4 j avant chirurgie/jeûne/maladie aiguë (sick day rules)');
+  ci.push('Effets indésirables à anticiper : infections génitales, déplétion volémique — hydratation suffisante');
+  return { ok, drug, reasons, remb, ci };
+}
+
+function renderRx(p) {
+  const panel = document.getElementById('rx-panel');
+  const blocks = [];
+
+  const ie = iecara2Advice(p);
+  const ieStatus = ie.ok ? 'INDIQUÉ' : (p.hta || p.rac !== null ? 'Pas d\'indication' : '—');
+  const ieColor = ie.ok ? '#c8e6c9' : '#ffcdd2';
+  blocks.push(`<div class="rx-box" style="border-left:6px solid ${ie.ok ? '#2e7d32' : '#e53935'}">
+    <div class="rx-title">💊 IEC / ARA2 <span class="rx-verdict" style="background:${ieColor}">${ieStatus}</span></div>
+    ${ie.reasons.map(r => `<div class="rx-reason">✓ ${escapeHtml(r)}</div>`).join('')}
+    ${ie.remb.length ? `<div class="rx-remb">💶 Remboursement : ${escapeHtml(ie.remb.join(' ; '))}</div>` : ''}
+    ${ie.ci.map(c => `<div class="rx-ci">⚠ ${escapeHtml(c)}</div>`).join('')}
+    ${!ie.ok && !ie.reasons.length ? '<div class="rx-reason">Aucun critère : HTA absente, pas d\'albuminurie ≥ 3 mg/mmol, pas d\'IC. Pas d\'indication à ce jour.</div>' : ''}
+  </div>`);
+
+  const gl = isglt2Advice(p);
+  const glStatus = gl.ok ? 'INDIQUÉ' : (p.dfg !== null || p.diabete || p.ic ? 'Pas d\'indication' : '—');
+  const glColor = gl.ok ? '#c8e6c9' : '#ffcdd2';
+  blocks.push(`<div class="rx-box" style="border-left:6px solid ${gl.ok ? '#2e7d32' : '#e53935'}">
+    <div class="rx-title">🧪 iSGLT2 (gliflozine) <span class="rx-verdict" style="background:${glColor}">${glStatus}</span></div>
+    ${gl.drug ? `<div class="rx-reason">→ ${escapeHtml(gl.drug)}</div>` : ''}
+    ${gl.reasons.map(r => `<div class="rx-reason">✓ ${escapeHtml(r)}</div>`).join('')}
+    ${gl.remb.length ? `<div class="rx-remb">💶 Remboursement : ${escapeHtml(gl.remb.join(' ; '))}</div>` : ''}
+    ${gl.ci.map(c => `<div class="rx-ci">⚠ ${escapeHtml(c)}</div>`).join('')}
+    ${!gl.ok && !gl.reasons.length ? '<div class="rx-reason">Aucun critère : pas de DT2, pas d\'IC, DFG ≥ 45 ou albuminurie < 20 mg/mmol.</div>' : ''}
+  </div>`);
+
+  panel.innerHTML = blocks.join('');
 }
 
 // ---------- Examens & indications ----------
@@ -401,12 +515,11 @@ function render() {
 
   const reminders = [];
   renderKdigo(p);
+  renderRx(p);
   if (p.tabac === 'actif') reminders.push('🚬 Patient fumeur : proposer une aide au sevrage (substitution, consultation).');
   if (p.fumeur && p.pa === null && p.age !== null && p.age >= 40) reminders.push('⚠️ Paquets-années non renseignées : nécessaires pour BPCO, cancer du poumon, AAA.');
   if (p.diabete && p.dfg === null) reminders.push('🩸 Patient diabétique : vérifier la fonction rénale (DFG, rapport protéinurie/créatinurie).');
   if (p.dfg !== null && p.dfg < 60) reminders.push('💧 DFG < 60 mL/min : maladie rénale chronique — adapter traitements, éviter néphrotoxiques.');
-  if (p.dfg !== null && p.dfg < 60 && p.rac === null) reminders.push('🧪 DFG < 60 : doser le RAC (rapport albuminurie/créatinurie) pour stader la MRC (KDIGO) et évaluer IEC/ARA2 et iSGLT2.');
-  if (p.rac !== null && p.rac >= 3) reminders.push('💊 Albuminurie ≥ 3 mg/mmol : IEC/ARA2 néphroprotecteur à dose maximale tolérée (KDIGO) — contrôle créatinine/K+ à 7–14 jours.');
   if (p.imc !== null && p.imc >= 30) reminders.push('⚖️ Obésité (IMC ≥ 30) : évaluer, proposer prise en charge (activité physique, diététique, chirurgie si indication).');
   if (p.ldl !== null && p.ldl >= 1.9) reminders.push('🧬 LDL ≥ 1,9 g/L : évoquer une hypercholestérolémie familiale (dépistage familial, avis spécialisé).');
   else if (p.ldl !== null && p.ldl >= 1.6) reminders.push('🫀 LDL ≥ 1,6 g/L : évaluer le risque cardiovasculaire global (SCORE2), adapter la prise en charge.');
@@ -503,7 +616,7 @@ document.addEventListener('change', e => {
   render();
 });
 
-['pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-dfg', 'pat-rac', 'pat-imc', 'pat-ldl'].forEach(idn =>
+['pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-ic', 'pat-dfg', 'pat-rac', 'pat-imc', 'pat-ldl'].forEach(idn =>
   document.getElementById(idn).addEventListener('change', render));
 
 document.getElementById('pat-date').value = new Date().toISOString().slice(0, 10);
@@ -526,6 +639,7 @@ document.getElementById('btn-save').addEventListener('click', () => {
       pa: document.getElementById('pat-pa').value,
       diabete: document.getElementById('pat-diabete').value,
       hta: document.getElementById('pat-hta').value,
+      ic: document.getElementById('pat-ic').value,
       dfg: document.getElementById('pat-dfg').value,
       rac: document.getElementById('pat-rac').value,
       imc: document.getElementById('pat-imc').value,
@@ -550,6 +664,7 @@ document.getElementById('btn-load').addEventListener('click', () => {
   document.getElementById('pat-pa').value = data.patient?.pa || '';
   document.getElementById('pat-diabete').value = data.patient?.diabete || '';
   document.getElementById('pat-hta').value = data.patient?.hta || '';
+  document.getElementById('pat-ic').value = data.patient?.ic || '';
   document.getElementById('pat-dfg').value = data.patient?.dfg || '';
   document.getElementById('pat-rac').value = data.patient?.rac || '';
   document.getElementById('pat-imc').value = data.patient?.imc || '';
