@@ -166,6 +166,61 @@ function isglt2Advice(p) {
   return { ok, drug, reasons, remb, ci };
 }
 
+function glp1Advice(p) {
+  const reasons = [];
+  let amm = false;
+  let rembOk = false;
+  let remb = [];
+  let ci = [];
+  const imcOk = p.imc !== null;
+
+  // ----- AMM obésité (Wegovy / Mounjaro) -----
+  if (imcOk && p.imc >= 30) {
+    amm = true;
+    reasons.push(`Obésité (IMC ${String(p.imc).replace('.', ',')} ≥ 30 kg/m²) : AMM Wegovy® (sémaglutide) / Mounjaro® (tirzépatide) — prescription possible par tout médecin depuis le 23/06/2025 (ANSM)`);
+  } else if (imcOk && p.imc >= 27 && (p.hta || p.diabete || (p.ldl !== null && p.ldl >= 1.6))) {
+    amm = true;
+    reasons.push(`Surpoids (IMC ${String(p.imc).replace('.', ',')} ≥ 27) + comorbidité liée au poids (${p.hta ? 'HTA' : ''}${p.diabete ? (p.hta ? ', ' : '') + 'diabète' : ''}${p.ldl !== null && p.ldl >= 1.6 ? (p.hta || p.diabete ? ', ' : '') + 'dyslipidémie' : ''}) : AMM remplie`);
+  }
+
+  // ----- Indication médicale renforcée (bénéfice CV/métabolique) -----
+  if (p.diabete && imcOk && p.imc >= 27) {
+    reasons.push('DT2 avec surpoids/obésité : GLP-1 préféré si objectif pondéral prioritaire ou échec metformine/inhibiteurs SGLT2 — bénéfice HbA1c et poids (HAS)');
+  }
+  if (p.imc !== null && p.imc >= 30 && p.hta) {
+    reasons.push('Obésité + HTA : la perte de poids améliore le contrôle tensionnel — indication médicale renforcée');
+  }
+
+  // ----- Diabète de type 2 : AMM propre (Ozempic® sémaglutide, Mounjaro®/Tirzépatide) -----
+  if (p.diabete) {
+    amm = true;
+    reasons.push('Diabète de type 2 (adulte) : AMM Ozempic® (sémaglutide) / Mounjaro® (tirzépatide) en 2e intention après metformine, ou 1re intention si IMC ≥ 35, inefficacité/contre-indication de la metformine, ou risque CV élevé (SMDR HAS)');
+    remb.push('DT2 : remboursé 65 % si échec d\'au moins 2 antidiabétiques oraux bien conduits (dont metformine), HbA1c > 8 % ; ou d\'emblée si IMC ≥ 35, insuffisance rénale (DFG < 60), risque CV élevé, ou intolérance metformine');
+  }
+
+  // ----- Remboursement obésité (arrêtés 2025, effectifs 15/06/2026) -----
+  if (imcOk && p.imc >= 40) {
+    rembOk = true;
+    remb.push(`Obésité massive (IMC ≥ 40) : remboursement 65 % possible (Wegovy®/Mounjaro®)`);
+  } else if (imcOk && p.imc >= 35 && (p.diabete || p.hta || (p.ldl !== null && p.ldl >= 1.6))) {
+    rembOk = true;
+    remb.push(`Obésité (IMC ≥ 35) + comorbidité sévère (${p.diabete ? 'diabète' : ''}${p.hta ? (p.diabete ? ', ' : '') + 'HTA' : ''}) : remboursement 65 % possible — les comorbidités retenues sont : HTA mal contrôlée, DT2, dyslipidémie non contrôlée, SAS sévère, AOMI, arthrose invalidante, stéatohépatite`);
+  }
+  if (rembOk) {
+    remb.push('Conditions à réunir : échec d\'une prise en charge nutritionnelle documentée (< 5 % de perte à 6 mois), régime hypocalorique + activité physique, primo-prescription en structure spécialisée (CSO, CHU, nutrition/endocrino) puis renouvellement possible par le MT, justificatif ameli pro obligatoire');
+  } else if (amm && !p.diabete && imcOk && p.imc >= 27 && p.imc < 35) {
+    remb.push('IMC < 35 sans comorbidité sévère : AMM remplie mais PAS de remboursement prévu (arrêtés 28/05/2026 : IMC ≥ 40, ou ≥ 35 + comorbidité sévère) — prescription sur fonds privés à envisager avec le patient');
+  }
+  if (p.diabete && rembOk) remb.push('Si les critères DT2 sont remplis, la voie « diabète » est généralement la plus simple (remboursement standard, pas de primo-prescription CSO)');
+
+  // ----- Contre-indications / précautions -----
+  ci.push('CONTRE-INDICATIONS : diabète de type 1, pancréatite antérieure, antécédent personnel/familial de cancer médullaire de la thyroïde ou NEM 2, grossesse/projet de grossesse/allaitement (contraception efficace nécessaire)');
+  ci.push('Précautions : gastroparésie sévère, rétinopathie diabétique (surveillance initiale sous sémaglutide), troubles alimentaires ; effets : nausées/vomissements (titration lente), interaction avec contraceptifs oraux (tirzépatide)');
+  ci.push('Information patient : arrêt 1 semaine avant chirurgie/anesthésie (sémaglutide) ; reprise alimentaire progressive post-opératoire (risque d\'inhalation rapporté)');
+
+  return { ok: amm, reasons, remb, ci };
+}
+
 function renderRx(p) {
   const panel = document.getElementById('rx-panel');
   const blocks = [];
@@ -181,6 +236,7 @@ function renderRx(p) {
     ${!ie.ok && !ie.reasons.length ? '<div class="rx-reason">Aucun critère : HTA absente, pas d\'albuminurie ≥ 3 mg/mmol, pas d\'IC. Pas d\'indication à ce jour.</div>' : ''}
   </div>`);
 
+  const gp = glp1Advice(p);
   const gl = isglt2Advice(p);
   const glStatus = gl.ok ? 'INDIQUÉ' : (p.dfg !== null || p.diabete || p.ic ? 'Pas d\'indication' : '—');
   const glColor = gl.ok ? '#c8e6c9' : '#ffcdd2';
@@ -191,6 +247,16 @@ function renderRx(p) {
     ${gl.remb.length ? `<div class="rx-remb">💶 Remboursement : ${escapeHtml(gl.remb.join(' ; '))}</div>` : ''}
     ${gl.ci.map(c => `<div class="rx-ci">⚠ ${escapeHtml(c)}</div>`).join('')}
     ${!gl.ok && !gl.reasons.length ? '<div class="rx-reason">Aucun critère : pas de DT2, pas d\'IC, DFG ≥ 45 ou albuminurie < 20 mg/mmol.</div>' : ''}
+  </div>`);
+
+  const gpStatus = gp.ok ? 'INDIQUÉ' : (p.imc !== null || p.diabete ? 'Pas d\'indication' : '—');
+  const gpColor = gp.ok ? '#c8e6c9' : '#ffcdd2';
+  blocks.push(`<div class="rx-box" style="border-left:6px solid ${gp.ok ? '#2e7d32' : '#e53935'}">
+    <div class="rx-title">🦎 GLP-1 / tirzépatide <span class="rx-verdict" style="background:${gpColor}">${gpStatus}</span></div>
+    ${gp.reasons.map(r => `<div class="rx-reason">✓ ${escapeHtml(r)}</div>`).join('')}
+    ${gp.remb.length ? `<div class="rx-remb">💶 Remboursement : ${escapeHtml(gp.remb.join(' ; '))}</div>` : ''}
+    ${gp.ci.map(c => `<div class="rx-ci">⚠ ${escapeHtml(c)}</div>`).join('')}
+    ${!gp.ok && !gp.reasons.length ? '<div class="rx-reason">Aucun critère : pas de DT2, IMC < 27 ou sans comorbidité. Pas d\'indication à ce jour.</div>' : ''}
   </div>`);
 
   panel.innerHTML = blocks.join('');
