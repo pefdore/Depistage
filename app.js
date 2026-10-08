@@ -24,7 +24,11 @@ const P = () => {
     hta: document.getElementById('pat-hta').value === 'oui',
     ic: document.getElementById('pat-ic').value === 'oui',
     dfg: isNaN(dfg) ? null : dfg,
-    rac: (() => { const v = parseFloat(document.getElementById('pat-rac').value); return isNaN(v) ? null : v; })(),
+    rac: (() => {
+      if (document.getElementById('pat-rac-nc').checked) return 'nc';
+      const v = parseFloat(document.getElementById('pat-rac').value);
+      return isNaN(v) ? null : v;
+    })(),
     imc: isNaN(imc) ? null : imc,
     ldl: isNaN(ldl) ? null : ldl,
   };
@@ -45,6 +49,7 @@ function kdigoCategory(p) {
   return 'G5';
 }
 function albuminuriaCategory(p) {
+  if (p.rac === 'nc') return 'A1';
   if (p.rac === null || p.rac === undefined) return null;
   if (p.rac < 3) return 'A1';
   if (p.rac < 30) return 'A2';
@@ -77,7 +82,7 @@ function renderKdigo(p) {
   const color = st.risk ? KDIGO_RISK_COLOR[st.risk] : '#e0e0e0';
   let html = `<div class="kdigo-box" style="border-left: 6px solid ${color}">
     <strong>Stade KDIGO : ${st.g}${st.a ? ' ' + st.a : ''}</strong>
-    <span>DFG ${p.dfg} mL/min/1,73 m²${p.rac !== null && p.rac !== undefined ? ' — RAC ' + String(p.rac).replace('.', ',') + ' mg/mmol' : ' — RAC non renseigné'}</span>
+    <span>DFG ${p.dfg} mL/min/1,73 m²${p.rac === 'nc' ? ' — RAC non calculable (microalbuminurie sous le seuil de dosage : catégorie A1)' : (p.rac !== null && p.rac !== undefined ? ' — RAC ' + String(p.rac).replace('.', ',') + ' mg/mmol' : ' — RAC non renseigné : à doser si MRC suspectée')}</span>
     <span style="background:${color};padding:2px 8px;border-radius:10px;font-size:0.85em">${riskTxt}</span>`;
   if (p.dfg < 60 || (st.a && st.a !== 'A1')) {
     html += `<span>Maladie rénale chronique ${p.dfg < 60 ? '(DFG < 60)' : ''}${p.dfg < 60 && st.a && st.a !== 'A1' ? ' + ' : ''}${st.a && st.a !== 'A1' ? '(' + st.a + ')' : ''} — chronicité > 3 mois à confirmer</span>`;
@@ -120,6 +125,9 @@ function iecara2Advice(p) {
   }
   if (p.dfg !== null && p.dfg < 15) {
     ci.push('DFG < 15 : prescription à discuter en néphrologie (dialyse imminente) — prudence');
+  }
+  if (p.rac === 'nc') {
+    reasons.push('RAC dosé mais non calculable : microalbuminurie sous le seuil de détection = catégorie A1 (albuminurie normale) — pas d\'indication liée à l\'albuminurie');
   }
   if (p.rac === null && p.dfg !== null && p.dfg < 60) {
     reasons.push('⚠ RAC non renseigné : doser le rapport albuminurie/créatinurie pour statuer');
@@ -681,6 +689,7 @@ document.addEventListener('change', e => {
 
 ['pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-ic', 'pat-dfg', 'pat-rac', 'pat-imc', 'pat-ldl'].forEach(idn =>
   document.getElementById(idn).addEventListener('change', render));
+document.getElementById('pat-rac-nc').addEventListener('change', render);
 
 document.getElementById('pat-date').value = new Date().toISOString().slice(0, 10);
 
@@ -705,6 +714,7 @@ document.getElementById('btn-save').addEventListener('click', () => {
       ic: document.getElementById('pat-ic').value,
       dfg: document.getElementById('pat-dfg').value,
       rac: document.getElementById('pat-rac').value,
+      racnc: document.getElementById('pat-rac-nc').checked,
       imc: document.getElementById('pat-imc').value,
       ldl: document.getElementById('pat-ldl').value,
       date: document.getElementById('pat-date').value,
@@ -730,6 +740,7 @@ document.getElementById('btn-load').addEventListener('click', () => {
   document.getElementById('pat-ic').value = data.patient?.ic || '';
   document.getElementById('pat-dfg').value = data.patient?.dfg || '';
   document.getElementById('pat-rac').value = data.patient?.rac || '';
+  document.getElementById('pat-rac-nc').checked = !!data.patient?.racnc;
   document.getElementById('pat-imc').value = data.patient?.imc || '';
   document.getElementById('pat-ldl').value = data.patient?.ldl || '';
   document.getElementById('pat-date').value = data.patient?.date || new Date().toISOString().slice(0, 10);
