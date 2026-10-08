@@ -288,3 +288,42 @@ button.rx-head:hover { filter: none; background: transparent; }
   margin-top: 8px;
 }
 .rx-detail > .rx-detail-inner { overflow: hidden; min-height: 0; }
+
+/* ---------- Volets "À faire" ---------- */
+.todo-collapse { flex-direction: column; align-items: stretch; }
+.todo-collapse .todo-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  background: transparent !important;
+  color: #1a1a1a !important;
+  border: none;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+}
+.todo-head-right { display: flex; align-items: center; gap: 8px; }
+.todo-chevron { color: #888; transition: transform 0.25s ease; }
+.todo-collapse.open .todo-chevron { transform: rotate(90deg); }
+.todo-detail {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.3s ease, opacity 0.25s ease, margin-top 0.3s ease;
+  margin-top: 0;
+}
+.todo-collapse.open .todo-detail {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  margin-top: 8px;
+}
+.todo-detail > .todo-detail-inner { overflow: hidden; min-height: 0; }
+.todo-detail-sub { font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: #666; margin: 6px 0 4px; font-weight: 700; }
+.todo-detail-row { display: flex; align-items: flex-start; gap: 6px; padding: 2px 0; }
+.todo-detail-row input[type="checkbox"] { width: auto; margin-top: 3px; }
+.todo-detail-label { font-size: .85rem; }
+.todo-detail-label.off { color: #777; }
+.todo-detail-why { font-size: .78rem; color: #555; margin: 0 0 4px 22px; font-style: italic; }
+.todo-detail .req { font-style: normal; color: #7a5c00; font-size: .75rem; }

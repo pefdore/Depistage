@@ -672,16 +672,37 @@ function updateSummary() {
   }
   todo.forEach(exam => {
     const st = examState(exam);
+    const others = exam.indications.filter(i => !isChecked(i));
     const chip = document.createElement('div');
-    chip.className = 'todo-chip';
+    chip.className = 'todo-chip todo-collapse' + (window._todoOpen?.[exam.id] ? ' open' : '');
+    chip.dataset.todoExam = exam.id;
+    const checkedRows = st.checked.map(i => `
+      <div class="todo-detail-row"><input type="checkbox" data-ind="${i.id}" checked>
+        <span class="todo-detail-label">${escapeHtml(i.label)}${i.req ? ` <em class="req">(${escapeHtml(i.req)})</em>` : ''}</span></div>
+      ${i.why ? `<div class="todo-detail-why">${escapeHtml(i.why)}</div>` : ''}`).join('');
+    const otherRows = others.length ? `
+      <div class="todo-detail-sub">Autres indications à vérifier (cocher si applicable) :</div>
+      ${others.map(i => `
+        <div class="todo-detail-row"><input type="checkbox" data-ind="${i.id}">
+          <span class="todo-detail-label off">${escapeHtml(i.label)}${i.req ? ` <em class="req">(${escapeHtml(i.req)})</em>` : ''}</span></div>`).join('')}` : '';
     chip.innerHTML = `
-      <span class="todo-label">${exam.icon} ${escapeHtml(exam.title.split(' (')[0])}
-        <em>${st.checked.length} indication${st.checked.length > 1 ? 's' : ''}${st.level && exam.scoring ? ' — ' + escapeHtml(st.level) : ''}</em></span>
-      <span class="todo-actions">
-        <button class="todo-done" data-done="${exam.id}" data-st="fait">✓ Fait</button>
-        <button class="todo-nc" data-done="${exam.id}" data-st="nc">NC</button>
-        <button class="todo-ns" data-done="${exam.id}" data-st="ns">NS</button>
-      </span>`;
+      <div class="todo-head" role="button" tabindex="0" aria-expanded="${window._todoOpen?.[exam.id] ? 'true' : 'false'}">
+        <span class="todo-label">${exam.icon} ${escapeHtml(exam.title.split(' (')[0])}
+          <em>${st.checked.length} indication${st.checked.length > 1 ? 's' : ''}${st.level && exam.scoring ? ' — ' + escapeHtml(st.level) : ''}</em></span>
+        <span class="todo-head-right">
+          <span class="todo-chevron">▸</span>
+          <span class="todo-actions">
+            <button class="todo-done" data-done="${exam.id}" data-st="fait">✓ Fait</button>
+            <button class="todo-nc" data-done="${exam.id}" data-st="nc">NC</button>
+            <button class="todo-ns" data-done="${exam.id}" data-st="ns">NS</button>
+          </span>
+        </span>
+      </div>
+      <div class="todo-detail"><div class="todo-detail-inner">
+        <div class="todo-detail-sub">Motif(s) retenu(s) :</div>
+        ${checkedRows}
+        ${otherRows}
+      </div></div>`;
     list.appendChild(chip);
   });
 
@@ -694,7 +715,17 @@ function updateSummary() {
 // ---------- Événements ----------
 document.addEventListener('click', e => {
   const btn = e.target.closest('button[data-done]');
-  if (!btn) return;
+  if (btn) return;
+  const head = e.target.closest('.todo-head');
+  if (head) {
+    const chip = head.closest('.todo-collapse');
+    const id = chip.dataset.todoExam;
+    window._todoOpen = window._todoOpen || {};
+    window._todoOpen[id] = !window._todoOpen[id];
+    chip.classList.toggle('open', window._todoOpen[id]);
+    head.setAttribute('aria-expanded', window._todoOpen[id]);
+    return;
+  }
   doneExams[btn.dataset.done] = btn.dataset.st || 'fait';
   render();
 });
