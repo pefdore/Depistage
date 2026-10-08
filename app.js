@@ -25,8 +25,11 @@ const P = () => {
     ic: document.getElementById('pat-ic').value === 'oui',
     dfg: isNaN(dfg) ? null : dfg,
     rac: (() => {
-      if (document.getElementById('pat-rac-nc').checked) return 'nc';
-      const v = parseFloat(document.getElementById('pat-rac').value);
+      const raw = (document.getElementById('pat-rac').value || '').trim().toLowerCase();
+      if (!raw) return null;
+      if (raw.includes('non calc') || raw === 'nc') return 'nc';
+      if (raw.startsWith('<')) return 0;
+      const v = parseFloat(raw.replace(',', '.'));
       return isNaN(v) ? null : v;
     })(),
     imc: isNaN(imc) ? null : imc,
@@ -689,7 +692,6 @@ document.addEventListener('change', e => {
 
 ['pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-ic', 'pat-dfg', 'pat-rac', 'pat-imc', 'pat-ldl'].forEach(idn =>
   document.getElementById(idn).addEventListener('change', render));
-document.getElementById('pat-rac-nc').addEventListener('change', render);
 
 document.getElementById('pat-date').value = new Date().toISOString().slice(0, 10);
 
@@ -714,7 +716,6 @@ document.getElementById('btn-save').addEventListener('click', () => {
       ic: document.getElementById('pat-ic').value,
       dfg: document.getElementById('pat-dfg').value,
       rac: document.getElementById('pat-rac').value,
-      racnc: document.getElementById('pat-rac-nc').checked,
       imc: document.getElementById('pat-imc').value,
       ldl: document.getElementById('pat-ldl').value,
       date: document.getElementById('pat-date').value,
@@ -740,7 +741,6 @@ document.getElementById('btn-load').addEventListener('click', () => {
   document.getElementById('pat-ic').value = data.patient?.ic || '';
   document.getElementById('pat-dfg').value = data.patient?.dfg || '';
   document.getElementById('pat-rac').value = data.patient?.rac || '';
-  document.getElementById('pat-rac-nc').checked = !!data.patient?.racnc;
   document.getElementById('pat-imc').value = data.patient?.imc || '';
   document.getElementById('pat-ldl').value = data.patient?.ldl || '';
   document.getElementById('pat-date').value = data.patient?.date || new Date().toISOString().slice(0, 10);
