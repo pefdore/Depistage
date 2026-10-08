@@ -241,7 +241,7 @@ function renderRx(p) {
         <span class="rx-name">${icon} ${name}</span>
         <span class="rx-head-right"><span class="rx-verdict" style="background:${verdictColor}">${verdict}</span><span class="rx-chevron">&#9656;</span></span>
       </button>
-      <div class="rx-detail">${detail}</div>
+      <div class="rx-detail"><div class="rx-detail-inner">${detail}</div></div>
     </div>`;
 
   const ie = iecara2Advice(p);

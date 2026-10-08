@@ -248,36 +248,43 @@ button.secondary { background: #6c757d; }
 .rx-ci { color: #a02020; margin: 2px 0; }
 
 /* ---------- Volets repliables traitements ---------- */
+.rx-box { padding: 8px 12px; }
 .rx-collapse .rx-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  background: none;
+  background: transparent !important;
+  color: #1a1a1a !important;
   border: none;
-  padding: 0;
+  border-radius: 0;
+  padding: 2px 0;
   font: inherit;
+  font-weight: 700;
+  font-size: .95rem;
   cursor: pointer;
   text-align: left;
 }
-.rx-head-right { display: flex; align-items: center; gap: 8px; }
+button.rx-head:hover { filter: none; background: transparent; }
+.rx-head .rx-name { display: flex; align-items: center; gap: 6px; }
+.rx-head-right { display: flex; align-items: center; gap: 10px; }
 .rx-chevron {
   display: inline-block;
   color: #888;
-  font-size: 1.1em;
+  font-size: 1em;
   transition: transform 0.25s ease;
 }
 .rx-collapse.open .rx-chevron { transform: rotate(90deg); }
 .rx-detail {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows 0.3s ease, opacity 0.3s ease;
   opacity: 0;
+  transition: grid-template-rows 0.3s ease, opacity 0.25s ease, margin-top 0.3s ease;
+  margin-top: 0;
 }
 .rx-collapse.open .rx-detail {
   grid-template-rows: 1fr;
   opacity: 1;
+  margin-top: 8px;
 }
-.rx-detail > * { overflow: hidden; min-height: 0; }
-.rx-detail > div { margin-top: 4px; }
-.rx-collapse.open .rx-detail { margin-top: 6px; }
+.rx-detail > .rx-detail-inner { overflow: hidden; min-height: 0; }
