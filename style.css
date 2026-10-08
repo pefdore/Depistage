@@ -246,3 +246,38 @@ button.secondary { background: #6c757d; }
 .rx-reason { color: #2c6e2f; margin: 2px 0; }
 .rx-remb { color: #7a5c00; margin: 4px 0 2px; font-weight: 600; }
 .rx-ci { color: #a02020; margin: 2px 0; }
+
+/* ---------- Volets repliables traitements ---------- */
+.rx-collapse .rx-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.rx-head-right { display: flex; align-items: center; gap: 8px; }
+.rx-chevron {
+  display: inline-block;
+  color: #888;
+  font-size: 1.1em;
+  transition: transform 0.25s ease;
+}
+.rx-collapse.open .rx-chevron { transform: rotate(90deg); }
+.rx-detail {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease, opacity 0.3s ease;
+  opacity: 0;
+}
+.rx-collapse.open .rx-detail {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+.rx-detail > * { overflow: hidden; min-height: 0; }
+.rx-detail > div { margin-top: 4px; }
+.rx-collapse.open .rx-detail { margin-top: 6px; }

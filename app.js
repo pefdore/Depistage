@@ -234,44 +234,64 @@ function glp1Advice(p) {
 
 function renderRx(p) {
   const panel = document.getElementById('rx-panel');
-  const blocks = [];
+
+  const makeBox = (open, color, icon, name, verdict, verdictColor, detail) => `
+    <div class="rx-box rx-collapse${open ? ' open' : ''}" style="border-left:6px solid ${color}" data-rx-open="${open ? '1' : '0'}">
+      <button type="button" class="rx-head" aria-expanded="${open}">
+        <span class="rx-name">${icon} ${name}</span>
+        <span class="rx-head-right"><span class="rx-verdict" style="background:${verdictColor}">${verdict}</span><span class="rx-chevron">&#9656;</span></span>
+      </button>
+      <div class="rx-detail">${detail}</div>
+    </div>`;
 
   const ie = iecara2Advice(p);
-  const ieStatus = ie.ok ? 'INDIQUÉ' : (p.hta || p.rac !== null ? 'Pas d\'indication' : '—');
+  const ieStatus = ie.ok ? 'INDIQU\u00c9' : (p.hta || p.rac !== null ? 'Pas d\'indication' : '\u2014');
   const ieColor = ie.ok ? '#c8e6c9' : '#ffcdd2';
-  blocks.push(`<div class="rx-box" style="border-left:6px solid ${ie.ok ? '#2e7d32' : '#e53935'}">
-    <div class="rx-title">💊 IEC / ARA2 <span class="rx-verdict" style="background:${ieColor}">${ieStatus}</span></div>
-    ${ie.reasons.map(r => `<div class="rx-reason">✓ ${escapeHtml(r)}</div>`).join('')}
-    ${ie.remb.length ? `<div class="rx-remb">💶 Remboursement : ${escapeHtml(ie.remb.join(' ; '))}</div>` : ''}
-    ${ie.ci.map(c => `<div class="rx-ci">⚠ ${escapeHtml(c)}</div>`).join('')}
-    ${!ie.ok && !ie.reasons.length ? '<div class="rx-reason">Aucun critère : HTA absente, pas d\'albuminurie ≥ 3 mg/mmol, pas d\'IC. Pas d\'indication à ce jour.</div>' : ''}
-  </div>`);
+  const ieDetail = `
+    ${ie.reasons.map(r => `<div class="rx-reason">\u2713 ${escapeHtml(r)}</div>`).join('')}
+    ${ie.remb.length ? `<div class="rx-remb">\ud83d\udcb6 Remboursement : ${escapeHtml(ie.remb.join(' ; '))}</div>` : ''}
+    ${ie.ci.map(c => `<div class="rx-ci">\u26a0 ${escapeHtml(c)}</div>`).join('')}
+    ${!ie.ok && !ie.reasons.length ? '<div class="rx-reason">Aucun crit\u00e8re : HTA absente, pas d\'albuminurie \u2265 3 mg/mmol, pas d\'IC. Pas d\'indication \u00e0 ce jour.</div>' : ''}`;
+
+  const gl = isglt2Advice(p);
+  const glStatus = gl.ok ? 'INDIQU\u00c9' : (p.dfg !== null || p.diabete || p.ic ? 'Pas d\'indication' : '\u2014');
+  const glColor = gl.ok ? '#c8e6c9' : '#ffcdd2';
+  const glDetail = `
+    ${gl.drug ? `<div class="rx-reason">\u2192 ${escapeHtml(gl.drug)}</div>` : ''}
+    ${gl.reasons.map(r => `<div class="rx-reason">\u2713 ${escapeHtml(r)}</div>`).join('')}
+    ${gl.remb.length ? `<div class="rx-remb">\ud83d\udcb6 Remboursement : ${escapeHtml(gl.remb.join(' ; '))}</div>` : ''}
+    ${gl.ci.map(c => `<div class="rx-ci">\u26a0 ${escapeHtml(c)}</div>`).join('')}
+    ${!gl.ok && !gl.reasons.length ? '<div class="rx-reason">Aucun crit\u00e8re : pas de DT2, pas d\'IC, DFG \u2265 45 ou albuminurie < 20 mg/mmol.</div>' : ''}`;
 
   const gp = glp1Advice(p);
-  const gl = isglt2Advice(p);
-  const glStatus = gl.ok ? 'INDIQUÉ' : (p.dfg !== null || p.diabete || p.ic ? 'Pas d\'indication' : '—');
-  const glColor = gl.ok ? '#c8e6c9' : '#ffcdd2';
-  blocks.push(`<div class="rx-box" style="border-left:6px solid ${gl.ok ? '#2e7d32' : '#e53935'}">
-    <div class="rx-title">🧪 iSGLT2 (gliflozine) <span class="rx-verdict" style="background:${glColor}">${glStatus}</span></div>
-    ${gl.drug ? `<div class="rx-reason">→ ${escapeHtml(gl.drug)}</div>` : ''}
-    ${gl.reasons.map(r => `<div class="rx-reason">✓ ${escapeHtml(r)}</div>`).join('')}
-    ${gl.remb.length ? `<div class="rx-remb">💶 Remboursement : ${escapeHtml(gl.remb.join(' ; '))}</div>` : ''}
-    ${gl.ci.map(c => `<div class="rx-ci">⚠ ${escapeHtml(c)}</div>`).join('')}
-    ${!gl.ok && !gl.reasons.length ? '<div class="rx-reason">Aucun critère : pas de DT2, pas d\'IC, DFG ≥ 45 ou albuminurie < 20 mg/mmol.</div>' : ''}
-  </div>`);
-
-  const gpStatus = gp.ok ? 'INDIQUÉ' : (p.imc !== null || p.diabete ? 'Pas d\'indication' : '—');
+  const gpStatus = gp.ok ? 'INDIQU\u00c9' : (p.imc !== null || p.diabete ? 'Pas d\'indication' : '\u2014');
   const gpColor = gp.ok ? '#c8e6c9' : '#ffcdd2';
-  blocks.push(`<div class="rx-box" style="border-left:6px solid ${gp.ok ? '#2e7d32' : '#e53935'}">
-    <div class="rx-title">🦎 GLP-1 / tirzépatide <span class="rx-verdict" style="background:${gpColor}">${gpStatus}</span></div>
-    ${gp.reasons.map(r => `<div class="rx-reason">✓ ${escapeHtml(r)}</div>`).join('')}
-    ${gp.remb.length ? `<div class="rx-remb">💶 Remboursement : ${escapeHtml(gp.remb.join(' ; '))}</div>` : ''}
-    ${gp.ci.map(c => `<div class="rx-ci">⚠ ${escapeHtml(c)}</div>`).join('')}
-    ${!gp.ok && !gp.reasons.length ? '<div class="rx-reason">Aucun critère : pas de DT2, IMC < 27 ou sans comorbidité. Pas d\'indication à ce jour.</div>' : ''}
-  </div>`);
+  const gpDetail = `
+    ${gp.reasons.map(r => `<div class="rx-reason">\u2713 ${escapeHtml(r)}</div>`).join('')}
+    ${gp.remb.length ? `<div class="rx-remb">\ud83d\udcb6 Remboursement : ${escapeHtml(gp.remb.join(' ; '))}</div>` : ''}
+    ${gp.ci.map(c => `<div class="rx-ci">\u26a0 ${escapeHtml(c)}</div>`).join('')}
+    ${!gp.ok && !gp.reasons.length ? '<div class="rx-reason">Aucun crit\u00e8re : pas de DT2, IMC < 27 ou sans comorbidit\u00e9. Pas d\'indication \u00e0 ce jour.</div>' : ''}`;
 
-  panel.innerHTML = blocks.join('');
+  const openState = window._rxOpen || {};
+  panel.innerHTML =
+    makeBox(!!openState.ie, ie.ok ? '#2e7d32' : '#e53935', '\ud83d\udc8a', 'IEC / ARA2', ieStatus, ieColor, ieDetail) +
+    makeBox(!!openState.gl, gl.ok ? '#2e7d32' : '#e53935', '\ud83e\uddea', 'iSGLT2 (gliflozine)', glStatus, glColor, glDetail) +
+    makeBox(!!openState.gp, gp.ok ? '#2e7d32' : '#e53935', '\ud83e\udd8e', 'GLP-1 / tirz\u00e9patide', gpStatus, gpColor, gpDetail);
 }
+
+document.addEventListener('click', e => {
+  const head = e.target.closest('.rx-head');
+  if (!head) return;
+  const box = head.closest('.rx-collapse');
+  const willOpen = box.dataset.rxOpen !== '1';
+  const key = box.querySelector('.rx-name').textContent.includes('IEC') ? 'ie'
+    : box.querySelector('.rx-name').textContent.includes('iSGLT2') ? 'gl' : 'gp';
+  window._rxOpen = window._rxOpen || {};
+  window._rxOpen[key] = willOpen;
+  box.dataset.rxOpen = willOpen ? '1' : '0';
+  box.classList.toggle('open', willOpen);
+  head.setAttribute('aria-expanded', willOpen);
+});
 
 // ---------- Examens & indications ----------
 const EXAMS = [
