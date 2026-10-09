@@ -327,3 +327,26 @@ button.rx-head:hover { filter: none; background: transparent; }
 .todo-detail-label.off { color: #777; }
 .todo-detail-why { font-size: .78rem; color: #555; margin: 0 0 4px 22px; font-style: italic; }
 .todo-detail .req { font-style: normal; color: #7a5c00; font-size: .75rem; }
+
+/* ---------- Catégories À faire + Suivi MRC ---------- */
+.todo-cat-title {
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: #555;
+  font-weight: 700;
+  margin: 14px 0 6px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 3px;
+}
+.todo-cat-title:first-child { margin-top: 0; }
+.suivi-box {
+  background: #f6f9ff;
+  border: 1px solid #d5e0f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+.suivi-title { font-weight: 700; margin-bottom: 6px; font-size: .92rem; }
+.suivi-item { font-size: .85rem; color: #333; margin: 3px 0; }
+.suivi-empty { font-size: .85rem; color: #777; font-style: italic; }

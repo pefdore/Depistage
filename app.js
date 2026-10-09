@@ -296,7 +296,7 @@ document.addEventListener('click', e => {
 // ---------- Examens & indications ----------
 const EXAMS = [
 {
-  id: 'osteo', title: 'Ost\u00e9odensitom\u00e9trie (crit\u00e8res HAS / Assurance Maladie)', icon: '\ud83e\uddb4',
+  id: 'osteo', cat: 'chronique', title: 'Ost\u00e9odensitom\u00e9trie (crit\u00e8res HAS / Assurance Maladie)', icon: '\ud83e\uddb4',
   indications: [
     { id: 'osteo-patho', why: 'Certaines maladies ou traitements fragilisent l\'os \u00e0 tout \u00e2ge : mesurer la densit\u00e9 osseuse permet de d\u00e9cider un traitement protecteur.', label: 'Pathologie ou traitement inducteur d\'ost\u00e9oporose, quel que soit l\u00e2ge et le sexe : corticoth\u00e9rapie \u2265 3 mois cons\u00e9cutifs, hyperthyro\u00efde non trait\u00e9e, hypogonadisme, m\u00e9nopause pr\u00e9coce (< 40 ans), malabsorption, polyarthrite, immobilisation prolong\u00e9e...', req: 'Remboursable 70 %' },
     { id: 'osteo-fracture', why: 'Une fracture apr\u00e8s un choc minime signe un os fragile : la densitom\u00e9trie confirme l\'ost\u00e9oporose et permet d\'\u00e9viter la fracture suivante, souvent plus grave.', label: 'Fracture de faible \u00e9nergie (poignet, vert\u00e8bre, f\u00e9mur, c\u00f4tes...) apr\u00e8s 50 ans, sans traumatisme majeur', req: 'Remboursable 70 %' },
@@ -308,7 +308,7 @@ const EXAMS = [
   ],
 },
 {
-  id: 'bpco', title: 'Spirométrie (dépistage BPCO)', icon: '🫁',
+  id: 'bpco', cat: 'chronique', title: 'Spirométrie (dépistage BPCO)', icon: '🫁',
   indications: [
     { id: 'bpco-pa', why: 'Un tabagisme important peut abêger les bronches sans symptème évident : la spirométrie le dépiste tôt et permet de ralentir la maladie.', label: 'Tabagisme ≥ 20 paquets-années et ≥ 40 ans', auto: p => p.grosFumeur && p.age !== null && p.age >= 40 },
     { id: 'bpco-toux', why: 'Une toux chronique chez un fumeur peut cacher une BPCO : la respiration mesurée permet de la détecter.', label: 'Toux chronique et/ou expectorations chroniques' },
@@ -318,7 +318,7 @@ const EXAMS = [
   ],
 },
 {
-  id: 'aaa', title: 'Échographie aorte abdominale (anévrisme)', icon: '🩸',
+  id: 'aaa', cat: 'chronique', title: 'Échographie aorte abdominale (anévrisme)', icon: '🩸',
   indications: [
     { id: 'aaa-fumeur', why: 'Le tabac fragilise la paroi de l\'aorte : une échographie simple détecte un anévrisme avant qu\'il ne se rompe.', label: 'Fumeur ou sevré, 65–85 ans', auto: p => p.fumeur && between(p, 65, 85) },
     { id: 'aaa-fam', why: 'Un anévrisme familial augmente votre risque : une échographie l\'élimine.', label: 'Antécédent familial d\'anévrisme aortique' },
@@ -326,14 +326,14 @@ const EXAMS = [
   ],
 },
 {
-  id: 'poumon', title: 'Scanner thoracique low-dose (cancer du poumon)', icon: '🫁',
+  id: 'poumon', cat: 'neo', title: 'Scanner thoracique low-dose (cancer du poumon)', icon: '🫁',
   indications: [
     { id: 'poumon-tabac', why: 'Un tabagisme important augmente fortement le risque de cancer du poumon : un scanner faible dose le détecte à un stade guérissable.', label: 'Fumeur ou sevré, 50–74 ans, ≥ 20 paquets-années', auto: p => p.grosFumeur && between(p, 50, 74) },
     { id: 'poumon-expo', why: 'L\'exposition à l\'amiante ou à la silice augmente le risque de cancer du poumon : un scanner de dépistage s\'en assure.', label: 'Exposition professionnelle (amiante, silice, métaux)' },
   ],
 },
 {
-  id: 'ccr', title: 'Test immunologique dans les selles / coloscopie (cancer colorectal)', icon: '🧪',
+  id: 'ccr', cat: 'neo', title: 'Test immunologique dans les selles / coloscopie (cancer colorectal)', icon: '🧪',
   indications: [
     { id: 'ccr-age', why: 'Entre 50 et 74 ans, le risque de cancer du colon augmente : le test sur selles le détecte tôt, à un stade guérissable dans 9 cas sur 10.', label: '50–74 ans (dépistage organisé, tous les 2 ans)', auto: p => between(p, 50, 74) },
     { id: 'ccr-fam', why: 'Un cas familial proche augmente votre risque : une coloscopie permet de vérifier l\'intérieur du colon.', label: 'Antécédent familial au 1er degré (colon, rectum), polypose, HNPCC/Lynch' },
@@ -341,7 +341,7 @@ const EXAMS = [
   ],
 },
 {
-  id: 'mammo', title: 'Mammographie (cancer du sein)', icon: '🎗️',
+  id: 'mammo', cat: 'neo', title: 'Mammographie (cancer du sein)', icon: '🎗️',
   indications: [
     { id: 'mammo-age', why: 'Le dépistage régulier du sein par mammographie permet de détecter un cancer de petite taille, mieux traité.', label: 'Femme 50–74 ans (dépistage organisé, tous les 2 ans)', auto: p => isF(p) && between(p, 50, 74) },
     { id: 'mammo-fam', why: 'Des antécédents familiaux augmentent le risque : une surveillance rapprochée s\'impose.', label: 'Antécédent familial (sein/ovaire) ou mutation BRCA' },
@@ -349,14 +349,14 @@ const EXAMS = [
   ],
 },
 {
-  id: 'frottis', title: 'Frottis / test HPV (cancer du col)', icon: '🌸',
+  id: 'frottis', cat: 'neo', title: 'Frottis / test HPV (cancer du col)', icon: '🌸',
   indications: [
     { id: 'frottis-age', why: 'Le frottis/HPV détecte des lésions précancéreuses du col, faciles à traiter avant qu\'elles ne deviennent un cancer.', label: 'Femme 25–65 ans (HPV tous les 5 ans, 25–30 ans : frottis tous les 3 ans)', auto: p => isF(p) && between(p, 25, 65) },
     { id: 'frottis-jamais', why: 'Un dépistage non à jour laisse le temps à une lésion d\'évoluer : à réaliser sans tarder.', label: 'Jamais de dépistage ou dépistage non à jour' },
   ],
 },
 {
-  id: 'psa', title: 'PSA (cancer de la prostate) — décision partagée', icon: '♂️',
+  id: 'psa', cat: 'neo', title: 'PSA (cancer de la prostate) — décision partagée', icon: '♂️',
   indications: [
     { id: 'psa-age', why: 'Après 50 ans, une simple prise de sang peut révéler un problème de prostate — à discuter avec votre médecin des bénéfices et limites.', label: 'Homme ≥ 50 ans : dépistage individuel possible, en informer bénéfices/risques', auto: p => isM(p) && p.age !== null && p.age >= 50 },
     { id: 'psa-fam', why: 'Un cancer de la prostate chez un proche augmente votre risque : le dépistage peut commencer plus tôt.', label: 'Antécédent familial (père, frère) avant 65 ans : dès 45 ans' },
@@ -364,7 +364,7 @@ const EXAMS = [
   ],
 },
 {
-  id: 'diabete', title: 'Glycémie à jeun / HbA1c (diabète de type 2)', icon: '🍪',
+  id: 'diabete', cat: 'chronique', hideIf: p => p.diabete, title: 'Glycémie à jeun / HbA1c (diabète de type 2)', icon: '🍪',
   indications: [
     { id: 'diabete-age', why: 'Le diabète peut passer inaperçu des années : une glycémie le dépiste avant les complications (yeux, reins, cœur).', label: '45–75 ans (tous les 3 ans)', auto: p => between(p, 45, 75) },
     { id: 'diabete-obesite', why: 'Le surpoids favorise le diabète : une glycémie vérifie que le sucre est bien régulé.', label: 'Surpoids/obésité (IMC ≥ 25, tour de taille élevé) + sédentarité', auto: p => p.imc !== null && p.imc >= 25 },
@@ -375,59 +375,21 @@ const EXAMS = [
   ],
 },
 {
-  id: 'foei', title: 'Fond d\'œil (rétinopathie diabétique)', icon: '👁️',
+  id: 'foei', cat: 'chronique', title: 'Fond d\'œil (rétinopathie diabétique)', icon: '👁️',
   indications: [
     { id: 'foei-diabete', why: 'Le diabète peut abêger la rétine sans symptôme jusqu\'à des lésions sévères : un fond d\'œil annuel le détecte à temps.', label: 'Diabète de type 2 : examen annuel', auto: p => p.diabete },
     { id: 'foei-dmla', why: 'La DMLA peut rendre la vision centrale basse progressivement : détectée tôt, des traitements ralentissent son évolution.', label: 'Sujet ≥ 60 ans : DMLA (acuité visuelle, Ophtalmo si signes)', auto: p => p.age !== null && p.age >= 60 },
   ],
 },
 {
-  id: 'hcv', title: 'Sérologie hépatite C', icon: '🩺',
+  id: 'hcv', cat: 'chronique', title: 'Sérologie hépatite C', icon: '🩺',
   indications: [
     { id: 'hcv-age', why: 'L\'hépatite C peut dormir des dizaines d\'années : une sérologie une fois dans la vie l\'élimine, et elle se guérit aujourd\'hui.', label: '18–59 ans : au moins une fois dans la vie', auto: p => between(p, 18, 59) },
     { id: 'hcv-risque', why: 'Ces situations exposent au virus de l\'hépatite C : une simple prise de sang l\'élimine.', label: 'Usage de drogues IV/intranasal, transfusion avant 1992, tatouage/percing, prison' },
   ],
 },
 {
-  id: 'glp1', title: 'Traitement médicamenteux de l\'obésité — GLP-1 (Wegovy® / Mounjaro®)', icon: '💉', scoring: 'glp1',
-  indications: [
-    { id: 'glp1-amm', why: 'Ce traitement réduit significativement le poids et protège le cőur, en complément du régime et de l\'activité physique.', label: 'PRESCRIPTION (AMM, tout médecin y compris MG depuis le 23/06/2025 — ANSM) : IMC ≥ 30 kg/m², ou IMC ≥ 27 + comorbidité liée au poids (HTA, diabète, dyslipidémie, SAS, maladie cardiovasculaire)', req: 'Critère AMM', auto: p => p.imc !== null && (p.imc >= 30 || (p.imc >= 27 && (p.diabete || p.hta || (p.ldl !== null && p.ldl >= 1.6)))) },
-    { id: 'glp1-ado', why: 'Chez l\'adolescent obèse, ce traitement peut être proposé en accompagnement global.', label: 'Adolescent ≥ 12 ans avec obésité et poids > 60 kg (AMM)', req: 'Critère AMM' },
-    { id: 'glp1-imc40', why: 'Une obésité massive expose à des complications sévères (diabète, cőur, articulations) : le traitement médite leur survenue.', label: 'REMBOURSEMENT : IMC ≥ 40 kg/m² (obésité massive, sans comorbidité requise)', req: 'Critère remboursement', auto: p => p.imc !== null && p.imc >= 40 },
-    { id: 'glp1-imc35-comorb', why: 'Les comorbidités liées au poids aggravent le risque cardiovasculaire : une perte de poids significative les améliore.', label: 'REMBOURSEMENT : IMC ≥ 35 kg/m² + au moins une comorbidité sévère (HTA, diabète, dyslipidémie, SAS sévère, AOMI, arthrose invalidante, stéatohépatite)', req: 'Critère remboursement', auto: p => p.imc !== null && p.imc >= 35 && (p.diabete || p.hta || (p.ldl !== null && p.ldl >= 1.6)) },
-    { id: 'glp1-nutrition', why: 'Ce traitement n\'est prescrit qu\'après un essai nutritionnel : il renforce, mais ne remplace pas, les mesures diététiques.', label: 'Échec d\'une prise en charge nutritionnelle bien conduite (< 5 % de perte de poids à 6 mois)' },
-    { id: 'glp1-regle', label: 'En complément d\'un régime hypocalorique et d\'une activité physique accrue (obligatoire)', req: 'Condition de remboursement' },
-    { id: 'glp1-prescripteur', label: 'Primo-prescription réservée aux structures spécialisées (CSO, CHU, service nutrition/endocrinologie) ; renouvellement possible par le médecin traitant', req: 'Condition de remboursement' },
-    { id: 'glp1-formulaire', label: 'Justificatif d\'accompagnement obligatoire à saisir sur amelipro (téléservice Assurance Maladie)', req: 'Condition de remboursement' },
-    { id: 'glp1-prise', label: 'Remboursement 65 % par l\'Assurance Maladie (arrêtés du 28/05/2026, effectif 15/06/2026). Saxenda® n\'est PAS remboursé', req: 'Info remboursement' },
-  ],
-},
-{
-  id: 'ieciara2', title: 'IEC / ARA2 (néphroprotection)', icon: '💊',
-  indications: [
-    { id: 'ie-hta', why: 'L\'IEC/ARA2 abaisse la tension et protège les reins et le cœur à long terme.', label: 'HTA : IEC (ou ARA2 si intolérance) en 1re intention, particulièrement si albuminurie', req: 'Recommandation HAS', auto: p => p.hta },
-    { id: 'ie-dfg-albu', why: 'En cas de maladie rénale chronique avec albuminurie, l\'IEC/ARA2 réduit la progression vers l\'insuffisance rénale terminale.', label: 'MRC avec albuminurie (RAC ≥ 3 mg/mmol) : IEC/ARA2 pour néphroprotection, dose maximale tolérée', req: 'Recommandation KDIGO/HAS', auto: p => p.rac !== null && p.rac >= 3 },
-    { id: 'ie-dt2-albu', why: 'Chez le diabétique, l\'IEC/ARA2 prévient la néphropathie diabétique et protège le cœur.', label: 'Diabète (type 1 ou 2) avec albuminurie ou HTA : IEC/ARA2 systématiquement', req: 'Recommandation', auto: p => p.diabete && (p.hta || (p.rac !== null && p.rac >= 3)) },
-    { id: 'ie-albuminurie-severe', why: 'Une albuminurie marquée signe des reins fragiles : l\'IEC/ARA2 à pleine dose ralentit fortement la dégradation.', label: 'Albuminurie sévère (RAC ≥ 30 mg/mmol) : avis néphrologue + IEC/ARA2 pleine dose', req: 'Indication renforcée', auto: p => p.rac !== null && p.rac >= 30 },
-    { id: 'ie-surv', label: 'Surveillance : créatinine et K+ à 7–14 jours après instauration/augmentation (hausse ≤ 30 % de la créatinine attendue et tolérée)', req: 'Précaution' },
-    { id: 'ie-ci', label: 'CONTRE-INDICATIONS : grossesse (arrêt immédiat), sténose artère rénale bilatérale, angio-oedème sous IEC, hyperkaliémie non contrôlée', req: 'Contre-indications' },
-    { id: 'ie-remb', label: 'REMBOURSEMENT : HTA, insuffisance cardiaque, néphropathie (protéinurie ≥ 0,5 g/24 h ou RAC ≥ 3 mg/mmol) : traitement remboursé 65 % (génériques)', req: 'Remboursement' },
-  ],
-},
-{
-  id: 'isglt2', title: 'iSGLT2 (empagliflozine / dapagliflozine)', icon: '💊',
-  indications: [
-    { id: 'isglt2-dt2', why: 'Ce médicament protège le cőur et les reins au-delà de son effet sur la glycémie.', label: 'Diabète de type 2 : adulte, en complément du régime et des autres antidiabétiques (bénéfice cardiovasculaire et rénal)', auto: p => p.diabete },
-    { id: 'isglt2-ic', why: 'Dans l\'insuffisance cardiaque, il réduit les hospitalisations et la mortalité, avec ou sans diabète.', label: 'Insuffisance cardiaque (HFrEF ou HFmrEF, avec ou sans diabète) : dapagliflozine (Forxiga®) : réduit hospitalisations et mortalité' },
-    { id: 'isglt2-irc', why: 'Il ralentit la dégradation des reins, même sans diabète.', label: 'Maladie rénale chronique (KDIGO 2024) : dapagliflozine si DFG ≥ 25 avec RAC ≥ 20 mg/mmol, ou empagliflozine si RAC ≥ 20 mg/mmol ; empagliflozine aussi si DFG 20–45 même sans albuminurie', auto: p => (p.dfg !== null && p.dfg < 60) || (p.rac !== null && p.rac >= 20) },
-    { id: 'isglt2-ci-dt1', label: 'CONTRE-INDICATION : diabète de type 1 (risque d\'acidocétose)' },
-    { id: 'isglt2-ci-aco', label: 'CONTRE-INDICATION : antécédent d\'acidocétose sous iSGLT2 : ne pas réintroduire le traitement' },
-    { id: 'isglt2-ci-grossesse', label: 'PRÉCAUTION : grossesse / allaitement / projet de grossesse (contraception efficace nécessaire ; interaction avec les contraceptifs oraux signalée sous GLP-1)' },
-    { id: 'isglt2-effets', label: 'Information patient : infections génitales fréquentes, hydratation suffisante, arrêt 3-4 jours avant chirurgie ou contexte d\'acidose (jeûne, maladie aiguë)' },
-  ],
-},
-{
-  id: 'ecg', title: 'ÉCG', icon: '💓',
+  id: 'ecg', cat: 'chronique', title: 'ÉCG', icon: '💓',
   indications: [
     { id: 'ecg-fa', why: 'Après 65 ans, la fibrillation auriculaire est fréquente et peut causer un AVC sans symptôme : un ECG la détecte et un traitement protège.', label: '≥ 65 ans : dépistage de la fibrillation atriale (palpation du pouls ; ECG si irrégulier ou suspicion)', auto: p => p.age !== null && p.age >= 65 },
     { id: 'ecg-hta', why: 'L\'HTA fatigue le cœur : l\'ECG vérifie qu\'il n\'a pas souffert (hypertrophie, trouble du rythme).', label: 'HTA : ECG dans le bilan initial / suivi', auto: p => p.hta },
@@ -439,7 +401,7 @@ const EXAMS = [
   ],
 },
 {
-  id: 'tsa', title: 'Doppler des troncs supra-aortiques (TSA)', icon: '🩸',
+  id: 'tsa', cat: 'chronique', title: 'Doppler des troncs supra-aortiques (TSA)', icon: '🩸',
   indications: [
     { id: 'tsa-souffle', why: 'Un souffle sur les carotides peut traduire un rétrécissement : le Doppler l\'évalue avant un AVC.', label: 'Souffle carotidien audible à l\'auscultation' },
     { id: 'tsa-ait', why: 'Après un AIT, les carotides doivent être explorées en urgence : une sténose serrée se corrige.', label: 'AIT, AVC, amaurose transitoire : bilan urgent' },
@@ -451,7 +413,7 @@ const EXAMS = [
   ],
 },
 {
-  id: 'aomi', title: 'Doppler artériel des membres inférieurs (AOMI)', icon: '🦵',
+  id: 'aomi', cat: 'chronique', title: 'Doppler artériel des membres inférieurs (AOMI)', icon: '🦵',
   indications: [
     { id: 'aomi-claudication', why: 'La douleur à la marche traduit souvent une artère rétrécie : le Doppler confirme et évalue le risque cardiaque associé.', label: 'Claudication intermittente : douleur de marche soulagée par l\'arrêt' },
     { id: 'aomi-tabac', why: 'Le tabac bouche les artères des jambes : un simple IPS (prise de tension aux chevilles) le dépiste avant les symptômes.', label: 'Fumeur ou sevré ≥ 50 ans : dépistage (IPS)', auto: p => p.fumeur && p.age !== null && p.age >= 50 },
@@ -462,7 +424,7 @@ const EXAMS = [
   ],
 },
 {
-  id: 'sas', title: 'Syndrome d\'apnées du sommeil (STOP-BANG)', icon: '😴', scoring: 'stopbang',
+  id: 'sas', cat: 'chronique', title: 'Syndrome d\'apnées du sommeil (STOP-BANG)', icon: '😴', scoring: 'stopbang',
   indications: [
     { id: 'sas-s', why: 'Des ronflements forts avec pauses respiratoires fatiguent le cœur et le cerveau : les traiter améliore durablement l\'énergie et protège le cőur.', label: 'S — Ronflements forts (observés par l\'entourage)' },
     { id: 'sas-t', why: 'La somnolence diurne d\'un SAS augmente le risque d\'accidents et d\'HTA : un enregistrement du sommeil confirme le diagnostic.', label: 'T — Fatigue diurne excessive / somnolence (endormissements)' },
@@ -479,7 +441,7 @@ const EXAMS = [
 // ---------- Vaccins ----------
 const VACCINS = [
 {
-  id: 'v-menb', title: 'Vaccin méningocoque B (Bexsero®)', icon: '🦠',
+  id: 'v-menb', cat: 'vaccinal', title: 'Vaccin méningocoque B (Bexsero®)', icon: '🦠',
   indications: [
     { id: 'v-menb-nour', why: 'Protège le nourrisson des méningites à méningocoque B, graves et imprévisibles.', label: 'Nourrisson (né depuis 2023) : schéma M3, M5, rappel M12', req: 'Obligatoire', auto: p => p.age !== null && p.age < 2 },
     { id: 'v-menb-rat5', why: 'Le rattrapage protège votre enfant avant l\'entrée en collectivité.', label: 'Enfant 2–4 ans révolus non vaccinés : rattrapage transitoire (2 doses)', req: 'Obligatoire', auto: p => p.age !== null && p.age >= 2 && p.age <= 4 },
@@ -488,7 +450,7 @@ const VACCINS = [
   ],
 },
 {
-  id: 'v-menacwy', title: 'Vaccin méningocoque ACWY (Nimenrix® / Menquadfi® / Menveo®)', icon: '🦠',
+  id: 'v-menacwy', cat: 'vaccinal', title: 'Vaccin méningocoque ACWY (Nimenrix® / Menquadfi® / Menveo®)', icon: '🦠',
   indications: [
     { id: 'v-acwy-nour', why: 'Protège contre 4 types de méningocoques (A, C, W, Y) en remplacement du vaccin C seul.', label: 'Nourrisson (né depuis 2023) : dose à 6 mois (Nimenrix) + rappel 12 mois (Nimenrix ou Menquadfi)', req: 'Obligatoire', auto: p => p.age !== null && p.age < 2 },
     { id: 'v-acwy-rat', why: 'Complète la protection contre les méningocoques A, C, W et Y.', label: 'Rattrapage 12–24 mois : 1 dose ACWY ; 2–4 ans révolus non vaccinés : rattrapage transitoire, 1 dose', req: 'Obligatoire', auto: p => p.age !== null && p.age >= 1 && p.age <= 4 },
@@ -498,7 +460,7 @@ const VACCINS = [
   ],
 },
 {
-  id: 'v-grippe', title: 'Vaccin grippe saisonnière', icon: '💉',
+  id: 'v-grippe', cat: 'vaccinal', title: 'Vaccin grippe saisonnière', icon: '💉',
   indications: [
     { id: 'v-grippe-65', why: 'La grippe après 65 ans peut entraîner une pneumonie ou une décompensation cardiaque : le vaccin évite chaque année hospitalisations et décès.', label: 'Personne ≥ 65 ans : chaque année', req: 'Recommandée', auto: p => p.age !== null && p.age >= 65 },
     { id: 'v-grippe-comorb', why: 'Avec une maladie chronique, la grippe décompense la santé : le vaccin protège.', label: 'Comorbidité (diabète, HTA, maladie respiratoire ou cardiaque, obésité, DFG < 60)', req: 'Recommandée', auto: p => p.diabete || p.hta || (p.imc !== null && p.imc >= 30) || (p.dfg !== null && p.dfg < 60) },
@@ -506,20 +468,20 @@ const VACCINS = [
   ],
 },
 {
-  id: 'v-pneumo', title: 'Vaccin pneumocoque', icon: '💉',
+  id: 'v-pneumo', cat: 'vaccinal', title: 'Vaccin pneumocoque', icon: '💉',
   indications: [
     { id: 'v-pneumo-65', why: 'Le pneumocoque cause pneumonies et méningites : le vaccin protège les plus vulnérables.', label: 'Personne ≥ 65 ans (schéma adapté selon antécédents)', req: 'Recommandée', auto: p => p.age !== null && p.age >= 65 },
     { id: 'v-pneumo-comorb', why: 'Les maladies chroniques fragilisent face au pneumocoque : la vaccination évite les infections graves.', label: 'Comorbidité avant 65 ans : diabète, maladie respiratoire, cardiaque, rénale (DFG < 60), immunodépression', req: 'Recommandée', auto: p => p.diabete || (p.dfg !== null && p.dfg < 60) },
   ],
 },
 {
-  id: 'v-covid', title: 'Vaccin COVID-19 (rappel)', icon: '💉',
+  id: 'v-covid', cat: 'vaccinal', title: 'Vaccin COVID-19 (rappel)', icon: '💉',
   indications: [
     { id: 'v-covid-65', why: 'Le rappel maintient la protection contre les formes graves, qui s\'affaiblit avec le temps.', label: 'Personne ≥ 65 ans et/ou comorbidités : rappel selon recommandations en vigueur', req: 'Recommandée', auto: p => p.age !== null && p.age >= 65 || p.diabete || p.hta || (p.imc !== null && p.imc >= 30) },
   ],
 },
 {
-  id: 'v-rsv', title: 'Vaccin VRS / RSV (bronchiolite)', icon: '💉',
+  id: 'v-rsv', cat: 'vaccinal', title: 'Vaccin VRS / RSV (bronchiolite)', icon: '💉',
   indications: [
     { id: 'v-rsv-75', why: 'Le VRS cause des bronchiolites sévères chez les seniors : le vaccin évite hospitalisations et décompensations respiratoires.', label: 'Personne ≥ 75 ans', req: 'Recommandée', auto: p => p.age !== null && p.age >= 75 },
     { id: 'v-rsv-65', why: 'Avec une maladie chronique, l\'infection à VRS peut décompenser la santé : le vaccin protège.', label: 'Personne 65–74 ans avec comorbidité (diabète, HTA, insuffisance respiratoire ou cardiaque, DFG < 60)', req: 'Recommandée', auto: p => p.age !== null && p.age >= 65 && p.age <= 74 && (p.diabete || p.hta || (p.dfg !== null && p.dfg < 60)) },
@@ -527,39 +489,94 @@ const VACCINS = [
   ],
 },
 {
-  id: 'v-zona', title: 'Vaccin zona (Shingrix®)', icon: '💉',
+  id: 'v-zona', cat: 'vaccinal', title: 'Vaccin zona (Shingrix®)', icon: '💉',
   indications: [
     { id: 'v-zona-6574', why: 'Le zona est douloureux et peut laisser des douleurs chroniques : le vaccin réduit fortement ce risque.', label: 'Personne 65–74 ans', req: 'Recommandée', auto: p => p.age !== null && p.age >= 65 && p.age <= 74 },
     { id: 'v-zona-5064', why: 'Avec une maladie chronique, le zona est plus fréquent et plus sévère : le vaccin protège.', label: 'Personne 50–64 ans avec comorbidité (diabète, HTA, DFG < 60, immunodépression)', req: 'Recommandée', auto: p => p.age !== null && p.age >= 50 && p.age <= 64 && (p.diabete || p.hta || (p.dfg !== null && p.dfg < 60)) },
   ],
 },
 {
-  id: 'v-dtp', title: 'Rappel diphtérie / tétanos / poliomyélite (DTP)', icon: '💉',
+  id: 'v-dtp', cat: 'vaccinal', title: 'Rappel diphtérie / tétanos / poliomyélite (DTP)', icon: '💉',
   indications: [
     { id: 'v-dtp-adulte', why: 'Le tétanos est mortel et partout (terre, rouille) : le rappel décennal maintient la protection.', label: 'Adulte : rappel dTP tous les 10 ans (ou 20 ans si rappels à jour et primovaccination complète)', req: 'Recommandée', auto: p => p.age !== null && p.age >= 18 },
     { id: 'v-dtp-bles', why: 'Une plaie peut infecter par le tétanos : un rappel récent protège, sinon un rappel urgent est nécessaire.', label: 'Plaie : rappel tétanos si dernier rappel > 10 ans (plaie souillée : > 5 ans)' },
   ],
 },
 {
-  id: 'v-hpv', title: 'Vaccin HPV (papillomavirus)', icon: '💉',
+  id: 'v-hpv', cat: 'vaccinal', title: 'Vaccin HPV (papillomavirus)', icon: '💉',
   indications: [
     { id: 'v-hpv-1114', why: 'Le vaccin HPV protège contre les cancers du col, de l\'anus et de la gorge, très efficacement à cet âge.', label: 'Adolescent·e 11–14 ans (2 doses)', req: 'Recommandée', auto: p => p.age !== null && p.age >= 11 && p.age <= 14 },
     { id: 'v-hpv-1519', why: 'Le rattrapage reste très protecteur contre les cancers liés aux papillomavirus.', label: 'Rattrapage 15–19 ans (3 doses)', req: 'Recommandée', auto: p => p.age !== null && p.age >= 15 && p.age <= 19 },
   ],
 },
 {
-  id: 'v-hepb', title: 'Vaccin hépatite B', icon: '💉',
+  id: 'v-hepb', cat: 'vaccinal', title: 'Vaccin hépatite B', icon: '💉',
   indications: [
     { id: 'v-hepb-rat', why: 'L\'hépatite B peut devenir chronique et causer une cirrhose : le vaccin protège à vie.', label: 'Rattrapage jusqu\'à 18 ans révolus', req: 'Recommandée', auto: p => p.age !== null && p.age <= 18 },
     { id: 'v-hepb-risque', why: 'Ces situations exposent au virus : le vaccin évite une infection potentiellement chronique.', label: 'Personne à risque : multiples partenaires, IST, usager de drogues, voyage en zone d\'endémie, profession de santé, entourage d\'un porteur', req: 'Recommandée' },
   ],
 },
 {
-  id: 'v-rougeole', title: 'Vaccin rougeole (ROR — rattrapage)', icon: '💉',
+  id: 'v-rougeole', cat: 'vaccinal', title: 'Vaccin rougeole (ROR — rattrapage)', icon: '💉',
   indications: [
     { id: 'v-ror-1980', why: 'La rougeole revient en France : deux doses de vaccin protègent efficacement, une seule dose insuffit.', label: 'Né·e après 1980 : 2 doses de vaccin trivalent ROR à jour', req: 'Recommandée', auto: p => p.age !== null && p.age <= 45 },
   ],
 },
+];
+
+
+// ---------- Suivi des maladies chroniques (protocoles) ----------
+const SUIVI = [
+  {
+    id: 'suivi-dt2', need: p => p.diabete, icon: '\ud83c\udf6a', title: 'Diab\u00e8te de type 2 connu \u2014 protocole de suivi annuel',
+    items: [
+      { label: 'HbA1c : 2\u20134x/an (objectif individualis\u00e9, en g\u00e9n\u00e9ral < 7 %)' },
+      { label: 'Fonction r\u00e9nale : cr\u00e9atinine, DFG + RAC (albuminurie/cr\u00e9atinurie) chaque ann\u00e9e' },
+      { label: 'Fond d\'\u0153il annuel (r\u00e9tinopathie)' },
+      { label: 'Bilan lipidique annuel (LDL)' },
+      { label: 'TA \u00e0 chaque consultation ; ECG selon contexte' },
+      { label: 'Pieds : examen annuel (monofilament, pouls) \u2014 \u00e9ducation \u00e0 l\'autogestion' },
+      { label: 'Vaccins : grippe annuelle, pneumocoque, COVID, VRS/zona selon \u00e2ge' },
+      { label: 'D\u00e9pistage SAS si somnolence/ob\u00e9sit\u00e9 ; d\u00e9pression ; hygi\u00e8ne de vie' },
+    ],
+  },
+  {
+    id: 'suivi-hta', need: p => p.hta, icon: '\ud83e\ude7a', title: 'HTA connue \u2014 suivi',
+    items: [
+      { label: 'TA domicile (automesure) ; consultation tous les 3\u20136 mois jusqu\'au contr\u00f4le, puis annuel' },
+      { label: 'Bilan annuel : cr\u00e9atinine/DFG + RAC, K+, glyc\u00e9mie, lipides, ECG' },
+      { label: 'Retinopathie hypertensive si n\u00e9cessaire' },
+      { label: 'Evaluation du risque cardiovasculaire global (SCORE2)' },
+    ],
+  },
+  {
+    id: 'suivi-mrc', need: p => p.dfg !== null && p.dfg < 60, icon: '\ud83e\ude78', title: 'Maladie r\u00e9nale chronique \u2014 suivi selon stade KDIGO',
+    items: [
+      { label: 'Confirmer la chronicit\u00e9 (> 3 mois) : DFG + RAC \u00e0 distance' },
+      { label: 'Adapter les doses de m\u00e9dicaments au DFG ; \u00e9viter AINS, produits de contraste iod\u00e9s sans pr\u00e9cautions' },
+      { label: 'Contr\u00f4ler la tension ; rechercher une anémie, un bilan phosphocalcique (G3b+)' },
+      { label: 'N\u00e9phroprotection : IEC/ARA2 si albuminurie \u2265 3 mg/mmol, iSGLT2 selon KDIGO (voir volets traitements)' },
+      { label: 'Avis n\u00e9phrologique : DFG < 30, albuminurie A3, progression rapide (> 5 mL/min/an), ou h\u00e9maturie' },
+      { label: 'Vaccins : grippe, pneumocoque, COVID (DFG < 60 = comorbidit\u00e9)' },
+    ],
+  },
+  {
+    id: 'suivi-ic', need: p => p.ic, icon: '\ud83d\udc93', title: 'Insuffisance cardiaque \u2014 suivi',
+    items: [
+      { label: 'Poids quotidien patient ; signes d\'alerte (dyspn\u00e9e, \u0153d\u00e8mes, prise de poids > 2 kg/3 j)' },
+      { label: 'Ionogramme + cr\u00e9atinine 7\u201314 j apr\u00e8s chaque modification de diur\u00e9tique/IEC' },
+      { label: 'Quadrith\u00e9rapie de fond si FEVG r\u00e9duite : IEC/ARNI, b\u00eatabloquant, iSGLT2, ARM (antialdost\u00e9rone)' },
+      { label: '\u00c9chographie cardiaque de r\u00e9\u00e9valuation selon contexte' },
+    ],
+  },
+  {
+    id: 'suivi-bpco', need: p => p.tabac === 'actif', icon: '\ud83d\udeac', title: 'Suivi tabagique actif',
+    items: [
+      { label: 'Sevrage tabagique \u00e0 chaque consultation : conseil bref, substitution nicotinique, orientation consultation' },
+      { label: 'Paquets-ann\u00e9es \u00e0 jour (d\u00e9termine BPCO, poumon, AAA)' },
+      { label: 'Vaccins grippe/pneumocoque' },
+    ],
+  },
 ];
 
 const ALL_GROUPS = [
@@ -581,23 +598,21 @@ function examState(exam) {
   if (exam.scoring === 'stopbang') {
     return { checked, score: n, indicated: n >= 3, level: n >= 5 ? 'élevé' : (n >= 3 ? 'intermédiaire' : 'faible') };
   }
-  if (exam.scoring === 'glp1') {
-    const idChecked = id => checked.some(i => i.id === id);
-    const ammOk = idChecked('glp1-amm') || idChecked('glp1-ado');
-    const imcOk = idChecked('glp1-imc40') || idChecked('glp1-imc35-comorb');
-    const nutOk = idChecked('glp1-nutrition');
-    const eligible = ammOk && imcOk && nutOk;
-    let level;
-    if (eligible) level = 'Prescriptible (MG) ET remboursé 65 %';
-    else if (ammOk && imcOk) level = 'Échec nutritionnel à documenter (6 mois)';
-    else if (ammOk) level = 'AMM remplie — mais remboursement : IMC ≥ 40 ou ≥ 35 + comorbidité sévère';
-    else level = 'Pas de critère AMM rempli';
-    return { checked, indicated: eligible, level };
-  }
   return { checked, indicated: n > 0 };
 }
 
 // ---------- Rendu ----------
+function renderSuivi(p) {
+  const panel = document.getElementById('suivi-panel');
+  const active = SUIVI.filter(x => x.need(p));
+  if (!active.length) { panel.innerHTML = '<div class="suivi-empty">Aucune maladie chronique connue \u2014 les protocoles de suivi appara\u00eetront ici (diab\u00e8te, HTA, MRC, IC...).</div>'; return; }
+  panel.innerHTML = active.map(x => `
+    <div class="suivi-box">
+      <div class="suivi-title">${x.icon} ${escapeHtml(x.title)}</div>
+      ${x.items.map(i => `<div class="suivi-item">\u2022 ${escapeHtml(i.label)}</div>`).join('')}
+    </div>`).join('');
+}
+
 function render() {
   const p = P();
   const container = document.getElementById('exams');
@@ -609,6 +624,7 @@ function render() {
   const reminders = [];
   renderKdigo(p);
   renderRx(p);
+  renderSuivi(p);
   if (p.tabac === 'actif') reminders.push('🚬 Patient fumeur : proposer une aide au sevrage (substitution, consultation).');
   if (p.fumeur && p.pa === null && p.age !== null && p.age >= 40) reminders.push('⚠️ Paquets-années non renseignées : nécessaires pour BPCO, cancer du poumon, AAA.');
   if (p.diabete && p.dfg === null) reminders.push('🩸 Patient diabétique : vérifier la fonction rénale (DFG, rapport protéinurie/créatinurie).');
@@ -659,18 +675,35 @@ function render() {
 }
 
 function updateSummary() {
-  const all = ALL_GROUPS.flatMap(g => g.exams);
+  const all = ALL_GROUPS.flatMap(g => g.exams).filter(e => !(e.hideIf && e.hideIf(P())));
   const todo = all.filter(e => examState(e).indicated && !doneExams[e.id]);
   const doneCount = all.filter(e => examState(e).indicated && doneExams[e.id]).length;
 
   const list = document.getElementById('todo-list');
   list.innerHTML = '';
+  const CATS = [
+    { key: 'chronique', title: 'D\u00e9pistage des maladies chroniques' },
+    { key: 'neo', title: 'D\u00e9pistage n\u00e9oplasique' },
+    { key: 'vaccinal', title: 'Suivi vaccinal' },
+  ];
+  const byCat = {};
+  CATS.forEach(c => byCat[c.key] = []);
   if (!todo.length) {
     list.innerHTML = '<div class="todo-empty">' + (doneCount
       ? '✅ Tout est traité pour ce patient.'
       : 'Aucun examen indiqué actuellement.') + '</div>';
   }
   todo.forEach(exam => {
+    byCat[exam.cat || 'chronique'].push(exam);
+  });
+  CATS.forEach(cat => {
+    const exams = byCat[cat.key];
+    if (!exams.length) return;
+    const h = document.createElement('div');
+    h.className = 'todo-cat-title';
+    h.textContent = cat.title;
+    list.appendChild(h);
+    exams.forEach(exam => {
     const st = examState(exam);
     const others = exam.indications.filter(i => !isChecked(i));
     const chip = document.createElement('div');
@@ -704,6 +737,7 @@ function updateSummary() {
         ${otherRows}
       </div></div>`;
     list.appendChild(chip);
+    });
   });
 
   document.getElementById('todo-count').textContent =
