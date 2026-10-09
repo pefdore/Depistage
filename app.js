@@ -321,7 +321,7 @@ function bindCvr(p) {
   if (daEl) daEl.addEventListener('change', e => { cvrState.diabAge = parseFloat(e.target.value) || null; renderCvr(P()); });
   TERRAIN_ITEMS.forEach(t => {
     const el = document.getElementById(t.id);
-    if (el) el.addEventListener('change', () => renderCvr(P()));
+    if (el) el.addEventListener('change', () => render());
   });
 }
 
