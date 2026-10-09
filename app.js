@@ -413,6 +413,31 @@ function iecara2Advice(p) {
   return { ok, reasons, remb, ci };
 }
 
+function dmStrategy(p, cvr) {
+  if (!p.diabete) return null;
+  const reasons = [];
+  const lines = [];
+  const kd = kdigoStage(p);
+  const hba1c = p.hba1c;
+  let target = null;
+  if (p.age !== null && p.age >= 65) target = 'HbA1c < 7,5 \u2013 8,0 % (cible individualis\u00e9e selon esp\u00e9rance de vie, comorbidit\u00e9s, risque hypoglyc\u00e9mie)';
+  else if (p.dfg !== null && p.dfg < 45) target = 'HbA1c < 7,5 \u2013 8,0 % (cible individualis\u00e9e \u2014 MRC)';
+  else target = 'HbA1c < 7,0 % (cible commune, individualiser)';
+  lines.push('Cible : ' + target + '.');
+  const profiles = [];
+  if (cvr.hasTerrain || cvr.extreme) profiles.push({ n: '1 \u2014 Maladie cardiovasculaire ath\u00e9romateuse \u00e9tablie', t: 'GLP-1 RA avec b\u00e9n\u00e9fice CV d\u00e9montr\u00e9 (s\u00e9maglutide SC, dulaglutide, liraglutide) ou tirz\u00e9patide \u2014 \u00b1 iSGLT2 si IC ou MRC associ\u00e9e. B\u00e9n\u00e9fice ind\u00e9pendant de l\u2019HbA1c, avec ou sans metformine (ESC 2023 \u00b7 ADA/EASD).' });
+  if (p.ic) profiles.push({ n: '2 \u2014 Insuffisance cardiaque', t: 'iSGLT2 (dapagliflozine, empagliflozine) \u2014 b\u00e9n\u00e9fice mortalit\u00e9/hospitalisation IC, ind\u00e9pendamment de l\u2019HbA1c ; GLP-1 RA si HFpEF avec ob\u00e9sit\u00e9 (ADA 2025).' });
+  if (kd && ((p.dfg !== null && p.dfg < 60) || (kd.a && kd.a !== 'A1'))) profiles.push({ n: '3 \u2014 Maladie r\u00e9nale chronique (KDIGO ' + kd.g + (kd.a ? ' ' + kd.a : '') + ')', t: 'iSGLT2 (DFG \u2265 20 : dapagliflozine, empagliflozine) + IEC/ARA2 \u00e0 dose maximale tol\u00e9r\u00e9e \u00b1 fin\u00e9r\u00e9none si albuminurie persistante (KDIGO 2024). GLP-1 RA possible ; m\u00e9tformine \u00e0 adapter si DFG < 45 (max 1 000 mg/j) ou arr\u00eater si DFG < 30.' });
+  if (p.imc !== null && p.imc >= 30) profiles.push({ n: '4 \u2014 Poids / ob\u00e9sit\u00e9 (IMC ' + String(p.imc).replace('.', ',') + ')', t: 'Tirz\u00e9patide (efficacit\u00e9 maximale) ou GLP-1 RA (s\u00e9maglutide 2,4 mg) ; privil\u00e9gier ces classes pour la perte de poids ; iSGLT2 si IC/MRC associ\u00e9e. Metformine utile sur le poids.' });
+  if (hba1c === null || hba1c >= 9) profiles.push({ n: '5 \u2014 Hyperglyc\u00e9mie marqu\u00e9e' + (hba1c !== null ? ' (HbA1c ' + String(hba1c).replace('.', ',') + ' %)' : ' (HbA1c non renseign\u00e9e)'), t: 'Si HbA1c \u2265 10 % et/ou sympt\u00f4mes (amagrir, polyuro-polydipsie) : insuline basale \u00b1 GLP-1 RA d\u2019embl\u00e9e. Si HbA1c \u2265 cible + 1,5 % : association d\u2019embl\u00e9e recommand\u00e9e (metformine + GLP-1 RA / iSGLT2).' });
+  if (p.age !== null && p.age >= 75) profiles.push({ n: '6 \u2014 Patient \u00e2g\u00e9 / fragile (' + p.age + ' ans)', t: 'Priorit\u00e9 aux classes sans hypoglyc\u00e9mie (GLP-1 RA, iSGLT2, DPP-4i, pioglitazone) ; \u00e9viter sulfonyl\u00e9es et insuline si possible ; d\u00e9sescalade si HbA1c < 7 % sous traitement (ADA 2025 : deintensification).' });
+  if (!profiles.length) profiles.push({ n: 'Aucun crit\u00e8re sp\u00e9cifique d\u00e9tect\u00e9', t: 'Metformine en 1re intention (si DFG \u2265 45, tol\u00e9rance correcte) + hygi\u00e8ne de vie ; intensifier selon les 6 profils ci-dessus d\u00e8s qu\u2019un crit\u00e8re appara\u00eet (ASCVD, IC, MRC, poids, hyperglyc\u00e9mie marqu\u00e9e, \u00e2ge/fragilit\u00e9, co\u00fbt).' });
+  const base = [];
+  if (p.dfg !== null && p.dfg < 30) base.push('M\u00e9tformine : arr\u00eat si DFG < 30 mL/min ; max 1 000 mg/j si DFG 30\u201344 ; iSGLT2 non initi\u00e9 si DFG < 20.');
+  else if (p.dfg !== null && p.dfg < 45) base.push('M\u00e9tformine : max 1 000 mg/j (DFG 30\u201344) ; iSGLT2 initi\u00e9 si DFG \u2265 20 (adaptation posologique).');
+  lines.push('Base du sch\u00e9ma : metformine (sauf CI) \u00b1 agents \u00e0 b\u00e9n\u00e9fice cardio-r\u00e9nal selon les profils applicable ci-dessous.');
+  return { target, profiles, base };
+}
 function isglt2Advice(p) {
   const reasons = [];
   let ok = false;
@@ -617,7 +642,18 @@ function renderRx(p) {
     ${!stt.ok && !stt.reasons.length ? '<div class="rx-reason">Aucune indication : risque CV faible/mod\u00e9r\u00e9 sans cible d\u00e9pass\u00e9e, pas de terrain, LDL conforme. Hygi\u00e8ne de vie et r\u00e9\u00e9valuation.</div>' : ''}`;
 
   const openState = window._rxOpen || {};
+  const dms = dmStrategy(p, cvr);
+  let dmBoxes = '';
+  if (dms) {
+    const dmDetail = `
+    <div class="rx-reason"><strong>${escapeHtml(dms.target)}</strong></div>
+    ${dms.profiles.map(x => `<div class="rx-reason"><strong>${escapeHtml(x.n)} :</strong> ${escapeHtml(x.t)}</div>`).join('')}
+    ${dms.base.map(b => `<div class="rx-ci">\u26a0 ${escapeHtml(b)}</div>`).join('')}
+    <div class="rx-remb">\ud83d\udcb6 Remboursement : DT2 = ALD 100 % ; insuline, metformine, GLP-1 RA (ob\u00e9sit\u00e9 IMC \u2265 30 ou \u2265 27 + comorbidit\u00e9), iSGLT2 ( indications cardio-r\u00e9nales) rembours\u00e9s aux conditions habituelles (SMR important / insuffisant selon mol\u00e9cule).</div>`;
+    dmBoxes = makeBox(!!openState.dm, '#1565c0', '\ud83e\udd78', 'Strat\u00e9gie antidiab\u00e9tique (DT2)', dms.profiles.length && dms.profiles[0].n !== 'Aucun crit\u00e8re sp\u00e9cifique d\u00e9tect\u00e9' ? dms.profiles.length + ' profil(s) actif(s)' : 'Base : metformine', '#bbdefb', dmDetail);
+  }
   panel.innerHTML =
+    dmBoxes +
     makeBox(!!openState.ie, ie.ok ? '#2e7d32' : '#e53935', '\ud83d\udc8a', 'IEC / ARA2', ieStatus, ieColor, ieDetail) +
     makeBox(!!openState.gl, gl.ok ? '#2e7d32' : '#e53935', '\ud83e\uddea', 'iSGLT2 (gliflozine)', glStatus, glColor, glDetail) +
     makeBox(!!openState.gp, gp.ok ? '#2e7d32' : '#e53935', '\ud83e\udd8e', 'GLP-1 / tirz\u00e9patide', gpStatus, gpColor, gpDetail) +
@@ -630,7 +666,7 @@ document.addEventListener('click', e => {
   const box = head.closest('.rx-collapse');
   const willOpen = box.dataset.rxOpen !== '1';
   const nm = box.querySelector('.rx-name').textContent;
-  const key = nm.includes('IEC') ? 'ie' : nm.includes('iSGLT2') ? 'gl' : nm.includes('Statines') ? 'st' : 'gp';
+  const key = nm.includes('IEC') ? 'ie' : nm.includes('iSGLT2') ? 'gl' : nm.includes('Statines') ? 'st' : nm.includes('antidiab') ? 'dm' : 'gp';
   window._rxOpen = window._rxOpen || {};
   window._rxOpen[key] = willOpen;
   box.dataset.rxOpen = willOpen ? '1' : '0';
