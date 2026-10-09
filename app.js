@@ -616,9 +616,6 @@ function renderSuivi(p) {
 
 function render() {
   const p = P();
-  const container = document.getElementById('exams');
-  container.innerHTML = '';
-
   const complete = p.age !== null && p.sex && p.tabac;
   document.getElementById('patient-warn').classList.toggle('hidden', !!complete);
 
@@ -635,42 +632,6 @@ function render() {
   else if (p.ldl !== null && p.ldl >= 1.6) reminders.push('🫀 LDL ≥ 1,6 g/L : évaluer le risque cardiovasculaire global (SCORE2), adapter la prise en charge.');
   document.getElementById('reminders').innerHTML = reminders.map(r => `<div>${escapeHtml(r)}</div>`).join('');
   document.getElementById('reminders').classList.toggle('hidden', !reminders.length);
-
-  ALL_GROUPS.forEach(group => {
-    const groupTitle = document.createElement('h3');
-    groupTitle.className = 'group-title';
-    groupTitle.textContent = group.title;
-    container.appendChild(groupTitle);
-    group.exams.forEach(exam => {
-    const st = examState(exam);
-    const card = document.createElement('section');
-    card.className = 'card exam' + (st.indicated ? ' indicated' : '');
-
-    const header = document.createElement('div');
-    header.className = 'exam-header';
-    header.innerHTML = `
-      <h2>${exam.icon} ${escapeHtml(exam.title)}</h2>
-      <span class="verdict ${st.indicated ? 'yes' : 'no'}">${exam.scoring && st.level ? st.level : (st.indicated ? 'INDIQUÉ' : 'Pas d\'indication')}</span>`;
-    card.appendChild(header);
-
-    exam.indications.forEach(ind => {
-      const auto = ind.auto ? !!ind.auto(p) : null;
-      const checked = isChecked(ind);
-      const row = document.createElement('label');
-      row.className = 'ind' + (checked ? ' checked' : '');
-      row.innerHTML = `
-        <input type="checkbox" data-ind="${ind.id}" ${checked ? 'checked' : ''}>
-        <span>${escapeHtml(ind.label)}</span>
-        ${ind.req ? `<span class="tag req ${ind.req === 'Obligatoire' ? 'req-ob' : 'req-rec'}">${escapeHtml(ind.req)}</span>` : ''}
-        ${auto === true && checked ? '<span class="tag auto">auto</span>' : ''}
-        ${auto === true && !checked ? '<span class="tag off">auto (décoché)</span>' : ''}
-        ${auto === false && checked ? '<span class="tag manual">ajout manuel</span>' : ''}`;
-      card.appendChild(row);
-    });
-
-    container.appendChild(card);
-    });
-  });
 
   updateSummary();
 }
