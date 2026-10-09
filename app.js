@@ -250,6 +250,7 @@ function cvrCompute(p) {
 }
 
 function renderCvr(p) {
+  const st = cvrState;
   const panel = document.getElementById('cvr-panel');
   const cvr = cvrCompute(p);
   const { hasTerrain, terrainReasons, extreme, result, missing, age, isDm } = cvr;
