@@ -183,17 +183,17 @@ function cvrCategory(pct, age, model) {
 }
 
 function ldlTarget(p, cvr) {
-  if (cvr.hasTerrain) return { v: 0.55, label: 'LDL < 0,55 g/L', why: 'Terrain ath\u00e9romateux \u2014 pr\u00e9vention secondaire (ESC : r\u00e9duction \u2265 50 % du LDL)' };
+  if (cvr.extreme) return { v: 0.4, label: 'LDL < 0,40 g/L', why: 'Risque extr\u00eame (ESC/EAS 2025) : ath\u00e9roscl\u00e9rose confirm\u00e9e avec r\u00e9cidive d\u2019\u00e9v\u00e9nement vasculaire malgr\u00e9 un traitement intensif au maximum tol\u00e9r\u00e9, ou maladie polyvasculaire (\u2265 2 territoires) \u2014 cible < 0,40 g/L (Class IIb)' };
+  if (cvr.hasTerrain) return { v: 0.55, label: 'LDL < 0,55 g/L', why: 'Terrain ath\u00e9romateux \u2014 tr\u00e8s haut risque (ESC/EAS 2025 : < 0,55 g/L et r\u00e9duction \u2265 50 % du LDL)' };
   if (p.diabete) {
-    if (cvr.result && cvr.result.pct >= 20) return { v: 0.55, label: 'LDL < 0,55 g/L', why: 'DT2 avec risque CV tr\u00e8s \u00e9lev\u00e9 (SCORE2-Diabetes \u2265 20 %)' };
-    if (cvr.result && cvr.result.pct >= 10) return { v: 0.55, label: 'LDL < 0,55 g/L', why: 'DT2 \u2014 haut risque CV (SCORE2-Diabetes \u2265 10 %)' };
-    if (cvr.result && cvr.result.pct >= 5) return { v: 0.7, label: 'LDL < 0,7 g/L', why: 'DT2 \u2014 risque CV mod\u00e9r\u00e9 (SCORE2-Diabetes \u2265 5 %)' };
-    return { v: 0.7, label: 'LDL < 0,7 g/L (\u00e0 r\u00e9\u00e9valuer)', why: 'DT2 sans autre facteur : cible < 0,7 g/L si dur\u00e9e > 10 ans, atteinte organe cible ou facteur de risque associ\u00e9 (ESC 2023)' };
+    if (cvr.result && cvr.result.pct >= 10) return { v: 0.55, label: 'LDL < 0,55 g/L', why: 'DT2 avec atteinte organe cible ou \u2265 3 facteurs de risque, ou dur\u00e9e > 20 ans \u2014 tr\u00e8s haut risque (ESC/EAS 2025 : < 0,55 g/L)' };
+    if (cvr.result && cvr.result.pct >= 5) return { v: 0.7, label: 'LDL < 0,7 g/L', why: 'DT2 sans atteinte d\u2019organe cible + < 3 facteurs de risque \u2014 haut risque (ESC/EAS 2025 : < 0,7 g/L)' };
+    return { v: 0.7, label: 'LDL < 0,7 g/L', why: 'DT2 \u2014 haut risque (ESC/EAS 2025 : < 0,7 g/L ; < 0,55 g/L si atteinte organe cible ou dur\u00e9e > 20 ans)' };
   }
   if (!cvr.result) return null;
-  if (cvr.result.cat.label === 'Risque \u00e9lev\u00e9') return { v: 1.0, label: 'LDL < 1,0 g/L', why: 'SCORE2 risque \u00e9lev\u00e9 \u2014 cible ESC < 1,0 g/L ; si persiste apr\u00e8s 3 mois d\u2019hygi\u00e8ne de vie, viser < 0,7 g/L' };
-  if (cvr.result.cat.label === 'Risque mod\u00e9r\u00e9') return { v: 1.4, label: 'LDL < 1,4 g/L', why: 'SCORE2 risque mod\u00e9r\u00e9 \u2014 cible ESC < 1,4 g/L (jeune : discuter < 1,0)' };
-  return { v: 1.4, label: 'LDL < 1,4 g/L', why: 'SCORE2 risque faible \u2014 pas de cible CHOL strict, hygi\u00e8ne de vie (LDL id\u00e9alement < 1,4 g/L)' };
+  if (cvr.result.cat.label === 'Risque \u00e9lev\u00e9') return { v: 0.7, label: 'LDL < 0,7 g/L', why: 'SCORE2 risque \u00e9lev\u00e9 \u2014 haut risque (ESC/EAS 2025 : cible < 0,7 g/L)' };
+  if (cvr.result.cat.label === 'Risque mod\u00e9r\u00e9') return { v: 1.0, label: 'LDL < 1,0 g/L', why: 'SCORE2 risque mod\u00e9r\u00e9 (ESC/EAS 2025 : cible < 1,0 g/L ; si persiste : viser < 0,7 g/L)' };
+  return { v: 1.16, label: 'LDL < 1,16 g/L', why: 'Risque faible (ESC/EAS 2025 : pas de cible th\u00e9rapeutique ; LDL < 1,16 g/L d\u00e9finit un risque plut\u00f4t faible, sinon \u2265 25 ans de traitement \u00e0 40 ans pour 1 an d\u2019esp\u00e9rance de vie)' };
 }
 
 const TERRAIN_ITEMS = [
@@ -202,12 +202,14 @@ const TERRAIN_ITEMS = [
   { id: 'cvr-t-aomi', label: 'Artériopathie oblitérante des membres inférieurs' },
   { id: 'cvr-t-hcq', label: 'Plaque carotidienne symptomatique / sténose > 50 %' },
 ];
+const EXTREME_ITEM = { id: 'cvr-t-extreme', label: 'EXTRÊME : récidive d’événement vasculaire malgré traitement intensif maximal toléré, OU maladie polyvasculaire (≥ 2 territoires artériels)' };
 
 function cvrCompute(p) {
   const st = cvrState;
   const terrChecked = TERRAIN_ITEMS.map(t => !!document.getElementById(t.id)?.checked);
   const hasTerrain = terrChecked.some(Boolean);
   const terrainReasons = TERRAIN_ITEMS.filter((t, i) => terrChecked[i]).map(t => t.label);
+  const extreme = !!document.getElementById(EXTREME_ITEM.id)?.checked;
   const age = p.age, sex = p.sex;
   const smoker = p.tabac === 'actif' ? 1 : 0;
   const sbp = p.sbp;
@@ -244,13 +246,13 @@ function cvrCompute(p) {
       result = { pct, cat: cvrCategory(pct, age, isDm ? 'dt2' : mdl) };
     }
   }
-  return { hasTerrain, terrainReasons, result, missing, age, isDm };
+  return { hasTerrain, terrainReasons, extreme, result, missing, age, isDm };
 }
 
 function renderCvr(p) {
   const panel = document.getElementById('cvr-panel');
   const cvr = cvrCompute(p);
-  const { hasTerrain, terrainReasons, result, missing, age, isDm } = cvr;
+  const { hasTerrain, terrainReasons, extreme, result, missing, age, isDm } = cvr;
   const target = ldlTarget(p, cvr);
   const ldlOk = target && p.ldl !== null && p.ldl < target.v;
   const ldlGap = target && p.ldl !== null ? Math.round((p.ldl - target.v) / target.v * 100) : null;
@@ -261,14 +263,15 @@ function renderCvr(p) {
     <div class="cvr-head" role="button" tabindex="0" aria-expanded="${window._cvrOpen ? 'true' : 'false'}">
       <span class="cvr-title">\u2764\ufe0f Risque cardiovasculaire (SCORE2 \u2014 ESC 2021/2023)</span>
       <span class="cvr-verdict" style="color:${hasTerrain ? '#c62828' : (result ? result.cat.color : '#888')}">
-        ${hasTerrain ? 'TERRAIN : prévention secondaire' : (result ? result.pct.toFixed(1).replace('.', ',') + ' % \u00b7 ' + result.cat.label : '\u00e0 calculer \u25b8')}</span>
+        ${extreme ? 'RISQUE EXTRÊME' : (hasTerrain ? 'TERRAIN : prévention secondaire' : (result ? result.pct.toFixed(1).replace('.', ',') + ' % \u00b7 ' + result.cat.label : '\u00e0 calculer \u25b8'))}</span>
       <span class="cvr-chevron">\u25b8</span>
     </div>
     <div class="cvr-detail"><div class="cvr-detail-inner">
       <div class="cvr-sub">Algorithme d\u00e9cisionnel (logique risquecv.fr) :</div>
       <div class="cvr-step">1 \u00b7 Terrain cardiovasculaire connu ? (pr\u00e9vention secondaire \u2014 on s'arr\u00eate l\u00e0)</div>
       ${TERRAIN_ITEMS.map(t => `<label class="cvr-check"><input type="checkbox" id="${t.id}" ${document.getElementById(t.id)?.checked ? 'checked' : ''}><span>${escapeHtml(t.label)}</span></label>`).join('')}
-      ${hasTerrain ? `<div class="cvr-stop">\u26d4 Terrain ath\u00e9romateux : patient en <strong>pr\u00e9vention secondaire</strong> \u2014 pas de score n\u00e9cessaire. Prise en charge intensive : statine haute intensit\u00e9 (LDL < 0,55 g/L), antiagr\u00e9gant, contr\u00f4le TA, arr\u00eat tabac, r\u00e9adaptation.</div>` : `
+      <label class="cvr-check"><input type="checkbox" id="${EXTREME_ITEM.id}" ${document.getElementById(EXTREME_ITEM.id)?.checked ? 'checked' : ''}><span>${escapeHtml(EXTREME_ITEM.label)}</span></label>
+      ${extreme ? `<div class="cvr-stop" style="border-color:#6a1b9a"><strong>⚠ Risque extrême (ESC/EAS 2025)</strong> : cible LDL < 0,40 g/L (Class IIb). Traitement intensif maximal : statine haute intensité + ézétimibe → PCSK9 (ou inclisran) ± bempédoïque — évaluation spécialisée recommandée.</div>` : (hasTerrain ? `<div class="cvr-stop">\u26d4 Terrain ath\u00e9romateux : patient en <strong>pr\u00e9vention secondaire</strong> \u2014 pas de score n\u00e9cessaire. Prise en charge intensive : statine haute intensit\u00e9 (LDL < 0,55 g/L), antiagr\u00e9gant, contr\u00f4le TA, arr\u00eat tabac, r\u00e9adaptation.</div>` : `
       <div class="cvr-step">2 \u00b7 Pas de terrain \u2192 score ${p.diabete ? 'SCORE2-Diabetes' : (age >= 70 ? 'SCORE2-OP' : 'SCORE2')} (r\u00e9gion bas risque \u2014 France)</div>
       <div class="cvr-grid">
         <div class="cvr-check">Tabac : <strong>${p.tabac === '' ? 'non renseigné' : (p.tabac === 'actif' ? 'actif' : (p.tabac === 'sevré' ? 'sevré (non fumeur pour le score)' : 'jamais'))}</strong> — pré-rempli depuis la partie Patient</div>
@@ -285,12 +288,13 @@ function renderCvr(p) {
         <div class="cvr-act">${p.diabete
           ? (result.pct >= 20 ? 'Tr\u00e8s haut risque : LDL < 0,55 g/L + statine haute intensit\u00e9, iSGLT2/GLP-1 selon indication, contr\u00f4le TA < 130/80.'
             : result.pct >= 10 ? 'Haut risque : statine (LDL < 0,7 g/L), iSGLT2/GLP-1 \u00e0 \u00e9valuer, TA < 130/80.'
-            : result.pct >= 5 ? 'Risque mod\u00e9r\u00e9 : hygi\u00e8ne de vie, statine \u00e0 discuter, contr\u00f4le annuel.'
+            : result.pct >= 5 ? 'Risque mod\u00e9r\u00e9 (cible LDL < 1,0 g/L) : hygi\u00e8ne de vie, statine \u00e0 discuter, contr\u00f4le annuel.'
             : 'Risque faible : hygi\u00e8ne de vie, suivi annuel.')
-          : (result.cat.label === 'Risque \u00e9lev\u00e9' ? 'Haut risque : consultation m\u00e9dicamenteuse \u2014 statine (LDL < 1,0 puis 0,7 g/L si persiste), TA < 130/80 si traitement.'
+          : (result.cat.label === 'Risque \u00e9lev\u00e9' ? 'Haut risque (cible LDL < 0,7 g/L) : consultation m\u00e9dicamenteuse \u2014 statine, TA < 130/80 si traitement.'
             : result.cat.label === 'Risque mod\u00e9r\u00e9' ? 'Risque mod\u00e9r\u00e9 : conseils d\u2019hygi\u00e8ne de vie, r\u00e9\u00e9valuer \u00e0 3\u20136 mois, statine si facteurs persistants.'
             : 'Risque faible : hygi\u00e8ne de vie, r\u00e9\u00e9valuation r\u00e9guli\u00e8re.')}</div>
       </div>` : (missing.length ? `<div class="cvr-missing">\u26a0\ufe0f Pour calculer le score : ${missing.join(', ')}.</div>` : '')}
+      `)}
       ${target ? `
       <div class="cvr-result" style="border-color:${ldlOk ? '#2e7d32' : '#c62828'}">
         <div class="cvr-score" style="color:${ldlOk ? '#2e7d32' : '#c62828'}">${target.label}</div>
@@ -301,7 +305,6 @@ function renderCvr(p) {
             ? `\u2705 LDL patient : ${p.ldl} g/L \u2014 <strong>cible atteinte</strong>.`
             : `\u274c LDL patient : ${p.ldl} g/L \u2014 cible d\u00e9pass\u00e9e de ${ldlGap > 0 ? '+' : ''}${ldlGap} % : statine indiqu\u00e9e (voir Traitements \u2192 Statines), r\u00e9\u00e9valuer \u00e0 3 mois.`)}</div>
       </div>` : ''}
-      `}
     </div></div>
   </div>`;
   bindCvr(p);
@@ -319,7 +322,7 @@ function bindCvr(p) {
   if (hba1cEl) hba1cEl.addEventListener('change', e => { cvrState.hba1c = parseFloat(e.target.value) || null; renderCvr(P()); });
   const daEl = document.getElementById('cvr-diabage');
   if (daEl) daEl.addEventListener('change', e => { cvrState.diabAge = parseFloat(e.target.value) || null; renderCvr(P()); });
-  TERRAIN_ITEMS.forEach(t => {
+  [EXTREME_ITEM, ...TERRAIN_ITEMS].forEach(t => {
     const el = document.getElementById(t.id);
     if (el) el.addEventListener('change', () => render());
   });
@@ -477,10 +480,13 @@ function statinAdvice(p, cvr, tg) {
   ];
   const reasons = [], remb = [], ci = [];
   let ok = false;
-  if (cvr.hasTerrain) {
+  if (cvr.extreme) {
     ok = true;
-    reasons.push('Terrain ath\u00e9romateux (pr\u00e9vention secondaire) \u2014 statine haute intensit\u00e9 recommand\u00e9e quel que soit le LDL');
-  } else if (tg) {
+    reasons.push('Risque extr\u00eame (ESC/EAS 2025) \u2014 traitement lipidique intensif maximal : statine haute intensit\u00e9 + \u00e9z\u00e9timibe, puis PCSK9 si cible < 0,40 g/L non atteinte');
+  } else if (cvr.hasTerrain) {
+    ok = true;
+    reasons.push('Terrain ath\u00e9romateux (pr\u00e9vention secondaire) \u2014 statine haute intensit\u00e9 recommand\u00e9e quel que soit le L');
+    } else if (tg) {
     if (p.ldl !== null && p.ldl >= tg.v) {
       ok = true;
       reasons.push(`${tg.label} \u2014 LDL actuel ${p.ldl} g/L : cible non atteinte (${tg.why})`);
@@ -494,12 +500,18 @@ function statinAdvice(p, cvr, tg) {
   let drug = null, reduction = null, table = [];
   if (ok && p.ldl !== null && tg) {
     const need = 1 - tg.v / p.ldl;
+    if (cvr.extreme) {
+      drug = 'Rosuvastatine 20\u201340 mg + \u00e9z\u00e9timibe, puis PCSK9 (ou inclisran) si LDL \u2265 0,40 g/L (ESC/EAS 2025)';
+      reduction = `R\u00e9duction n\u00e9cessaire pour atteindre ${tg.label} : \u2212${Math.round(need * 100)} % \u2014 cible non atteignable avec une statine seule : association \u00e9z\u00e9timibe + PCSK9 (ou inclisran), \u00b1 bemp\u00e9do\u00efque.`;
+      table = STATINS.map(s => `${s.name} : \u2212${Math.round(s.red * 100)} %`);
+    } else {
     const pick = STATINS.find(s => s.red >= need) || STATINS[STATINS.length - 1];
     drug = `${pick.name} (\u2212${Math.round(pick.red * 100)} % de LDL)`;
     reduction = `R\u00e9duction n\u00e9cessaire pour atteindre ${tg.label} : \u2212${Math.round(need * 100)} % \u2014 ${pick.red >= need ? 'intensit\u00e9 haute' : 'cible non atteignable avec une statine seule : association \u00e9z\u00e9timibe (\u2212 15\u201320 %) \u00b1 PCSK9 si haut/tr\u00e8s haut risque'}.`;
     table = STATINS.map(s => `${s.name} : \u2212${Math.round(s.red * 100)} %`);
+    }
   } else if (ok && tg) {
-    drug = 'Atorvastatine 40\u201380 mg ou Rosuvastatine 20\u201340 mg (haute intensit\u00e9 \u2014 ESC)';
+    drug = cvr.extreme ? 'Rosuvastatine 20\u201340 mg + \u00e9z\u00e9timibe, puis PCSK9 (ou inclisran) si LDL \u2265 0,40 g/L (ESC/EAS 2025)' : 'Atorvastatine 40\u201380 mg ou Rosuvastatine 20\u201340 mg (haute intensit\u00e9 \u2014 ESC)';
     table = STATINS.map(s => `${s.name} : \u2212${Math.round(s.red * 100)} %`);
   }
   remb.push('Statines : s\u00e9curit\u00e9 sociale \u2014 remboursement 65 % / 15 % selon les mol\u00e9cules et dosages (g\u00e9n\u00e9riques \u00e0 65 % ; certaines pr\u00e9sentations SMR insuffisant 15 %)');
