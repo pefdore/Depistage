@@ -718,6 +718,10 @@ function updateSummary() {
       renderTodoChips(mutedExams, list, true);
     }
   });
+  document.getElementById('todo-count').textContent =
+    todo.length ? `${todo.length} à faire${doneCount ? ` · ${doneCount} fait${doneCount > 1 ? 's' : ''}` : ''}` : (doneCount ? '✅ tout traité' : '—');
+  document.getElementById('progress-info').textContent =
+    `${todo.length} examen${todo.length > 1 ? 's' : ''} à faire`;
 }
 
 function renderTodoChips(exams, list, muted) {
@@ -756,10 +760,6 @@ function renderTodoChips(exams, list, muted) {
       </div></div>`;
     list.appendChild(chip);
   });
-  document.getElementById('todo-count').textContent =
-    todo.length ? `${todo.length} à faire${doneCount ? ` · ${doneCount} fait${doneCount > 1 ? 's' : ''}` : ''}` : (doneCount ? '✅ tout traité' : '—');
-  document.getElementById('progress-info').textContent =
-    `${todo.length} examen${todo.length > 1 ? 's' : ''} à faire`;
 }
 
 // ---------- Événements ----------
