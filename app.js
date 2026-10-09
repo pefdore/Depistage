@@ -991,11 +991,6 @@ function updateSummary() {
 }
 
 function examLetter(examId, p, cvr, tg, motifs) {
-  const name = (document.getElementById('pat-name').value || 'Mr/MMe [nom]').trim();
-  const age = p.age !== null ? p.age : '[âge]';
-  const sexe = p.sex === 'F' ? 'Mme' : 'Mr';
-  const lines = [];
-  lines.push(`Merci de recevoir ${sexe} ${name}, né.e ${age === '[âge]' ? 'le [date de naissance]' : 'en ' + (new Date().getFullYear() - age) + ' (' + age + ' ans)'}, pour :`);
   const req = [];
   const exam = ALL_GROUPS.flatMap(g => g.exams).find(x => x.id === examId);
   const label = exam ? exam.title.split(' (')[0] : examId;
@@ -1026,7 +1021,7 @@ function examLetter(examId, p, cvr, tg, motifs) {
   if (examId === 'aomi' && p.diabete) req.push('Diabète de type 2 — dépistage de l’artériopathie (IPS).');
   if (examId === 'ccr' || examId === 'mammo' || examId === 'frottis') req.push('Dépistage organisé / indication selon le calendrier national.');
   if (p.dfg !== null && p.dfg < 60) req.push('Fonction rénale : DFG ' + p.dfg + ' mL/min/1,73 m².');
-  return lines.join('\n') + '\n' + req.join('\n') + '\n\nJe vous remercie de bien vouloir prendre en charge ce.tte patient.e et reste à votre disposition pour tout complément.\n\nCordialement,\n\nDr [Nom]';
+  return req.join('\n');
 }
 
 function copyLetter(examId, motif) {
