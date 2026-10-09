@@ -688,8 +688,12 @@ function updateSummary() {
     { key: 'vaccinal', title: 'Suivi vaccinal' },
   ];
   const byCat = {};
-  CATS.forEach(c => byCat[c.key] = []);
-  if (!todo.length) {
+  const mutedByCat = {};
+  CATS.forEach(c => { byCat[c.key] = []; mutedByCat[c.key] = []; });
+  all.filter(e => !examState(e).indicated && !doneExams[e.id]).forEach(exam => {
+    if (exam.indications.some(i => !isChecked(i) && !i.auto)) mutedByCat[exam.cat || 'chronique'].push(exam);
+  });
+  if (!todo.length && !Object.values(mutedByCat).some(a => a.length)) {
     list.innerHTML = '<div class="todo-empty">' + (doneCount
       ? '✅ Tout est traité pour ce patient.'
       : 'Aucun examen indiqué actuellement.') + '</div>';
@@ -699,16 +703,29 @@ function updateSummary() {
   });
   CATS.forEach(cat => {
     const exams = byCat[cat.key];
-    if (!exams.length) return;
+    const mutedExams = (mutedByCat[cat.key] || []);
+    if (!exams.length && !mutedExams.length) return;
     const h = document.createElement('div');
     h.className = 'todo-cat-title';
     h.textContent = cat.title;
     list.appendChild(h);
-    exams.forEach(exam => {
+    if (exams.length) renderTodoChips(exams, list, false);
+    if (mutedExams.length) {
+      const sub = document.createElement('div');
+      sub.className = 'todo-muted-sub';
+      sub.textContent = 'Aucune indication détectée automatiquement — vérifier quand même :';
+      list.appendChild(sub);
+      renderTodoChips(mutedExams, list, true);
+    }
+  });
+}
+
+function renderTodoChips(exams, list, muted) {
+  exams.forEach(exam => {
     const st = examState(exam);
     const others = exam.indications.filter(i => !isChecked(i));
     const chip = document.createElement('div');
-    chip.className = 'todo-chip todo-collapse' + (window._todoOpen?.[exam.id] ? ' open' : '');
+    chip.className = 'todo-chip todo-collapse' + (muted ? ' muted' : '') + (window._todoOpen?.[exam.id] ? ' open' : '');
     chip.dataset.todoExam = exam.id;
     const checkedRows = st.checked.map(i => `
       <div class="todo-detail-row"><input type="checkbox" data-ind="${i.id}" checked>
@@ -722,7 +739,7 @@ function updateSummary() {
     chip.innerHTML = `
       <div class="todo-head" role="button" tabindex="0" aria-expanded="${window._todoOpen?.[exam.id] ? 'true' : 'false'}">
         <span class="todo-label">${exam.icon} ${escapeHtml(exam.title.split(' (')[0])}
-          <em>${st.checked.length} indication${st.checked.length > 1 ? 's' : ''}${st.level && exam.scoring ? ' — ' + escapeHtml(st.level) : ''}</em></span>
+          <em>${muted ? 'aucune indication détectée — à vérifier' : st.checked.length + ' indication' + (st.checked.length > 1 ? 's' : '') + (st.level && exam.scoring ? ' — ' + escapeHtml(st.level) : '')}</em></span>
         <span class="todo-head-right">
           <span class="todo-chevron">▸</span>
           <span class="todo-actions">
@@ -738,9 +755,7 @@ function updateSummary() {
         ${otherRows}
       </div></div>`;
     list.appendChild(chip);
-    });
   });
-
   document.getElementById('todo-count').textContent =
     todo.length ? `${todo.length} à faire${doneCount ? ` · ${doneCount} fait${doneCount > 1 ? 's' : ''}` : ''}` : (doneCount ? '✅ tout traité' : '—');
   document.getElementById('progress-info').textContent =

@@ -350,3 +350,22 @@ button.rx-head:hover { filter: none; background: transparent; }
 .suivi-title { font-weight: 700; margin-bottom: 6px; font-size: .92rem; }
 .suivi-item { font-size: .85rem; color: #333; margin: 3px 0; }
 .suivi-empty { font-size: .85rem; color: #777; font-style: italic; }
+.todo-muted-sub {
+  font-size: .78rem;
+  color: #888;
+  font-style: italic;
+  margin: 8px 0 4px;
+}
+.todo-chip.muted {
+  background: #f4f4f4;
+  border: 1px dashed #ccc;
+  opacity: .65;
+}
+.todo-chip.muted .todo-label,
+.todo-chip.muted .todo-label em {
+  color: #777;
+  font-weight: 500;
+}
+.todo-chip.muted .todo-chevron {
+  color: #aaa;
+}
