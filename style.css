@@ -369,3 +369,26 @@ button.rx-head:hover { filter: none; background: transparent; }
 .todo-chip.muted .todo-chevron {
   color: #aaa;
 }
+.cvr-box { border: 1px solid #e0e0e0; border-radius: 10px; overflow: hidden; background: #fff; }
+.cvr-head { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px 14px; background: transparent !important; color: #1a1a1a !important; text-align: left; width: 100%; }
+.cvr-title { font-weight: 700; font-size: .95rem; flex: 1; }
+.cvr-verdict { font-weight: 700; font-size: .9rem; }
+.cvr-chevron { color: #888; transition: transform 0.25s ease; }
+.cvr-box.open .cvr-chevron { transform: rotate(90deg); }
+.cvr-detail { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 0.3s ease, opacity 0.25s ease; }
+.cvr-box.open .cvr-detail { grid-template-rows: 1fr; opacity: 1; }
+.cvr-detail > .cvr-detail-inner { overflow: hidden; min-height: 0; padding: 0 14px; }
+.cvr-box.open .cvr-detail > .cvr-detail-inner { padding: 4px 14px 14px; }
+.cvr-sub { font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: #666; margin: 6px 0 4px; font-weight: 700; }
+.cvr-step { font-size: .85rem; font-weight: 600; margin: 8px 0 4px; }
+.cvr-check { display: flex; align-items: flex-start; gap: 6px; padding: 2px 0; font-size: .85rem; }
+.cvr-check input { width: auto; margin-top: 3px; }
+.cvr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; margin: 8px 0; }
+.cvr-grid label { font-size: .8rem; display: flex; flex-direction: column; gap: 3px; }
+.cvr-grid input, .cvr-grid select { margin: 0; }
+.cvr-result { border-left: 4px solid; padding: 8px 12px; background: #fafafa; border-radius: 6px; margin-top: 8px; }
+.cvr-score { font-size: 1.6rem; font-weight: 800; }
+.cvr-score-label { font-size: .85rem; font-weight: 600; }
+.cvr-act { font-size: .82rem; color: #333; margin-top: 4px; }
+.cvr-stop { border-left: 4px solid #c62828; background: #fdecea; padding: 8px 12px; border-radius: 6px; margin-top: 8px; font-size: .85rem; }
+.cvr-missing { font-size: .8rem; color: #b26a00; margin-top: 6px; }

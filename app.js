@@ -94,6 +94,204 @@ function renderKdigo(p) {
   panel.innerHTML = html;
 }
 
+// ---------- Risque cardiovasculaire (SCORE2 / SCORE2-OP / SCORE2-Diabetes, région bas risque = France) ----------
+const cvrState = { terrain: false, terrainReasons: [], tabac: 'actif', sbp: null, chol: null, hdl: null, hba1c: null, diabAge: null };
+
+function score2Raw(sex, smoker, sbp, chol, hdl, age, diabetes) {
+  const a5 = (age - 60) / 5;
+  if (sex === 'M') {
+    const lp = 0.3742 * a5 + 0.6012 * smoker + 0.2777 * (sbp - 120) / 20 + 0.6457 * diabetes
+      + 0.1458 * (chol - 6) - 0.2698 * (hdl - 1.3) / 0.5
+      - 0.0755 * a5 * smoker - 0.0255 * a5 * (sbp - 120) / 20 - 0.0281 * a5 * (chol - 6)
+      + 0.0426 * a5 * (hdl - 1.3) / 0.5 - 0.0983 * a5 * diabetes;
+    return 1 - Math.pow(0.9605, Math.exp(lp));
+  }
+  const lp = 0.4648 * a5 + 0.7744 * smoker + 0.3131 * (sbp - 120) / 20 + 0.8096 * diabetes
+    + 0.1002 * (chol - 6) - 0.2606 * (hdl - 1.3) / 0.5
+    - 0.1088 * a5 * smoker - 0.0277 * a5 * (sbp - 120) / 20 - 0.0226 * a5 * (chol - 6)
+    + 0.0613 * a5 * (hdl - 1.3) / 0.5 - 0.1272 * a5 * diabetes;
+  return 1 - Math.pow(0.9776, Math.exp(lp));
+}
+
+function score2OpRaw(sex, smoker, sbp, chol, hdl, age, diabetes) {
+  const a = age - 73;
+  if (sex === 'M') {
+    const lp = 0.0634 * a + 0.4245 * diabetes + 0.3524 * smoker + 0.0094 * (sbp - 150)
+      + 0.0850 * (chol - 6) - 0.3564 * (hdl - 1.4)
+      - 0.0174 * a * diabetes - 0.0247 * a * smoker - 0.0005 * a * (sbp - 150)
+      + 0.0073 * a * (chol - 6) + 0.0091 * a * (hdl - 1.4);
+    return 1 - Math.pow(0.7576, Math.exp(lp - 0.0929));
+  }
+  const lp = 0.0789 * a + 0.6010 * diabetes + 0.4921 * smoker + 0.0102 * (sbp - 150)
+    + 0.0605 * (chol - 6) - 0.3040 * (hdl - 1.4)
+    - 0.0107 * a * diabetes - 0.0255 * a * smoker - 0.0004 * a * (sbp - 150)
+    - 0.0009 * a * (chol - 6) + 0.0154 * a * (hdl - 1.4);
+  return 1 - Math.pow(0.8082, Math.exp(lp - 0.229));
+}
+
+function score2DiabetesRaw(sex, smoker, sbp, chol, hdl, age, diabAge, hba1c, dfg) {
+  const a5 = (age - 60) / 5;
+  const eg = (Math.log(dfg) - 4.5) / 0.15;
+  const h = (hba1c - 31) / 9.34;
+  if (sex === 'M') {
+    const lp = 0.5368 * a5 + 0.4774 * smoker + 0.1322 * (sbp - 120) / 20 + 0.6457
+      + 0.1102 * (chol - 6) - 0.1087 * (hdl - 1.3) / 0.5
+      - 0.0672 * a5 * smoker - 0.0268 * a5 * (sbp - 120) / 20 - 0.0983 * a5
+      - 0.0181 * a5 * (chol - 6) + 0.0095 * a5 * (hdl - 1.3) / 0.5
+      - 0.0998 * ((diabAge - 50) / 5) + 0.0955 * h
+      - 0.0591 * eg + 0.0058 * eg * eg - 0.0134 * h * a5 + 0.0115 * eg * a5;
+    return 1 - Math.pow(0.9605, Math.exp(lp));
+  }
+  const lp = 0.6624 * a5 + 0.6139 * smoker + 0.1421 * (sbp - 120) / 20 + 0.8096
+    + 0.1127 * (chol - 6) - 0.1568 * (hdl - 1.3) / 0.5
+    - 0.1122 * a5 * smoker - 0.0167 * a5 * (sbp - 120) / 20 - 0.1272 * a5
+    - 0.0200 * a5 * (chol - 6) + 0.0186 * a5 * (hdl - 1.3) / 0.5
+    - 0.118 * ((diabAge - 50) / 5) + 0.1173 * h
+    - 0.0640 * eg + 0.0062 * eg * eg - 0.0196 * h * a5 + 0.0169 * eg * a5;
+  return 1 - Math.pow(0.9776, Math.exp(lp));
+}
+
+function cvrCalibrate(raw, sex, age, model) {
+  const SCALES = {
+    s2: { M: [-0.5699, 0.7476], F: [-0.7380, 0.7019] },
+    op: { M: [-0.34, 1.19], F: [-0.52, 1.01] },
+  };
+  const [s1, s2v] = SCALES[model][sex === 'M' ? 'M' : 'F'];
+  return 1 - Math.exp(-Math.exp(s1 + s2v * Math.log(-Math.log(1 - raw))));
+}
+
+function cvrCategory(pct, age, model) {
+  if (model === 'dt2') {
+    if (pct < 5) return { label: 'Risque faible', color: '#2e7d32' };
+    if (pct < 10) return { label: 'Risque modéré', color: '#f9a825' };
+    if (pct < 20) return { label: 'Risque élevé', color: '#ef6c00' };
+    return { label: 'Risque très élevé', color: '#c62828' };
+  }
+  let lo, hi;
+  if (age < 50) { lo = 2.5; hi = 7.5; }
+  else if (age < 70) { lo = 5; hi = 10; }
+  else { lo = 7.5; hi = 15; }
+  if (pct < lo) return { label: 'Risque faible', color: '#2e7d32' };
+  if (pct < hi) return { label: 'Risque modéré', color: '#f9a825' };
+  return { label: 'Risque élevé', color: '#c62828' };
+}
+
+const TERRAIN_ITEMS = [
+  { id: 'cvr-t-coronaropathie', label: 'Coronaropathie / SCA / pontage / angioplastie' },
+  { id: 'cvr-t-avc', label: 'AVC / AIT ischémique' },
+  { id: 'cvr-t-aomi', label: 'Artériopathie oblitérante des membres inférieurs' },
+  { id: 'cvr-t-hcq', label: 'Plaque carotidienne symptomatique / sténose > 50 %' },
+];
+
+function renderCvr(p) {
+  const panel = document.getElementById('cvr-panel');
+  const st = cvrState;
+  const terrChecked = TERRAIN_ITEMS.map(t => !!document.getElementById(t.id)?.checked);
+  const hasTerrain = terrChecked.some(Boolean);
+  const terrainReasons = TERRAIN_ITEMS.filter((t, i) => terrChecked[i]).map(t => t.label);
+  const age = p.age, sex = p.sex;
+  const smoker = st.tabac === 'actif' ? 1 : 0;
+  const sbp = st.sbp, chol = st.chol, hdl = st.hdl;
+  const isDm = !!p.diabete;
+  const model = age >= 70 ? 'op' : 's2';
+  const modelName = isDm ? 'SCORE2-Diabetes' : (age >= 70 ? 'SCORE2-OP' : 'SCORE2');
+
+  let result = null, missing = [];
+  if (!hasTerrain) {
+    if (!isDm && age !== null && age < 40) missing.push('SCORE2 : à partir de 40 ans (40\u201369)');
+    if (isDm && age !== null && age < 40) missing.push('SCORE2-Diabetes : validé 40\u201369 ans');
+    if (!isDm && age !== null && age >= 70) { /* OP ok jusqu'\u00e0 89 */ }
+    if (age === null) missing.push('\u00e2ge');
+    if (sbp === null) missing.push('PAS');
+    if (chol === null) missing.push('cholestérol total');
+    if (hdl === null) missing.push('HDL');
+    if (isDm && st.hba1c === null) missing.push('HbA1c (mmol/mol)');
+    if (isDm && st.diabAge === null) missing.push('\u00e2ge de diagnostic du diab\u00e8te');
+    if (isDm && p.dfg === null) missing.push('DFG (déjà demandé plus haut)');
+    const ready = !missing.length && age !== null;
+    if (ready) {
+      let raw, mdl = model;
+      if (isDm) {
+        raw = score2DiabetesRaw(sex, smoker, sbp, chol, hdl, age, st.diabAge, st.hba1c, p.dfg);
+        mdl = 's2';
+      } else {
+        raw = age >= 70 ? score2OpRaw(sex, smoker, sbp, chol, hdl, age, 0) : score2Raw(sex, smoker, sbp, chol, hdl, age, 0);
+      }
+      const calibrated = cvrCalibrate(raw, sex, age, mdl);
+      const pct = Math.round(calibrated * 1000) / 10;
+      result = { pct, cat: cvrCategory(pct, age, isDm ? 'dt2' : mdl) };
+    }
+  }
+
+  const d2 = v => v === null ? '' : v;
+  panel.innerHTML = `
+  <div class="cvr-box${window._cvrOpen ? ' open' : ''}">
+    <div class="cvr-head" role="button" tabindex="0" aria-expanded="${window._cvrOpen ? 'true' : 'false'}">
+      <span class="cvr-title">\u2764\ufe0f Risque cardiovasculaire (SCORE2 \u2014 ESC 2021/2023)</span>
+      <span class="cvr-verdict" style="color:${hasTerrain ? '#c62828' : (result ? result.cat.color : '#888')}">
+        ${hasTerrain ? 'TERRAIN : prévention secondaire' : (result ? result.pct.toFixed(1).replace('.', ',') + ' % \u00b7 ' + result.cat.label : '\u00e0 calculer \u25b8')}</span>
+      <span class="cvr-chevron">\u25b8</span>
+    </div>
+    <div class="cvr-detail"><div class="cvr-detail-inner">
+      <div class="cvr-sub">Algorithme d\u00e9cisionnel (logique cardiorisquecv.fr) :</div>
+      <div class="cvr-step">1 \u00b7 Terrain cardiovasculaire connu ? (pr\u00e9vention secondaire \u2014 on s'arr\u00eate l\u00e0)</div>
+      ${TERRAIN_ITEMS.map(t => `<label class="cvr-check"><input type="checkbox" id="${t.id}" ${document.getElementById(t.id)?.checked ? 'checked' : ''}><span>${escapeHtml(t.label)}</span></label>`).join('')}
+      ${hasTerrain ? `<div class="cvr-stop">\u26d4 Terrain ath\u00e9romateux : patient en <strong>pr\u00e9vention secondaire</strong> \u2014 pas de score n\u00e9cessaire. Prise en charge intensive : statine haute intensit\u00e9 (LDL < 0,55 g/L), antiagr\u00e9gant, contr\u00f4le TA, arr\u00eat tabac, r\u00e9adaptation.</div>` : `
+      <div class="cvr-step">2 \u00b7 Pas de terrain \u2192 score ${p.diabete ? 'SCORE2-Diabetes' : (age >= 70 ? 'SCORE2-OP' : 'SCORE2')} (r\u00e9gion bas risque \u2014 France)</div>
+      <div class="cvr-grid">
+        <label>Tabac actif ? <select id="cvr-tabac"><option value="actif"${st.tabac === 'actif' ? ' selected' : ''}>Oui, fumeur</option><option value="non"${st.tabac === 'non' ? ' selected' : ''}>Non / sevr\u00e9</option></select></label>
+        <label>PAS (mmHg) <input type="number" id="cvr-sbp" min="70" max="250" step="1" value="${d2(st.sbp)}" placeholder="ex. 135"></label>
+        <label>Chol. total (g/L) <input type="number" id="cvr-chol" min="1" max="10" step="0.01" value="${d2(st.chol)}" placeholder="ex. 2,1 \u2192 2.1"></label>
+        <label>HDL (g/L) <input type="number" id="cvr-hdl" min="0.2" max="3" step="0.01" value="${d2(st.hdl)}" placeholder="ex. 0,6 \u2192 0.6"></label>
+        ${isDm ? `
+        <label>HbA1c (mmol/mol) <input type="number" id="cvr-hba1c" min="20" max="150" step="1" value="${d2(st.hba1c)}" placeholder="ex. 58"></label>
+        <label>\u00c2ge diag. DT2 <input type="number" id="cvr-diabage" min="20" max="85" step="1" value="${d2(st.diabAge)}" placeholder="ex. 55"></label>` : ''}
+      </div>
+      ${result ? `
+      <div class="cvr-result" style="border-color:${result.cat.color}">
+        <div class="cvr-score" style="color:${result.cat.color}">${result.pct.toFixed(1).replace('.', ',')} %</div>
+        <div class="cvr-score-label">${result.cat.label} \u00b7 risque CV \u00e0 10 ans (${p.diabete ? 'SCORE2-Diabetes' : (age >= 70 ? 'SCORE2-OP' : 'SCORE2')}, France r\u00e9gion bas risque)</div>
+        <div class="cvr-act">${p.diabete
+          ? (result.pct >= 20 ? 'Tr\u00e8s haut risque : LDL < 0,55 g/L + statine haute intensit\u00e9, iSGLT2/GLP-1 selon indication, contr\u00f4le TA < 130/80.'
+            : result.pct >= 10 ? 'Haut risque : statine (LDL < 0,7 g/L), iSGLT2/GLP-1 \u00e0 \u00e9valuer, TA < 130/80.'
+            : result.pct >= 5 ? 'Risque mod\u00e9r\u00e9 : hygi\u00e8ne de vie, statine \u00e0 discuter, contr\u00f4le annuel.'
+            : 'Risque faible : hygi\u00e8ne de vie, suivi annuel.')
+          : (result.cat.label === 'Risque \u00e9lev\u00e9' ? 'Haut risque : consultation m\u00e9dicamenteuse \u2014 statine (LDL < 1,0 puis 0,7 g/L si persiste), TA < 130/80 si traitement.'
+            : result.cat.label === 'Risque mod\u00e9r\u00e9' ? 'Risque mod\u00e9r\u00e9 : conseils d\u2019hygi\u00e8ne de vie, r\u00e9\u00e9valuer \u00e0 3\u20136 mois, statine si facteurs persistants.'
+            : 'Risque faible : hygi\u00e8ne de vie, r\u00e9\u00e9valuation r\u00e9guli\u00e8re.')}</div>
+      </div>` : (missing.length ? `<div class="cvr-missing">\u26a0\ufe0f Pour calculer le score : ${missing.join(', ')}.</div>` : '')}
+      `}
+    </div></div>
+  </div>`;
+  bindCvr(p);
+}
+
+function bindCvr(p) {
+  const panel = document.getElementById('cvr-panel');
+  const head = panel.querySelector('.cvr-head');
+  if (head) head.addEventListener('click', e => {
+    if (e.target.matches('input, select, button')) return;
+    window._cvrOpen = !window._cvrOpen;
+    render();
+  });
+  const sbpEl = document.getElementById('cvr-sbp');
+  if (sbpEl) sbpEl.addEventListener('change', e => { cvrState.sbp = parseFloat(e.target.value) || null; renderCvr(P()); });
+  const cholEl = document.getElementById('cvr-chol');
+  if (cholEl) cholEl.addEventListener('change', e => { cvrState.chol = parseFloat(e.target.value) || null; renderCvr(P()); });
+  const hdlEl = document.getElementById('cvr-hdl');
+  if (hdlEl) hdlEl.addEventListener('change', e => { cvrState.hdl = parseFloat(e.target.value) || null; renderCvr(P()); });
+  const tabacEl = document.getElementById('cvr-tabac');
+  if (tabacEl) tabacEl.addEventListener('change', e => { cvrState.tabac = e.target.value; renderCvr(P()); });
+  const hba1cEl = document.getElementById('cvr-hba1c');
+  if (hba1cEl) hba1cEl.addEventListener('change', e => { cvrState.hba1c = parseFloat(e.target.value) || null; renderCvr(P()); });
+  const daEl = document.getElementById('cvr-diabage');
+  if (daEl) daEl.addEventListener('change', e => { cvrState.diabAge = parseFloat(e.target.value) || null; renderCvr(P()); });
+  TERRAIN_ITEMS.forEach(t => {
+    const el = document.getElementById(t.id);
+    if (el) el.addEventListener('change', () => renderCvr(P()));
+  });
+}
+
 // ---------- Décision IEC/ARA2 & iSGLT2 (KDIGO 2024 / HAS / remboursement) ----------
 function iecara2Advice(p) {
   const reasons = [];
@@ -621,6 +819,7 @@ function render() {
 
   const reminders = [];
   renderKdigo(p);
+  renderCvr(p);
   renderRx(p);
   renderSuivi(p);
   if (p.tabac === 'actif') reminders.push('🚬 Patient fumeur : proposer une aide au sevrage (substitution, consultation).');
