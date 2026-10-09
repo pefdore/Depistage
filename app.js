@@ -990,6 +990,61 @@ function updateSummary() {
     `${todo.length} examen${todo.length > 1 ? 's' : ''} à faire`;
 }
 
+function examLetter(examId, p, cvr, tg, motifs) {
+  const name = (document.getElementById('pat-name').value || 'Mr/MMe [nom]').trim();
+  const age = p.age !== null ? p.age : '[âge]';
+  const sexe = p.sex === 'F' ? 'Mme' : 'Mr';
+  const lines = [];
+  lines.push(`Merci de recevoir ${sexe} ${name}, né.e ${age === '[âge]' ? 'le [date de naissance]' : 'en ' + (new Date().getFullYear() - age) + ' (' + age + ' ans)'}, pour :`);
+  const req = [];
+  const exam = ALL_GROUPS.flatMap(g => g.exams).find(x => x.id === examId);
+  const label = exam ? exam.title.split(' (')[0] : examId;
+  req.push('- ' + label + (motifs ? ' (' + motifs + ')' : ''));
+  if (examId === 'tsa' || examId === 'aomi' || examId === 'aaa' || examId === 'ecg') {
+    const fr = [];
+    if (p.tabac === 'actif') fr.push('tabagisme actif' + (p.pa ? ' (' + p.pa + ' PA)' : ''));
+    else if (p.tabac === 'sevré') fr.push('tabagisme sevré' + (p.pa ? ' (' + p.pa + ' PA)' : ''));
+    if (p.hta) fr.push('HTA');
+    if (p.diabete) fr.push('diabète de type 2');
+    if (p.ldl !== null) fr.push('dyslipidémie (LDL-C ' + p.ldl + ' g/L)');
+    if (p.imc !== null && p.imc >= 25) fr.push('IMC ' + p.imc + ' kg/m²');
+    if (fr.length) req.push('Facteurs de risque cardiovasculaire : ' + fr.join(', ') + '.');
+    if (cvr && cvr.result) req.push('Risque cardiovasculaire (SCORE2) : ' + cvr.result.pct.toFixed(1).replace('.', ',') + ' % à 10 ans — ' + cvr.result.cat.label.toLowerCase() + '.');
+    if (cvr && cvr.hasTerrain) req.push('Terrain cardiovasculaire connu : prévention secondaire.');
+    if (tg) req.push('Cible LDL-C : ' + tg.label + '.');
+  }
+  if (examId === 'osteo') {
+    if (p.sex === 'F' && p.age !== null && p.age >= 50) req.push('Femme ménopausée de ' + p.age + ' ans.');
+    if (p.imc !== null && p.imc < 19) req.push('IMC ' + p.imc + ' kg/m².');
+    req.push('Recherche d’une ostéoporose selon les critères HAS / Assurance Maladie (remboursable 70 %).');
+  }
+  if (examId === 'bpco' || examId === 'poumon') {
+    if (p.tabac === 'actif') req.push('Tabagisme actif' + (p.pa ? ' (' + p.pa + ' PA)' : '') + '.');
+    else if (p.tabac === 'sevré') req.push('Tabagisme sevré' + (p.pa ? ' (' + p.pa + ' PA)' : '') + '.');
+  }
+  if (examId === 'foei' && p.diabete) req.push('Diabète de type 2 connu — dépistage annuel de la rétinopathie diabétique.');
+  if (examId === 'aomi' && p.diabete) req.push('Diabète de type 2 — dépistage de l’artériopathie (IPS).');
+  if (examId === 'ccr' || examId === 'mammo' || examId === 'frottis') req.push('Dépistage organisé / indication selon le calendrier national.');
+  if (p.dfg !== null && p.dfg < 60) req.push('Fonction rénale : DFG ' + p.dfg + ' mL/min/1,73 m².');
+  return lines.join('\n') + '\n' + req.join('\n') + '\n\nJe vous remercie de bien vouloir prendre en charge ce.tte patient.e et reste à votre disposition pour tout complément.\n\nCordialement,\n\nDr [Nom]';
+}
+
+function copyLetter(examId, motif) {
+  const p = P();
+  const cvr = cvrCompute(p);
+  const tg = ldlTarget(p, cvr);
+  const motifs = motif || (document.querySelector('.todo-collapse[data-todo-exam="' + examId + '"] .todo-detail-label:not(.off)')?.textContent || '').trim();
+  const txt = examLetter(examId, p, cvr, tg, motifs);
+  navigator.clipboard.writeText(txt).then(() => {
+    const btn = document.querySelector('button[data-letter="' + examId + '"]');
+    if (btn) {
+      const old = btn.textContent;
+      btn.textContent = '\u2713 Copi\u00e9';
+      setTimeout(() => { btn.textContent = old; }, 1500);
+    }
+  });
+}
+
 function renderTodoChips(exams, list, muted) {
   exams.forEach(exam => {
     const st = examState(exam);
@@ -1016,6 +1071,7 @@ function renderTodoChips(exams, list, muted) {
             <button class="todo-done" data-done="${exam.id}" data-st="fait">✓ Fait</button>
             <button class="todo-nc" data-done="${exam.id}" data-st="nc">NC</button>
             <button class="todo-ns" data-done="${exam.id}" data-st="ns">NS</button>
+            <button class="todo-letter" data-letter="${exam.id}" title="Copier un courrier d'adressage" data-motif="${escapeHtml(st.checked.map(i => i.label).join(' ; '))}">\u2709</button>
           </span>
         </span>
       </div>
@@ -1031,7 +1087,16 @@ function renderTodoChips(exams, list, muted) {
 // ---------- Événements ----------
 document.addEventListener('click', e => {
   const btn = e.target.closest('button[data-done]');
-  if (btn) return;
+  if (btn) {
+    doneExams[btn.dataset.done] = btn.dataset.st || 'fait';
+    render();
+    return;
+  }
+  const letter = e.target.closest('button[data-letter]');
+  if (letter) {
+    copyLetter(letter.dataset.letter, letter.dataset.motif || '');
+    return;
+  }
   const head = e.target.closest('.todo-head');
   if (head) {
     const chip = head.closest('.todo-collapse');
@@ -1042,8 +1107,6 @@ document.addEventListener('click', e => {
     head.setAttribute('aria-expanded', window._todoOpen[id]);
     return;
   }
-  doneExams[btn.dataset.done] = btn.dataset.st || 'fait';
-  render();
 });
 
 document.addEventListener('change', e => {
