@@ -83,6 +83,43 @@ function kdigoStage(p) {
   return { g, a, risk };
 }
 
+function renderEtat(p) {
+  const panel = document.getElementById('etat-panel');
+  if (!panel) return;
+  const boxes = [];
+  const kd = kdigoStage(p);
+  if (kd) {
+    const riskTxt = kd.risk ? KDIGO_RISK_LABEL[kd.risk] : 'RAC manquant';
+    const color = kd.risk ? KDIGO_RISK_COLOR[kd.risk] : '#9e9e9e';
+    boxes.push({ icon: '\ud83e\ude7b', title: 'N\u00e9phro', color, txt: `Stade KDIGO ${kd.g}${kd.a ? ' ' + kd.a : ''} \u2014 ${riskTxt}` });
+  }
+  const resp = [];
+  if (p.tabac === 'actif' || p.tabac === 'sevr\u00e9') {
+    resp.push(p.tabac === 'actif' ? 'Tabagisme actif' : 'Ancien tabagisme');
+    if (p.pa !== null) resp.push(p.pa + ' PA');
+    if (p.pa !== null && p.pa >= 20 && p.age !== null && p.age >= 50) resp.push('d\u00e9pistage BPCO/scanner pulmonaire \u00e0 discuter');
+  } else if (p.tabac === 'jamais') resp.push('Non fumeur');
+  if (resp.length) boxes.push({ icon: '\ud83e\udec1', title: 'Respi', color: (p.tabac === 'actif' ? '#c62828' : (p.tabac === 'sevr\u00e9' ? '#ef6c00' : '#2e7d32')), txt: resp.join(' \u00b7 ') });
+  const endo = [];
+  if (p.diabete) endo.push('DT2 connu');
+  if (p.imc !== null) {
+    endo.push('IMC ' + String(p.imc).replace('.', ','));
+    if (p.imc >= 30) endo.push('ob\u00e9sit\u00e9');
+    else if (p.imc >= 25) endo.push('surpoids');
+  }
+  if (p.ldl !== null) {
+    const ldlTxt = 'LDL ' + String(p.ldl).replace('.', ',') + ' g/L';
+    endo.push(p.ldl >= 1.6 ? ldlTxt + ' (\u2265 1,6)' : ldlTxt);
+  }
+  if (p.hdl !== null && p.chol !== null && p.hdl > 0) {
+    const ratio = p.chol / p.hdl;
+    if (ratio >= 5) endo.push('rapport CT/HDL \u2265 5');
+  }
+  if (endo.length) boxes.push({ icon: '\ud83e\udeca', title: 'Endocrino / M\u00e9tabolique', color: (p.diabete || (p.imc !== null && p.imc >= 30)) ? '#c62828' : ((p.imc !== null && p.imc >= 25) || (p.ldl !== null && p.ldl >= 1.6)) ? '#ef6c00' : '#2e7d32', txt: endo.join(' \u00b7 ') });
+  panel.innerHTML = boxes.length
+    ? `<div class="etat-grid">${boxes.map(b => `<div class="etat-box" style="border-left: 5px solid ${b.color}"><div class="etat-title">${b.icon} ${b.title}</div><div class="etat-txt">${escapeHtml(b.txt)}</div></div>`).join('')}</div>`
+    : '<div class="etat-empty">Renseignez le patient (tabac, DFG/RAC, IMC, LDL, diab\u00e8te...) \u2014 cardio, n\u00e9phro, respi et endocrino s\u2019affichent ici.</div>';
+}
 function renderKdigo(p) {
   const panel = document.getElementById('kdigo-panel');
   const st = kdigoStage(p);
@@ -925,6 +962,7 @@ function render() {
   document.getElementById('patient-warn').classList.toggle('hidden', !!complete);
 
   const reminders = [];
+  renderEtat(p);
   renderKdigo(p);
   renderCvr(p);
   renderRx(p);

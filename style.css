@@ -403,3 +403,8 @@ button.rx-head:hover { filter: none; background: transparent; }
   cursor: pointer;
 }
 .todo-letter:hover { background: #e8eaf6 !important; }
+.etat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.etat-box { background: #fafafa; border: 1px solid #e0e0e0; border-left: 5px solid #888; border-radius: 8px; padding: 8px 12px; }
+.etat-title { font-weight: 600; font-size: 0.9em; color: #444; margin-bottom: 2px; }
+.etat-txt { font-size: 0.92em; line-height: 1.35; }
+.etat-empty { color: #888; font-size: 0.9em; font-style: italic; margin-bottom: 12px; }
