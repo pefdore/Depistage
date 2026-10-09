@@ -182,6 +182,20 @@ function cvrCategory(pct, age, model) {
   return { label: 'Risque élevé', color: '#c62828' };
 }
 
+function ldlTarget(p, cvr) {
+  if (cvr.hasTerrain) return { v: 0.55, label: 'LDL < 0,55 g/L', why: 'Terrain ath\u00e9romateux \u2014 pr\u00e9vention secondaire (ESC : r\u00e9duction \u2265 50 % du LDL)' };
+  if (p.diabete) {
+    if (cvr.result && cvr.result.pct >= 20) return { v: 0.55, label: 'LDL < 0,55 g/L', why: 'DT2 avec risque CV tr\u00e8s \u00e9lev\u00e9 (SCORE2-Diabetes \u2265 20 %)' };
+    if (cvr.result && cvr.result.pct >= 10) return { v: 0.55, label: 'LDL < 0,55 g/L', why: 'DT2 \u2014 haut risque CV (SCORE2-Diabetes \u2265 10 %)' };
+    if (cvr.result && cvr.result.pct >= 5) return { v: 0.7, label: 'LDL < 0,7 g/L', why: 'DT2 \u2014 risque CV mod\u00e9r\u00e9 (SCORE2-Diabetes \u2265 5 %)' };
+    return { v: 0.7, label: 'LDL < 0,7 g/L (\u00e0 r\u00e9\u00e9valuer)', why: 'DT2 sans autre facteur : cible < 0,7 g/L si dur\u00e9e > 10 ans, atteinte organe cible ou facteur de risque associ\u00e9 (ESC 2023)' };
+  }
+  if (!cvr.result) return null;
+  if (cvr.result.cat.label === 'Risque \u00e9lev\u00e9') return { v: 1.0, label: 'LDL < 1,0 g/L', why: 'SCORE2 risque \u00e9lev\u00e9 \u2014 cible ESC < 1,0 g/L ; si persiste apr\u00e8s 3 mois d\u2019hygi\u00e8ne de vie, viser < 0,7 g/L' };
+  if (cvr.result.cat.label === 'Risque mod\u00e9r\u00e9') return { v: 1.4, label: 'LDL < 1,4 g/L', why: 'SCORE2 risque mod\u00e9r\u00e9 \u2014 cible ESC < 1,4 g/L (jeune : discuter < 1,0)' };
+  return { v: 1.4, label: 'LDL < 1,4 g/L', why: 'SCORE2 risque faible \u2014 pas de cible CHOL strict, hygi\u00e8ne de vie (LDL id\u00e9alement < 1,4 g/L)' };
+}
+
 const TERRAIN_ITEMS = [
   { id: 'cvr-t-coronaropathie', label: 'Coronaropathie / SCA / pontage / angioplastie' },
   { id: 'cvr-t-avc', label: 'AVC / AIT ischémique' },
@@ -189,8 +203,7 @@ const TERRAIN_ITEMS = [
   { id: 'cvr-t-hcq', label: 'Plaque carotidienne symptomatique / sténose > 50 %' },
 ];
 
-function renderCvr(p) {
-  const panel = document.getElementById('cvr-panel');
+function cvrCompute(p) {
   const st = cvrState;
   const terrChecked = TERRAIN_ITEMS.map(t => !!document.getElementById(t.id)?.checked);
   const hasTerrain = terrChecked.some(Boolean);
@@ -231,6 +244,16 @@ function renderCvr(p) {
       result = { pct, cat: cvrCategory(pct, age, isDm ? 'dt2' : mdl) };
     }
   }
+  return { hasTerrain, terrainReasons, result, missing, age, isDm };
+}
+
+function renderCvr(p) {
+  const panel = document.getElementById('cvr-panel');
+  const cvr = cvrCompute(p);
+  const { hasTerrain, terrainReasons, result, missing, age, isDm } = cvr;
+  const target = ldlTarget(p, cvr);
+  const ldlOk = target && p.ldl !== null && p.ldl < target.v;
+  const ldlGap = target && p.ldl !== null ? Math.round((p.ldl - target.v) / target.v * 100) : null;
 
   const d2 = v => v === null ? '' : v;
   panel.innerHTML = `
@@ -268,6 +291,16 @@ function renderCvr(p) {
             : result.cat.label === 'Risque mod\u00e9r\u00e9' ? 'Risque mod\u00e9r\u00e9 : conseils d\u2019hygi\u00e8ne de vie, r\u00e9\u00e9valuer \u00e0 3\u20136 mois, statine si facteurs persistants.'
             : 'Risque faible : hygi\u00e8ne de vie, r\u00e9\u00e9valuation r\u00e9guli\u00e8re.')}</div>
       </div>` : (missing.length ? `<div class="cvr-missing">\u26a0\ufe0f Pour calculer le score : ${missing.join(', ')}.</div>` : '')}
+      ${target ? `
+      <div class="cvr-result" style="border-color:${ldlOk ? '#2e7d32' : '#c62828'}">
+        <div class="cvr-score" style="color:${ldlOk ? '#2e7d32' : '#c62828'}">${target.label}</div>
+        <div class="cvr-score-label">Cible LDL-C (ESC 2021/2023) \u2014 ${target.why}</div>
+        <div class="cvr-act">${p.ldl === null
+          ? 'LDL non renseign\u00e9 \u2014 remplir le champ LDL (g/L) dans la partie Patient pour comparer.'
+          : (ldlOk
+            ? `\u2705 LDL patient : ${p.ldl} g/L \u2014 <strong>cible atteinte</strong>.`
+            : `\u274c LDL patient : ${p.ldl} g/L \u2014 cible d\u00e9pass\u00e9e de ${ldlGap > 0 ? '+' : ''}${ldlGap} % : statine indiqu\u00e9e (voir Traitements \u2192 Statines), r\u00e9\u00e9valuer \u00e0 3 mois.`)}</div>
+      </div>` : ''}
       `}
     </div></div>
   </div>`;
@@ -430,6 +463,52 @@ function glp1Advice(p) {
   return { ok: amm, reasons, remb, ci };
 }
 
+function statinAdvice(p, cvr, tg) {
+  const STATINS = [
+    { name: 'Pravastatine 20\u201340 mg (faible)', red: 0.30 },
+    { name: 'Simvastatine 20\u201340 mg (faible)', red: 0.35 },
+    { name: 'Fluvastatine 80 mg XL (faible)', red: 0.38 },
+    { name: 'Atorvastatine 10 mg (mod\u00e9r\u00e9e)', red: 0.39 },
+    { name: 'Pitavastatine 2\u20134 mg (mod\u00e9r\u00e9e)', red: 0.41 },
+    { name: 'Atorvastatine 20\u201340 mg (mod\u00e9r\u00e9e)', red: 0.43 },
+    { name: 'Rosuvastatine 5\u201310 mg (mod\u00e9r\u00e9e\u2013haute)', red: 0.46 },
+    { name: 'Atorvastatine 40\u201380 mg (haute)', red: 0.50 },
+    { name: 'Rosuvastatine 20\u201340 mg (haute)', red: 0.55 },
+  ];
+  const reasons = [], remb = [], ci = [];
+  let ok = false;
+  if (cvr.hasTerrain) {
+    ok = true;
+    reasons.push('Terrain ath\u00e9romateux (pr\u00e9vention secondaire) \u2014 statine haute intensit\u00e9 recommand\u00e9e quel que soit le LDL');
+  } else if (tg) {
+    if (p.ldl !== null && p.ldl >= tg.v) {
+      ok = true;
+      reasons.push(`${tg.label} \u2014 LDL actuel ${p.ldl} g/L : cible non atteinte (${tg.why})`);
+    } else if (p.ldl !== null && p.ldl < tg.v) {
+      if (tg.v <= 0.55) { ok = true; reasons.push(`Cible stricte ${tg.label} \u2014 LDL ${p.ldl} g/L \u2014 statine haute intensit\u00e9 indiqu\u00e9e (ESC : \u2265 50 % de r\u00e9duction si cible stricte) `); }
+      else reasons.push(`Cible ${tg.label} \u2014 LDL ${p.ldl} g/L d\u00e9j\u00e0 conforme : hygi\u00e8ne de vie, pas de statine d\u2019embl\u00e9e.`);
+    } else {
+      reasons.push(`${tg.label} (cible ESC selon le risque) \u2014 LDL non renseign\u00e9 : \u00e0 compl\u00e9ter pour trancher.`);
+    }
+  }
+  let drug = null, reduction = null, table = [];
+  if (ok && p.ldl !== null && tg) {
+    const need = 1 - tg.v / p.ldl;
+    const pick = STATINS.find(s => s.red >= need) || STATINS[STATINS.length - 1];
+    drug = `${pick.name} (\u2212${Math.round(pick.red * 100)} % de LDL)`;
+    reduction = `R\u00e9duction n\u00e9cessaire pour atteindre ${tg.label} : \u2212${Math.round(need * 100)} % \u2014 ${pick.red >= need ? 'intensit\u00e9 haute' : 'cible non atteignable avec une statine seule : association \u00e9z\u00e9timibe (\u2212 15\u201320 %) \u00b1 PCSK9 si haut/tr\u00e8s haut risque'}.`;
+    table = STATINS.map(s => `${s.name} : \u2212${Math.round(s.red * 100)} %`);
+  } else if (ok && tg) {
+    drug = 'Atorvastatine 40\u201380 mg ou Rosuvastatine 20\u201340 mg (haute intensit\u00e9 \u2014 ESC)';
+    table = STATINS.map(s => `${s.name} : \u2212${Math.round(s.red * 100)} %`);
+  }
+  remb.push('Statines : s\u00e9curit\u00e9 sociale \u2014 remboursement 65 % / 15 % selon les mol\u00e9cules et dosages (g\u00e9n\u00e9riques \u00e0 65 % ; certaines pr\u00e9sentations SMR insuffisant 15 %)');
+  remb.push('Pr\u00e9vention CV (primaire haut risque / secondaire) : prise en charge ALD 100 % selon la pathologie (post-IDM, AVC isch\u00e9mique, art\u00e9riopathie)');
+  ci.push('Contre-indications : h\u00e9patopathie active, myopathie sous statine, grossesse/allaitement/projet de grossesse (arr\u00eat) ; prudence \u2265 75 ans, insuffisance r\u00e9nale s\u00e9v\u00e8re, interactions (macrolides, antifongiques azol\u00e9s, ciclosporine, jus de pamplemousse \u2014 simvastatine)');
+  ci.push('Surveillance : CPK si sympt\u00f4mes musculaires, bilan h\u00e9patique \u00e0 3 mois, glyc\u00e9mie (l\u00e9g\u00e8re hausse du risque diab\u00e8te sous statine \u2014 ne remet pas en cause le b\u00e9n\u00e9fice CV)');
+  return { ok, reasons, drug, reduction, table, remb, ci };
+}
+
 function renderRx(p) {
   const panel = document.getElementById('rx-panel');
 
@@ -470,11 +549,26 @@ function renderRx(p) {
     ${gp.ci.map(c => `<div class="rx-ci">\u26a0 ${escapeHtml(c)}</div>`).join('')}
     ${!gp.ok && !gp.reasons.length ? '<div class="rx-reason">Aucun crit\u00e8re : pas de DT2, IMC < 27 ou sans comorbidit\u00e9. Pas d\'indication \u00e0 ce jour.</div>' : ''}`;
 
+  const cvr = cvrCompute(p);
+  const tg = ldlTarget(p, cvr);
+  const stt = statinAdvice(p, cvr, tg);
+  const stStatus = stt.ok ? 'INDIQU\u00c9' : (tg ? 'Pas d\'indication' : '\u2014');
+  const stColor = stt.ok ? '#c8e6c9' : '#ffcdd2';
+  const stDetail = `
+    ${stt.reasons.map(r => `<div class="rx-reason">\u2713 ${escapeHtml(r)}</div>`).join('')}
+    ${stt.drug ? `<div class="rx-reason">\u2192 Sugg\u00e9r\u00e9 : <strong>${escapeHtml(stt.drug)}</strong></div>` : ''}
+    ${stt.reduction ? `<div class="rx-reason">${escapeHtml(stt.reduction)}</div>` : ''}
+    ${stt.table.length ? `<div class="rx-remb">Puissance des statines (baisse moyenne de LDL) \u2014 celle sugg\u00e9r\u00e9e est la premi\u00e8re permettant d\u2019atteindre la cible depuis le LDL de d\u00e9part :</div>${stt.table.map(l => `<div class="rx-reason">${escapeHtml(l)}</div>`).join('')}` : ''}
+    ${stt.remb.length ? `<div class="rx-remb">\ud83d\udcb6 Remboursement : ${escapeHtml(stt.remb.join(' ; '))}</div>` : ''}
+    ${stt.ci.map(c => `<div class="rx-ci">\u26a0 ${escapeHtml(c)}</div>`).join('')}
+    ${!stt.ok && !stt.reasons.length ? '<div class="rx-reason">Aucune indication : risque CV faible/mod\u00e9r\u00e9 sans cible d\u00e9pass\u00e9e, pas de terrain, LDL conforme. Hygi\u00e8ne de vie et r\u00e9\u00e9valuation.</div>' : ''}`;
+
   const openState = window._rxOpen || {};
   panel.innerHTML =
     makeBox(!!openState.ie, ie.ok ? '#2e7d32' : '#e53935', '\ud83d\udc8a', 'IEC / ARA2', ieStatus, ieColor, ieDetail) +
     makeBox(!!openState.gl, gl.ok ? '#2e7d32' : '#e53935', '\ud83e\uddea', 'iSGLT2 (gliflozine)', glStatus, glColor, glDetail) +
-    makeBox(!!openState.gp, gp.ok ? '#2e7d32' : '#e53935', '\ud83e\udd8e', 'GLP-1 / tirz\u00e9patide', gpStatus, gpColor, gpDetail);
+    makeBox(!!openState.gp, gp.ok ? '#2e7d32' : '#e53935', '\ud83e\udd8e', 'GLP-1 / tirz\u00e9patide', gpStatus, gpColor, gpDetail) +
+    makeBox(!!openState.st, stt.ok ? '#2e7d32' : '#e53935', '\ud83d\udc8a', 'Statines', stStatus, stColor, stDetail);
 }
 
 document.addEventListener('click', e => {
@@ -482,8 +576,8 @@ document.addEventListener('click', e => {
   if (!head) return;
   const box = head.closest('.rx-collapse');
   const willOpen = box.dataset.rxOpen !== '1';
-  const key = box.querySelector('.rx-name').textContent.includes('IEC') ? 'ie'
-    : box.querySelector('.rx-name').textContent.includes('iSGLT2') ? 'gl' : 'gp';
+  const nm = box.querySelector('.rx-name').textContent;
+  const key = nm.includes('IEC') ? 'ie' : nm.includes('iSGLT2') ? 'gl' : nm.includes('Statines') ? 'st' : 'gp';
   window._rxOpen = window._rxOpen || {};
   window._rxOpen[key] = willOpen;
   box.dataset.rxOpen = willOpen ? '1' : '0';
