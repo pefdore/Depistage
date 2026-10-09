@@ -330,6 +330,7 @@ const EXAMS = [
   indications: [
     { id: 'poumon-tabac', why: 'Un tabagisme important augmente fortement le risque de cancer du poumon : un scanner faible dose le détecte à un stade guérissable.', label: 'Fumeur ou sevré, 50–74 ans, ≥ 20 paquets-années', auto: p => p.grosFumeur && between(p, 50, 74) },
     { id: 'poumon-expo', why: 'L\'exposition à l\'amiante ou à la silice augmente le risque de cancer du poumon : un scanner de dépistage s\'en assure.', label: 'Exposition professionnelle (amiante, silice, métaux)' },
+    { id: 'poumon-pilotes', label: 'INFO : pas encore de dépistage organisé national — programme pilote IMPULSION (INCa) lancé en mai 2026, limité à 5 régions pilotes : Île-de-France, Hauts-de-France, Pays de la Loire, PACA, Auvergne-Rhône-Alpes. Inscription via le 34 33 ou depistage-cancer-poumon.fr (scanner remboursé 100 %). Hors ces régions : pas de dépistage organisé, scanner seulement sur orientation individuelle', req: 'Info' },
   ],
 },
 {
