@@ -233,7 +233,7 @@ function renderCvr(p) {
       <span class="cvr-chevron">\u25b8</span>
     </div>
     <div class="cvr-detail"><div class="cvr-detail-inner">
-      <div class="cvr-sub">Algorithme d\u00e9cisionnel (logique cardiorisquecv.fr) :</div>
+      <div class="cvr-sub">Algorithme d\u00e9cisionnel (logique risquecv.fr) :</div>
       <div class="cvr-step">1 \u00b7 Terrain cardiovasculaire connu ? (pr\u00e9vention secondaire \u2014 on s'arr\u00eate l\u00e0)</div>
       ${TERRAIN_ITEMS.map(t => `<label class="cvr-check"><input type="checkbox" id="${t.id}" ${document.getElementById(t.id)?.checked ? 'checked' : ''}><span>${escapeHtml(t.label)}</span></label>`).join('')}
       ${hasTerrain ? `<div class="cvr-stop">\u26d4 Terrain ath\u00e9romateux : patient en <strong>pr\u00e9vention secondaire</strong> \u2014 pas de score n\u00e9cessaire. Prise en charge intensive : statine haute intensit\u00e9 (LDL < 0,55 g/L), antiagr\u00e9gant, contr\u00f4le TA, arr\u00eat tabac, r\u00e9adaptation.</div>` : `
