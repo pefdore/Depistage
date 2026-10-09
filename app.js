@@ -16,6 +16,7 @@ const P = () => {
   const sbp = parseFloat(document.getElementById('pat-sbp').value);
   const chol = parseFloat(document.getElementById('pat-chol').value);
   const hdl = parseFloat(document.getElementById('pat-hdl').value);
+  const hba1c = parseFloat(document.getElementById('pat-hba1c')?.value);
   return {
     age: isNaN(age) ? null : age,
     sex,
@@ -40,6 +41,7 @@ const P = () => {
     sbp: isNaN(sbp) ? null : sbp,
     chol: isNaN(chol) ? null : chol,
     hdl: isNaN(hdl) ? null : hdl,
+    hba1c: isNaN(hba1c) ? null : hba1c,
   };
 };
 
@@ -243,6 +245,7 @@ const EXTREME_ITEM = { id: 'cvr-t-extreme', label: 'EXTRÊME : récidive d’év
 
 function cvrCompute(p) {
   const st = cvrState;
+  if (p.hba1c !== null && p.hba1c !== undefined) st.hba1c = p.hba1c > 25 ? p.hba1c : Math.round(p.hba1c * 10.93);
   const terrChecked = TERRAIN_ITEMS.map(t => !!document.getElementById(t.id)?.checked);
   const hasTerrain = terrChecked.some(Boolean);
   const terrainReasons = TERRAIN_ITEMS.filter((t, i) => terrChecked[i]).map(t => t.label);
@@ -1153,7 +1156,7 @@ document.addEventListener('change', e => {
   render();
 });
 
-['pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-ic', 'pat-dfg', 'pat-rac', 'pat-imc', 'pat-ldl', 'pat-sbp', 'pat-chol', 'pat-hdl'].forEach(idn =>
+['pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-ic', 'pat-dfg', 'pat-rac', 'pat-imc', 'pat-ldl', 'pat-sbp', 'pat-chol', 'pat-hdl', 'pat-hba1c'].forEach(idn =>
   document.getElementById(idn).addEventListener('change', render));
 
 document.getElementById('pat-date').value = new Date().toISOString().slice(0, 10);
@@ -1184,6 +1187,7 @@ document.getElementById('btn-save').addEventListener('click', () => {
       sbp: document.getElementById('pat-sbp').value,
       chol: document.getElementById('pat-chol').value,
       hdl: document.getElementById('pat-hdl').value,
+      hba1c: document.getElementById('pat-hba1c').value,
       date: document.getElementById('pat-date').value,
     },
     overrides,
@@ -1212,6 +1216,7 @@ document.getElementById('btn-load').addEventListener('click', () => {
   document.getElementById('pat-sbp').value = data.patient?.sbp || '';
   document.getElementById('pat-chol').value = data.patient?.chol || '';
   document.getElementById('pat-hdl').value = data.patient?.hdl || '';
+  document.getElementById('pat-hba1c').value = data.patient?.hba1c || '';
   document.getElementById('pat-date').value = data.patient?.date || new Date().toISOString().slice(0, 10);
   Object.keys(overrides).forEach(k => delete overrides[k]);
   Object.assign(overrides, data.overrides || {});
