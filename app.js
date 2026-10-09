@@ -13,6 +13,9 @@ const P = () => {
   const dfg = parseFloat(document.getElementById('pat-dfg').value);
   const imc = parseFloat(document.getElementById('pat-imc').value);
   const ldl = parseFloat(document.getElementById('pat-ldl').value);
+  const sbp = parseFloat(document.getElementById('pat-sbp').value);
+  const chol = parseFloat(document.getElementById('pat-chol').value);
+  const hdl = parseFloat(document.getElementById('pat-hdl').value);
   return {
     age: isNaN(age) ? null : age,
     sex,
@@ -34,6 +37,9 @@ const P = () => {
     })(),
     imc: isNaN(imc) ? null : imc,
     ldl: isNaN(ldl) ? null : ldl,
+    sbp: isNaN(sbp) ? null : sbp,
+    chol: isNaN(chol) ? null : chol,
+    hdl: isNaN(hdl) ? null : hdl,
   };
 };
 
@@ -95,7 +101,7 @@ function renderKdigo(p) {
 }
 
 // ---------- Risque cardiovasculaire (SCORE2 / SCORE2-OP / SCORE2-Diabetes, région bas risque = France) ----------
-const cvrState = { terrain: false, terrainReasons: [], tabac: 'actif', sbp: null, chol: null, hdl: null, hba1c: null, diabAge: null };
+const cvrState = { hba1c: null, diabAge: null };
 
 function score2Raw(sex, smoker, sbp, chol, hdl, age, diabetes) {
   const a5 = (age - 60) / 5;
@@ -190,8 +196,10 @@ function renderCvr(p) {
   const hasTerrain = terrChecked.some(Boolean);
   const terrainReasons = TERRAIN_ITEMS.filter((t, i) => terrChecked[i]).map(t => t.label);
   const age = p.age, sex = p.sex;
-  const smoker = st.tabac === 'actif' ? 1 : 0;
-  const sbp = st.sbp, chol = st.chol, hdl = st.hdl;
+  const smoker = p.tabac === 'actif' ? 1 : 0;
+  const sbp = p.sbp;
+  const chol = p.chol === null ? null : p.chol / 0.3867;
+  const hdl = p.hdl === null ? null : p.hdl / 0.3867;
   const isDm = !!p.diabete;
   const model = age >= 70 ? 'op' : 's2';
   const modelName = isDm ? 'SCORE2-Diabetes' : (age >= 70 ? 'SCORE2-OP' : 'SCORE2');
@@ -202,9 +210,10 @@ function renderCvr(p) {
     if (isDm && age !== null && age < 40) missing.push('SCORE2-Diabetes : validé 40\u201369 ans');
     if (!isDm && age !== null && age >= 70) { /* OP ok jusqu'\u00e0 89 */ }
     if (age === null) missing.push('\u00e2ge');
-    if (sbp === null) missing.push('PAS');
-    if (chol === null) missing.push('cholestérol total');
-    if (hdl === null) missing.push('HDL');
+    if (p.tabac === '') missing.push('statut tabac (partie Patient)');
+    if (p.sbp === null) missing.push('PAS (partie Patient)');
+    if (p.chol === null) missing.push('cholestérol total (partie Patient)');
+    if (p.hdl === null) missing.push('HDL (partie Patient)');
     if (isDm && st.hba1c === null) missing.push('HbA1c (mmol/mol)');
     if (isDm && st.diabAge === null) missing.push('\u00e2ge de diagnostic du diab\u00e8te');
     if (isDm && p.dfg === null) missing.push('DFG (déjà demandé plus haut)');
@@ -239,10 +248,9 @@ function renderCvr(p) {
       ${hasTerrain ? `<div class="cvr-stop">\u26d4 Terrain ath\u00e9romateux : patient en <strong>pr\u00e9vention secondaire</strong> \u2014 pas de score n\u00e9cessaire. Prise en charge intensive : statine haute intensit\u00e9 (LDL < 0,55 g/L), antiagr\u00e9gant, contr\u00f4le TA, arr\u00eat tabac, r\u00e9adaptation.</div>` : `
       <div class="cvr-step">2 \u00b7 Pas de terrain \u2192 score ${p.diabete ? 'SCORE2-Diabetes' : (age >= 70 ? 'SCORE2-OP' : 'SCORE2')} (r\u00e9gion bas risque \u2014 France)</div>
       <div class="cvr-grid">
-        <label>Tabac actif ? <select id="cvr-tabac"><option value="actif"${st.tabac === 'actif' ? ' selected' : ''}>Oui, fumeur</option><option value="non"${st.tabac === 'non' ? ' selected' : ''}>Non / sevr\u00e9</option></select></label>
-        <label>PAS (mmHg) <input type="number" id="cvr-sbp" min="70" max="250" step="1" value="${d2(st.sbp)}" placeholder="ex. 135"></label>
-        <label>Chol. total (g/L) <input type="number" id="cvr-chol" min="1" max="10" step="0.01" value="${d2(st.chol)}" placeholder="ex. 2,1 \u2192 2.1"></label>
-        <label>HDL (g/L) <input type="number" id="cvr-hdl" min="0.2" max="3" step="0.01" value="${d2(st.hdl)}" placeholder="ex. 0,6 \u2192 0.6"></label>
+        <div class="cvr-check">Tabac : <strong>${p.tabac === '' ? 'non renseigné' : (p.tabac === 'actif' ? 'actif' : (p.tabac === 'sevré' ? 'sevré (non fumeur pour le score)' : 'jamais'))}</strong> — pré-rempli depuis la partie Patient</div>
+        <div class="cvr-check">PAS : <strong>${d2(p.sbp)}</strong> mmHg — pré-rempli depuis la partie Patient</div>
+        <div class="cvr-check">Chol. total : <strong>${d2(p.chol)}</strong> g/L · HDL : <strong>${d2(p.hdl)}</strong> g/L — pré-remplis depuis la partie Patient</div>
         ${isDm ? `
         <label>HbA1c (mmol/mol) <input type="number" id="cvr-hba1c" min="20" max="150" step="1" value="${d2(st.hba1c)}" placeholder="ex. 58"></label>
         <label>\u00c2ge diag. DT2 <input type="number" id="cvr-diabage" min="20" max="85" step="1" value="${d2(st.diabAge)}" placeholder="ex. 55"></label>` : ''}
@@ -274,14 +282,6 @@ function bindCvr(p) {
     window._cvrOpen = !window._cvrOpen;
     render();
   });
-  const sbpEl = document.getElementById('cvr-sbp');
-  if (sbpEl) sbpEl.addEventListener('change', e => { cvrState.sbp = parseFloat(e.target.value) || null; renderCvr(P()); });
-  const cholEl = document.getElementById('cvr-chol');
-  if (cholEl) cholEl.addEventListener('change', e => { cvrState.chol = parseFloat(e.target.value) || null; renderCvr(P()); });
-  const hdlEl = document.getElementById('cvr-hdl');
-  if (hdlEl) hdlEl.addEventListener('change', e => { cvrState.hdl = parseFloat(e.target.value) || null; renderCvr(P()); });
-  const tabacEl = document.getElementById('cvr-tabac');
-  if (tabacEl) tabacEl.addEventListener('change', e => { cvrState.tabac = e.target.value; renderCvr(P()); });
   const hba1cEl = document.getElementById('cvr-hba1c');
   if (hba1cEl) hba1cEl.addEventListener('change', e => { cvrState.hba1c = parseFloat(e.target.value) || null; renderCvr(P()); });
   const daEl = document.getElementById('cvr-diabage');
@@ -950,7 +950,7 @@ document.addEventListener('change', e => {
   render();
 });
 
-['pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-ic', 'pat-dfg', 'pat-rac', 'pat-imc', 'pat-ldl'].forEach(idn =>
+['pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-ic', 'pat-dfg', 'pat-rac', 'pat-imc', 'pat-ldl', 'pat-sbp', 'pat-chol', 'pat-hdl'].forEach(idn =>
   document.getElementById(idn).addEventListener('change', render));
 
 document.getElementById('pat-date').value = new Date().toISOString().slice(0, 10);
@@ -978,6 +978,9 @@ document.getElementById('btn-save').addEventListener('click', () => {
       rac: document.getElementById('pat-rac').value,
       imc: document.getElementById('pat-imc').value,
       ldl: document.getElementById('pat-ldl').value,
+      sbp: document.getElementById('pat-sbp').value,
+      chol: document.getElementById('pat-chol').value,
+      hdl: document.getElementById('pat-hdl').value,
       date: document.getElementById('pat-date').value,
     },
     overrides,
@@ -1003,6 +1006,9 @@ document.getElementById('btn-load').addEventListener('click', () => {
   document.getElementById('pat-rac').value = data.patient?.rac || '';
   document.getElementById('pat-imc').value = data.patient?.imc || '';
   document.getElementById('pat-ldl').value = data.patient?.ldl || '';
+  document.getElementById('pat-sbp').value = data.patient?.sbp || '';
+  document.getElementById('pat-chol').value = data.patient?.chol || '';
+  document.getElementById('pat-hdl').value = data.patient?.hdl || '';
   document.getElementById('pat-date').value = data.patient?.date || new Date().toISOString().slice(0, 10);
   Object.keys(overrides).forEach(k => delete overrides[k]);
   Object.assign(overrides, data.overrides || {});
