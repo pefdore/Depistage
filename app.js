@@ -91,7 +91,7 @@ function renderPedia(p) {
   const panel = document.getElementById('pedia-panel');
   if (!panel) return;
   const m = p.ageMois;
-  if (m === null || m >= 24) { panel.innerHTML = ''; return; }
+  if (m === null || m >= 24) { panel.innerHTML = ''; window._pediaMonth = null; return; }
   const f = v => String(v).replace('.', ',');
   const vac = [];
   vac.push({ t: 'Naissance', i: 'BCG (si risque) \u2014 Vitamine K1' });
@@ -161,6 +161,42 @@ function renderPedia(p) {
     ['Normal', '≥ 10–20 mots à 18 mois, pointage protodéclaratif (montre pour partager), intérêt social, réponse au prénom.'],
     ['Pathologique', 'Aucun mot à 18 mois, pas de pointage, évitement du regard, régression du langage : réaliser le M-CHAT-R et adresser pédopsychiatrie/réseau TSA précocement — l’intervention avant 3 ans améliore le pronostic.'],
   ]});
+  const cur = (window._pediaMonth !== null && window._pediaMonth !== undefined) ? Math.min(23, Math.max(0, window._pediaMonth)) : m;
+  const curR = Math.round(cur);
+  const moisLbl = x => x === 0 ? 'Naissance' : x + ' mois';
+  const findVac = x => vac.filter(v => { const mm = v.t.match(/(\d+)(?:\u2013(\d+))?\s*mois/); return mm && (+mm[1] === x || (mm[2] && +mm[2] >= x && +mm[1] <= x)); }).map(v => v.i).join(' + ');
+  const vacAt = x => {
+    if (x === 0) return 'BCG (si risque) \u2014 Vitamine K1';
+    return findVac(x) || null;
+  };
+  const weightAt = x => {
+    if (x <= 3) return '+25 \u00e0 30 g/jour (poids de naissance doubl\u00e9 vers 4\u20135 mois)';
+    if (x <= 6) return '+15 \u00e0 20 g/jour';
+    if (x <= 12) return '+10 \u00e0 15 g/jour (poids de naissance tripl\u00e9 vers 1 an)';
+    return '+5 \u00e0 10 g/jour';
+  };
+  const laitAt = x => {
+    if (x <= 1) return '6\u20138 repas/jour, 60\u201390 mL par repas';
+    if (x <= 2) return '5\u20136 repas/jour, 90\u2013120 mL';
+    if (x <= 3) return '5 repas/jour, 120\u2013150 mL';
+    if (x <= 5) return '4\u20135 repas/jour, 150\u2013180 mL (max \u2248 210 mL)';
+    if (x <= 6) return '4 repas/jour, 180\u2013210 mL \u2014 d\u00e9but diversification';
+    return '500 mL de lait/jour minimum en parall\u00e8le de la diversification';
+  };
+  const diversAt = x => {
+    if (x < 4) return 'Lait exclusif \u2014 pas encore de diversification (d\u00e9but entre 4 et 6 mois)';
+    if (x <= 6) return 'D\u00e9but l\u00e9gumes et fruits (2\u20133 cuill\u00e8res \u2192 progresser) \u2014 le lait reste principal';
+    if (x <= 7) return '1 repas mix\u00e9 complet (l\u00e9gumes \u2248 130 g + viande/poisson 5\u201310 g ou 1/4 jaune d\u2019\u0153uf) + laitage ou fruit';
+    if (x <= 8) return '2 repas diversifi\u00e9s/jour \u2014 prot\u00e9ines 10 g/jour, f\u00e9culents 20\u201330 g, gluten entre 4 et 7 mois';
+    if (x <= 12) return 'Textures moulin\u00e9es puis petits morceaux \u2014 prot\u00e9ines 20 g/jour, 500 mL de lait/jour minimum';
+    return 'Repas quasi familial \u2014 prot\u00e9ines 20\u201330 g/jour, lait de croissance ou entier (500 mL/j), 3\u20134 repas + 1 collation ; \u00e9viter miel < 1 an, lait de vache seul < 1 an, sel, sucres ajout\u00e9s';
+  };
+  const psychoAt = x => {
+    const r = psycho.filter(px => { const mm = px.t.match(/(\d+)(?:\u2013(\d+))?\s*mois/); return mm && ((+mm[1] === x) || (mm[2] && x >= +mm[1] && x <= +mm[2])); });
+    if (r.length) return r.map(px => px.i).join(' ; ');
+    if (x === 0) return 'R\u00e9pond aux bruits (sursaut), fixe le visage';
+    return psycho[psycho.length - 1].i;
+  };
   const next = vac.filter(v => {
     const mm = v.t.match(/(\d+)(?:\u2013(\d+))?\s*mois/);
     return mm && (+mm[1] >= m);
@@ -169,6 +205,19 @@ function renderPedia(p) {
   <div class="pedia-box">
     <div class="pedia-head">\ud83e\udde0 Suivi p\u00e9diatrique \u2014 ${f(m)} mois</div>
     <div class="pedia-grid">
+      <div class="pedia-sec pedia-focus-sec">
+        <div class="pedia-sec-title">📍 Focus \u2014 ${moisLbl(curR)}${curR === Math.round(m) ? ' (mois actuel)' : ''}</div>
+        <div class="pedia-nav">
+          <button type="button" class="pedia-nav-btn" data-pedia-month="${Math.max(0, curR - 1)}"${curR <= 0 ? ' disabled' : ''}>◀ ${moisLbl(Math.max(0, curR - 1))}</button>
+          <button type="button" class="pedia-nav-btn" data-pedia-month="${Math.min(23, curR + 1)}"${curR >= 23 ? ' disabled' : ''}>${moisLbl(Math.min(23, curR + 1))} ▶</button>
+          ${window._pediaMonth !== null && window._pediaMonth !== undefined ? `<button type="button" class="pedia-nav-btn pedia-reset" data-pedia-month="auto">✖ Mois actuel (${moisLbl(Math.round(m))})</button>` : ''}
+        </div>
+        <div class="pedia-row"><strong>💉 Vaccins :</strong> ${vacAt(curR) ? escapeHtml(vacAt(curR)) : 'Aucun rendez-vous vaccinal ce mois-ci'}</div>
+        <div class="pedia-row"><strong>⚖️ Poids :</strong> ${escapeHtml(weightAt(curR))}</div>
+        <div class="pedia-row"><strong>🥛 Lait :</strong> ${escapeHtml(laitAt(curR))}</div>
+        <div class="pedia-row"><strong>🥗 Diversification :</strong> ${escapeHtml(diversAt(curR))}</div>
+        <div class="pedia-row"><strong>🧩 Psychomoteur :</strong> ${escapeHtml(psychoAt(curR))}</div>
+      </div>
       <div class="pedia-sec"><div class="pedia-sec-title">\ud83d\udc89 Prochain(s) rendez-vous vaccinaux</div>
         ${next.length ? next.map(v => `<div class="pedia-row"><strong>${v.t} :</strong> ${escapeHtml(v.i)}</div>`).join('') : '<div class="pedia-row">Calendrier de base termin\u00e9 pour cette p\u00e9riode \u2014 RRO 2 vers 16\u201318 mois, rappels dTP \u00e0 6 ans puis 11\u201313 ans.</div>'}
       </div>
@@ -186,7 +235,8 @@ function renderPedia(p) {
       </div>
     <div class="pedia-sub-title">🫂 Tests de dépistage — mode d’emploi (cliquer pour déplier)</div>
     ${devTests.map(t => `<details class="pedia-test"${t.age <= m + 3 ? ' open' : ''}><summary>${t.title} <span class="pedia-due">${t.age <= m ? 'à faire / à vérifier' : 'à partir de ' + t.age + ' mois'}</span></summary><div class="pedia-test-body">${t.sec.map(([k, v]) => `<div class="pedia-row"><strong>${k} :</strong> ${escapeHtml(v)}</div>`).join('')}</div></details>`).join('')}
-    <div class="pedia-foot">Rep\u00e8res moyens \u2014 calendrier vaccinal 2025 \u2014 adapter au contexte clinique.</div>
+    ${window._pediaMonth !== null && window._pediaMonth !== undefined ? `<button type="button" class="pedia-nav-btn pedia-reset pedia-reset-foot" data-pedia-month="auto">✖ Revenir au mois actuel (${moisLbl(Math.round(m))})</button>` : ''}
+    <div class="pedia-foot">Repères moyens \u2014 calendrier vaccinal 2025 \u2014 adapter au contexte clinique.</div>
   </div>`;
 }
 function renderEtat(p) {
@@ -1269,6 +1319,12 @@ function renderTodoChips(exams, list, muted) {
 
 // ---------- Événements ----------
 document.addEventListener('click', e => {
+  const pnav = e.target.closest('button[data-pedia-month]');
+  if (pnav) {
+    window._pediaMonth = pnav.dataset.pediaMonth === 'auto' ? null : +pnav.dataset.pediaMonth;
+    render();
+    return;
+  }
   const btn = e.target.closest('button[data-done]');
   if (btn) {
     doneExams[btn.dataset.done] = btn.dataset.st || 'fait';

@@ -432,6 +432,15 @@ details.pedia-test summary { cursor: pointer; padding: 9px 12px; font-weight: 60
 details.pedia-test[open] summary { border-bottom: 1px solid #d7ebf7; }
 .pedia-due { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; white-space: nowrap; background: #e3f2fd; color: #0d5a8c; }
 .pedia-test-body { padding: 8px 12px 10px; display: grid; gap: 6px; }
+.pedia-focus-sec { grid-column: 1 / -1; border: 1px solid #b3d9f2 !important; background: #eaf5fd !important; }
+.pedia-nav { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+.pedia-nav-btn { border: 1px solid #0d5a8c; background: #fff; color: #0d5a8c; border-radius: 14px; padding: 4px 12px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background .15s; }
+.pedia-nav-btn:hover:not(:disabled) { background: #0d5a8c; color: #fff; }
+.pedia-nav-btn:disabled { opacity: .35; cursor: default; }
+.pedia-nav-btn.pedia-reset { border-color: #b3541e; color: #b3541e; }
+.pedia-nav-btn.pedia-reset:hover { background: #b3541e; color: #fff; }
+.pedia-reset-foot { margin: 4px 0 0; }
+.pedia-next { background: #eaf5fd; }
 /* ---------- Pediatrie ---------- */
 .pedia-box { background: #f4fbff; border: 1px solid #b3d9f2; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; }
 .pedia-head { font-weight: 700; color: #0d5a8c; margin-bottom: 8px; font-size: .95rem; }
