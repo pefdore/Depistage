@@ -121,6 +121,46 @@ function renderPedia(p) {
   divers.push('7\u20138 mois : 2 repas diversifi\u00e9s/jour \u2014 prot\u00e9ines 10 g/jour, f\u00e9culents (20\u201330 g), gluten \u00e0 introduire entre 4 et 7 mois');
   divers.push('9\u201312 mois : textures moulin\u00e9es puis petits morceaux \u2014 prot\u00e9ines 20 g/jour (viande/poisson ou 1/2 \u0153uf), 500 mL de lait/jour minimum');
   divers.push('12\u201324 mois : morceaux, repas quasi familial \u2014 prot\u00e9ines 20\u201330 g/jour, lait de croissance ou lait entier (500 mL/j), 3\u20134 repas + 1 collation ; \u00e9viter : miel < 1 an, lait de vache seul < 1 an, sel, sucres ajout\u00e9s, fruits \u00e0 coque entiers < 4 ans');
+  const psycho = [];
+  psycho.push({ t: '0–2 mois', i: 'Répond aux bruits (sursaut), fixe le visage, sourire social vers 6–8 semaines, suit du regard' });
+  psycho.push({ t: '3–4 mois', i: 'Tient la tête relevée, tourne la tête vers le bruit, suit un objet des yeux, sourire social franc, gazouille' });
+  psycho.push({ t: '5–6 mois', i: 'Se retourne dos → ventre, attrape un objet et le porte à la bouche, tient assis avec appui, gazouillis variés' });
+  psycho.push({ t: '7–9 mois', i: 'Station assise seule et stable, réagit à son prénom, jeu de coucou, anxiété face à l’inconnu, passe l’objet d’une main à l’autre' });
+  psycho.push({ t: '10–12 mois', i: 'Se déplace à 4 pattes, préhension en pince pouce–index, « mama/dada », comprend « non », tient debout, premiers pas vers 12–15 mois' });
+  psycho.push({ t: '12–18 mois', i: 'Marche seule acquise (~13–15 mois), montre du doigt, 3–6 mots, mange seul à la cuillère, empile 2 cubes' });
+  psycho.push({ t: '18–24 mois', i: 'Court, monte les escaliers, 20–50 mots, phrases de 2 mots, montre 3 parties du corps, jeu symbolique (fait semblant)' });
+  psycho.push({ t: '⚠️ Signaux d’alerte', i: 'Pas de sourire social à 3 mois, pas de tenue de tête à 4 mois, pas d’assise à 9 mois, pas de marche à 18 mois, pas de pointage à 18 mois, ou perte d’un acquis : avis pédiatrique' });
+  const devTests = [];
+  devTests.push({ age: 0, due: 'à chaque examen', title: '🪵 Hanches (luxation congénitale) — Manœuvres d’Ortolani–Barlow', sec: [
+    ['Comment faire', 'Bébé détendu, sur le dos : saisir les cuisses, pousser doucement en axial (Barlow : cherche à luxer), puis abduire en ramenant la tête fémorale dans le cotyle (Ortolani : ressaut de réduction). Comparer l’abduction des deux hanches et les plis de l’aine.'],
+    ['Normal', 'Aucun ressaut, abduction symétrique ≈ 60–90°, plis symétriques. Un ressaut disparaissant avant 2–4 semaines peut être simple immaturité.'],
+    ['Pathologique', 'Ressaut, claquement, limitation d’abduction, asymétrie des plis, inégalité des membres : échographie des hanches à 4 mois (plus tôt si facteur de risque : siège, antécédent familial, fille, oligohydramnios) et avis orthopédique. Luxation non traitée = boiterie et arthrose précoce.'],
+  ]});
+  devTests.push({ age: 4, due: 'examen des 4 mois', title: '👁️ Vision — poursuite, strabisme, lueur pupillaire', sec: [
+    ['Comment faire', 'Bébé éveillé sur les genoux du parent : présenter un visage/objet coloré à ≈ 30 cm, vérifier la fixation puis la poursuite des yeux dans les 4 directions. Éclairer chaque œil : réflexe photomoteur, et lueur pupillaire symétrique (réflexe rétinien).'],
+    ['Normal', 'Poursuite symétrique des deux yeux, fixation stable, lueur pupillaire identique des deux côtés (rouge/orangée), pas de strabisme fixé (intermittence possible avant 3–4 mois).'],
+    ['Pathologique', 'Strabisme persistant après 4 mois, lueur pupillaire blanche ou asymétrique (leucocorie : rétinoblastome ou cataracte jusqu’à preuve du contraire — urgent), absence de poursuite, nystagmus, photophobie–larmoiement : avis ophtalmologique rapide.'],
+  ]});
+  devTests.push({ age: 4, due: 'examen des 4 mois', title: '👂 Audition — réaction aux bruits + PEAM', sec: [
+    ['Comment faire', 'Bruit non orienté type hochet, claquement de doigts ou voix, ≈ 30 cm hors du champ visuel, sans vibration transmise : chercher l’arrêt, le sourire ou la rotation de la tête vers le son. Vérifier au dossier que le PEAM (potentiels évoqués auditifs, dépistage maternité) a été fait et est normal.'],
+    ['Normal', 'Réaction d’orientation ou d’arrêt aux bruits, sursaut aux bruits forts, gazouillis naissant, PEAM normal.'],
+    ['Pathologique', 'Aucune réaction aux bruits, babillage pauvre/non modulé, PEAM non fait, suspect ou non reçu : orientation ORL pédiatrique sans attendre — chaque mois sans audition aggrave le retard de langage.'],
+  ]});
+  devTests.push({ age: 9, due: 'examen des 9 mois', title: '👁️ Vision — dépistage de l’amblyopie (avant 2 ans)', sec: [
+    ['Comment faire', 'Poursuite + occlusion alternée : cacher tour à tour chaque œil avec la main et observer — bébé accepte-t-il le masquage des deux côtés ? Chercher un strabisme (réflexe de lumière cornéenne centré ; cover-test si doute), et l’intérêt pour les petits objets.'],
+    ['Normal', 'Masquage accepté des deux côtés, poursuite symétrique, yeux parallèles, attrape les petites miettes.'],
+    ['Pathologique', 'Bébé se débat quand on cache un œil (l’autre est amblyope), strabisme manifeste, lueur blanche : avis ophtalmo pédiatrique rapide. L’amblyopie se traite avant 2 ans (période de plasticité visuelle) — au-delà, la perte devient définitive.'],
+  ]});
+  devTests.push({ age: 9, due: 'examen des 9–12 mois', title: '👂 Audition — test vocal (seuil ≈ 35 dB)', sec: [
+    ['Comment faire', 'À distance de ≈ 1 m, hors champ visuel, voix chuchotée ou ludophone/jouet sonore calibré ≈ 35 dB : bébé doit tourner la tête ou rechercher la source. Si doute, audiométrie comportementale (BOA) en cabine.'],
+    ['Normal', 'Orientation de la tête vers le son d’un seuil ≈ 35 dB, réaction à son prénom, babille « mama/baba ».'],
+    ['Pathologique', 'Pas d’orientation à 35–50 dB, indifférence à la voix : ORL + audiométrie objective (PEAM/ASSR) — suspicion de surdité ≥ 35 dB. Un déficit unilatéral passe inaperçu : vérifier chaque oreille séparément.'],
+  ]});
+  devTests.push({ age: 18, due: 'examen des 18–24 mois', title: '💬 Langage et développement — signes d’alerte TSA', sec: [
+    ['Comment faire', 'Demander aux parents : combien de mots ? pointe-t-il du doigt pour montrer ? répond-il à son prénom ? cherche-t-il le regard et le partage ? Test M-CHAT-R à 18–24 mois si inquiétude (screening TSA).'],
+    ['Normal', '≥ 10–20 mots à 18 mois, pointage protodéclaratif (montre pour partager), intérêt social, réponse au prénom.'],
+    ['Pathologique', 'Aucun mot à 18 mois, pas de pointage, évitement du regard, régression du langage : réaliser le M-CHAT-R et adresser pédopsychiatrie/réseau TSA précocement — l’intervention avant 3 ans améliore le pronostic.'],
+  ]});
   const next = vac.filter(v => {
     const mm = v.t.match(/(\d+)(?:\u2013(\d+))?\s*mois/);
     return mm && (+mm[1] >= m);
@@ -141,7 +181,11 @@ function renderPedia(p) {
       <div class="pedia-sec"><div class="pedia-sec-title">\ud83e\udd57 Diversification alimentaire</div>
         ${divers.map(w => `<div class="pedia-row">${escapeHtml(w)}</div>`).join('')}
       </div>
-    </div>
+      <div class="pedia-sec"><div class="pedia-sec-title">🧩 Développement psychomoteur</div>
+        ${psycho.map(x => `<div class="pedia-row"><strong>${x.t} :</strong> ${escapeHtml(x.i)}</div>`).join('')}
+      </div>
+    <div class="pedia-sub-title">🫂 Tests de dépistage — mode d’emploi (cliquer pour déplier)</div>
+    ${devTests.map(t => `<details class="pedia-test"${t.age <= m + 3 ? ' open' : ''}><summary>${t.title} <span class="pedia-due">${t.age <= m ? 'à faire / à vérifier' : 'à partir de ' + t.age + ' mois'}</span></summary><div class="pedia-test-body">${t.sec.map(([k, v]) => `<div class="pedia-row"><strong>${k} :</strong> ${escapeHtml(v)}</div>`).join('')}</div></details>`).join('')}
     <div class="pedia-foot">Rep\u00e8res moyens \u2014 calendrier vaccinal 2025 \u2014 adapter au contexte clinique.</div>
   </div>`;
 }

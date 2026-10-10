@@ -426,6 +426,12 @@ button.rx-head:hover { filter: none; background: transparent; }
 .rx-sub[open] summary::before { transform: rotate(90deg); }
 .rx-sub-body { padding: 2px 12px 8px; font-size: 0.9em; color: #444; line-height: 1.45; }
 .rx-sub-body > div { margin: 3px 0; }
+.pedia-sub-title { margin: 10px 0 4px; font-size: 12px; font-weight: 700; color: #0d5a8c; text-transform: uppercase; letter-spacing: .03em; }
+details.pedia-test { border: 1px solid #b3d9f2; border-radius: 8px; background: #fff; margin: 6px 0; overflow: hidden; }
+details.pedia-test summary { cursor: pointer; padding: 9px 12px; font-weight: 600; color: #0d5a8c; font-size: 13px; display: flex; align-items: center; justify-content: space-between; gap: 8px; user-select: none; }
+details.pedia-test[open] summary { border-bottom: 1px solid #d7ebf7; }
+.pedia-due { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; white-space: nowrap; background: #e3f2fd; color: #0d5a8c; }
+.pedia-test-body { padding: 8px 12px 10px; display: grid; gap: 6px; }
 /* ---------- Pediatrie ---------- */
 .pedia-box { background: #f4fbff; border: 1px solid #b3d9f2; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; }
 .pedia-head { font-weight: 700; color: #0d5a8c; margin-bottom: 8px; font-size: .95rem; }
