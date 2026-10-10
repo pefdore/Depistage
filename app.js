@@ -587,6 +587,19 @@ function statinAdvice(p, cvr, tg) {
   return { ok, reasons, drug, reduction, table, remb, ci };
 }
 
+function rxChips(reasons) {
+  return `<div class="rx-chips">${reasons.map(r => `<span class="rx-chip">\u2713 ${escapeHtml(r)}</span>`).join('')}</div>`;
+}
+function rxFlags(remb, ci) {
+  let h = '<div class="rx-flags">';
+  if (remb && remb.length) h += `<span class="rx-flag rf-remb" data-tip="${escapeHtml(remb.join(' ; '))}">\ud83d\udcb6 Remboursement</span>`;
+  if (ci && ci.length) h += `<span class="rx-flag rf-ci" data-tip="${escapeHtml(ci.join(' \u2014 '))}">\u26a0 CI / surveillance</span>`;
+  return h + '</div>';
+}
+function rxSub(title, lines) {
+  if (!lines || !lines.length) return '';
+  return `<details class="rx-sub"><summary>${escapeHtml(title)}</summary><div class="rx-sub-body">${lines.map(l => `<div>${escapeHtml(l)}</div>`).join('')}</div></details>`;
+}
 function renderRx(p) {
   const panel = document.getElementById('rx-panel');
 
@@ -603,29 +616,23 @@ function renderRx(p) {
   const ieStatus = ie.ok ? 'INDIQU\u00c9' : (p.hta || p.rac !== null ? 'Pas d\'indication' : '\u2014');
   const ieColor = ie.ok ? '#c8e6c9' : '#ffcdd2';
   const ieDetail = `
-    ${ie.reasons.map(r => `<div class="rx-reason">\u2713 ${escapeHtml(r)}</div>`).join('')}
-    ${ie.remb.length ? `<div class="rx-remb">\ud83d\udcb6 Remboursement : ${escapeHtml(ie.remb.join(' ; '))}</div>` : ''}
-    ${ie.ci.map(c => `<div class="rx-ci">\u26a0 ${escapeHtml(c)}</div>`).join('')}
-    ${!ie.ok && !ie.reasons.length ? '<div class="rx-reason">Aucun crit\u00e8re : HTA absente, pas d\'albuminurie \u2265 3 mg/mmol, pas d\'IC. Pas d\'indication \u00e0 ce jour.</div>' : ''}`;
+    ${ie.ok ? rxChips(ie.reasons) : (ie.reasons.length ? rxChips(ie.reasons) : '<div class="rx-muted-line">Aucun crit\u00e8re : HTA absente, pas d\'albuminurie \u2265 3 mg/mmol, pas d\'IC. Pas d\'indication \u00e0 ce jour.</div>')}
+    ${rxFlags(ie.remb, ie.ci)}`;
 
   const gl = isglt2Advice(p);
   const glStatus = gl.ok ? 'INDIQU\u00c9' : (p.dfg !== null || p.diabete || p.ic ? 'Pas d\'indication' : '\u2014');
   const glColor = gl.ok ? '#c8e6c9' : '#ffcdd2';
   const glDetail = `
-    ${gl.drug ? `<div class="rx-reason">\u2192 ${escapeHtml(gl.drug)}</div>` : ''}
-    ${gl.reasons.map(r => `<div class="rx-reason">\u2713 ${escapeHtml(r)}</div>`).join('')}
-    ${gl.remb.length ? `<div class="rx-remb">\ud83d\udcb6 Remboursement : ${escapeHtml(gl.remb.join(' ; '))}</div>` : ''}
-    ${gl.ci.map(c => `<div class="rx-ci">\u26a0 ${escapeHtml(c)}</div>`).join('')}
-    ${!gl.ok && !gl.reasons.length ? '<div class="rx-reason">Aucun crit\u00e8re : pas de DT2, pas d\'IC, DFG \u2265 45 ou albuminurie < 20 mg/mmol.</div>' : ''}`;
+    ${gl.ok && gl.drug ? `<div class="rx-drug">\u2192 <strong>${escapeHtml(gl.drug)}</strong></div>` : ''}
+    ${gl.ok ? rxChips(gl.reasons) : (gl.reasons.length ? rxChips(gl.reasons) : '<div class="rx-muted-line">Aucun crit\u00e8re : pas de DT2, pas d\'IC, DFG \u2265 45 ou albuminurie < 20 mg/mmol.</div>')}
+    ${rxFlags(gl.remb, gl.ci)}`;
 
   const gp = glp1Advice(p);
   const gpStatus = gp.ok ? 'INDIQU\u00c9' : (p.imc !== null || p.diabete ? 'Pas d\'indication' : '\u2014');
   const gpColor = gp.ok ? '#c8e6c9' : '#ffcdd2';
   const gpDetail = `
-    ${gp.reasons.map(r => `<div class="rx-reason">\u2713 ${escapeHtml(r)}</div>`).join('')}
-    ${gp.remb.length ? `<div class="rx-remb">\ud83d\udcb6 Remboursement : ${escapeHtml(gp.remb.join(' ; '))}</div>` : ''}
-    ${gp.ci.map(c => `<div class="rx-ci">\u26a0 ${escapeHtml(c)}</div>`).join('')}
-    ${!gp.ok && !gp.reasons.length ? '<div class="rx-reason">Aucun crit\u00e8re : pas de DT2, IMC < 27 ou sans comorbidit\u00e9. Pas d\'indication \u00e0 ce jour.</div>' : ''}`;
+    ${gp.ok ? rxChips(gp.reasons) : (gp.reasons.length ? rxChips(gp.reasons) : '<div class="rx-muted-line">Aucun crit\u00e8re : pas de DT2, IMC < 27 ou sans comorbidit\u00e9. Pas d\'indication \u00e0 ce jour.</div>')}
+    ${rxFlags(gp.remb, gp.ci)}`;
 
   const cvr = cvrCompute(p);
   const tg = ldlTarget(p, cvr);
@@ -633,23 +640,21 @@ function renderRx(p) {
   const stStatus = stt.ok ? 'INDIQU\u00c9' : (tg ? 'Pas d\'indication' : '\u2014');
   const stColor = stt.ok ? '#c8e6c9' : '#ffcdd2';
   const stDetail = `
-    ${stt.reasons.map(r => `<div class="rx-reason">\u2713 ${escapeHtml(r)}</div>`).join('')}
-    ${stt.drug ? `<div class="rx-reason">\u2192 Sugg\u00e9r\u00e9 : <strong>${escapeHtml(stt.drug)}</strong></div>` : ''}
-    ${stt.reduction ? `<div class="rx-reason">${escapeHtml(stt.reduction)}</div>` : ''}
-    ${stt.table.length ? `<div class="rx-remb">Puissance des statines (baisse moyenne de LDL) \u2014 celle sugg\u00e9r\u00e9e est la premi\u00e8re permettant d\u2019atteindre la cible depuis le LDL de d\u00e9part :</div>${stt.table.map(l => `<div class="rx-reason">${escapeHtml(l)}</div>`).join('')}` : ''}
-    ${stt.remb.length ? `<div class="rx-remb">\ud83d\udcb6 Remboursement : ${escapeHtml(stt.remb.join(' ; '))}</div>` : ''}
-    ${stt.ci.map(c => `<div class="rx-ci">\u26a0 ${escapeHtml(c)}</div>`).join('')}
-    ${!stt.ok && !stt.reasons.length ? '<div class="rx-reason">Aucune indication : risque CV faible/mod\u00e9r\u00e9 sans cible d\u00e9pass\u00e9e, pas de terrain, LDL conforme. Hygi\u00e8ne de vie et r\u00e9\u00e9valuation.</div>' : ''}`;
+    ${stt.ok ? rxChips(stt.reasons) : (stt.reasons.length ? rxChips(stt.reasons) : '<div class="rx-muted-line">Aucune indication : risque CV faible/mod\u00e9r\u00e9 sans cible d\u00e9pass\u00e9e, pas de terrain, LDL conforme. Hygi\u00e8ne de vie et r\u00e9\u00e9valuation.</div>')}
+    ${stt.drug ? `<div class="rx-drug">\u2192 Sugg\u00e9r\u00e9 : <strong>${escapeHtml(stt.drug)}</strong></div>` : ''}
+    ${stt.reduction ? `<div class="rx-goal">${escapeHtml(stt.reduction)}</div>` : ''}
+    ${rxSub('Puissance des statines (baisse moyenne de LDL)', stt.table)}
+    ${rxFlags(stt.remb, stt.ci)}`;
 
   const openState = window._rxOpen || {};
   const dms = dmStrategy(p, cvr);
   let dmBoxes = '';
   if (dms) {
     const dmDetail = `
-    <div class="rx-reason"><strong>${escapeHtml(dms.target)}</strong></div>
-    ${dms.profiles.map(x => `<div class="rx-reason"><strong>${escapeHtml(x.n)} :</strong> ${escapeHtml(x.t)}</div>`).join('')}
-    ${dms.base.map(b => `<div class="rx-ci">\u26a0 ${escapeHtml(b)}</div>`).join('')}
-    <div class="rx-remb">\ud83d\udcb6 Remboursement : DT2 = ALD 100 % ; insuline, metformine, GLP-1 RA (ob\u00e9sit\u00e9 IMC \u2265 30 ou \u2265 27 + comorbidit\u00e9), iSGLT2 ( indications cardio-r\u00e9nales) rembours\u00e9s aux conditions habituelles (SMR important / insuffisant selon mol\u00e9cule).</div>`;
+    <div class="rx-goal"><strong>${escapeHtml(dms.target)}</strong></div>
+    ${dms.profiles.map(x => rxSub(x.n, [x.t])).join('')}
+    ${rxSub('Adaptations r\u00e9nales (m\u00e9tformine / iSGLT2)', dms.base)}
+    ${rxFlags(['DT2 = ALD 100 % ; insuline, metformine, GLP-1 RA (ob\u00e9sit\u00e9 IMC \u2265 30 ou \u2265 27 + comorbidit\u00e9), iSGLT2 (indications cardio-r\u00e9nales) rembours\u00e9s aux conditions habituelles (SMR important / insuffisant selon mol\u00e9cule)'], dms.base)}`;
     dmBoxes = makeBox(!!openState.dm, '#1565c0', '\ud83e\udd78', 'Strat\u00e9gie antidiab\u00e9tique (DT2)', dms.profiles.length && dms.profiles[0].n !== 'Aucun crit\u00e8re sp\u00e9cifique d\u00e9tect\u00e9' ? dms.profiles.length + ' profil(s) actif(s)' : 'Base : metformine', '#bbdefb', dmDetail);
   }
   panel.innerHTML =

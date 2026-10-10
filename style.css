@@ -408,3 +408,21 @@ button.rx-head:hover { filter: none; background: transparent; }
 .etat-title { font-weight: 600; font-size: 0.9em; color: #444; margin-bottom: 2px; }
 .etat-txt { font-size: 0.92em; line-height: 1.35; }
 .etat-empty { color: #888; font-size: 0.9em; font-style: italic; margin-bottom: 12px; }
+/* ---------- Cartes traitements v2 ---------- */
+.rx-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 6px; }
+.rx-chip { background: #e8f5e9; color: #1b5e20; border: 1px solid #a5d6a7; border-radius: 14px; padding: 3px 10px; font-size: 0.88em; line-height: 1.3; }
+.rx-drug { background: #e3f2fd; border: 1px solid #90caf9; border-left: 4px solid #1565c0; border-radius: 6px; padding: 6px 10px; margin: 6px 0; font-size: 0.95em; }
+.rx-goal { background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px; padding: 6px 10px; margin: 6px 0; font-size: 0.9em; }
+.rx-muted-line { color: #777; font-style: italic; margin: 2px 0; }
+.rx-flags { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 2px; }
+.rx-flag { position: relative; border-radius: 12px; padding: 2px 10px; font-size: 0.82em; font-weight: 600; cursor: help; }
+.rf-remb { background: #fff3cd; border: 1px solid #e6c200; color: #7a5c00; }
+.rf-ci { background: #fdecea; border: 1px solid #e57373; color: #a02020; }
+.rx-flag[data-tip]::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 0; z-index: 30; background: #333; color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 0.85em; font-weight: 400; width: 340px; max-width: 80vw; white-space: normal; text-align: left; box-shadow: 0 4px 14px rgba(0,0,0,.25); opacity: 0; visibility: hidden; transform: translateY(4px); transition: opacity .18s ease, transform .18s ease; }
+.rx-flag[data-tip]:hover::after, .rx-flag[data-tip]:focus::after { opacity: 1; visibility: visible; transform: translateY(0); }
+.rx-sub { margin: 6px 0; border: 1px solid #e0e0e0; border-radius: 6px; background: #fff; }
+.rx-sub summary { cursor: pointer; padding: 5px 10px; font-size: 0.9em; font-weight: 600; color: #37474f; list-style: none; display: flex; align-items: center; gap: 6px; }
+.rx-sub summary::before { content: '▸'; color: #90a4ae; transition: transform .2s ease; }
+.rx-sub[open] summary::before { transform: rotate(90deg); }
+.rx-sub-body { padding: 2px 12px 8px; font-size: 0.9em; color: #444; line-height: 1.45; }
+.rx-sub-body > div { margin: 3px 0; }
