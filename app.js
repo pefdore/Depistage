@@ -7,6 +7,7 @@
 
 const P = () => {
   const age = parseInt(document.getElementById('pat-age').value, 10);
+  const ageMoisRaw = parseFloat(document.getElementById('pat-age-mois')?.value);
   const sex = document.getElementById('pat-sex').value;
   const tabac = document.getElementById('pat-tabac').value;
   const pa = parseFloat(document.getElementById('pat-pa').value);
@@ -19,6 +20,7 @@ const P = () => {
   const hba1c = parseFloat(document.getElementById('pat-hba1c')?.value);
   return {
     age: isNaN(age) ? null : age,
+    ageMois: isNaN(ageMoisRaw) ? null : ageMoisRaw,
     sex,
     tabac,                                  // 'jamais' | 'sevré' | 'actif' | ''
     pa: isNaN(pa) ? null : pa,
@@ -85,6 +87,64 @@ function kdigoStage(p) {
   return { g, a, risk };
 }
 
+function renderPedia(p) {
+  const panel = document.getElementById('pedia-panel');
+  if (!panel) return;
+  const m = p.ageMois;
+  if (m === null || m >= 24) { panel.innerHTML = ''; return; }
+  const f = v => String(v).replace('.', ',');
+  const vac = [];
+  vac.push({ t: 'Naissance', i: 'BCG (si risque) \u2014 Vitamine K1' });
+  vac.push({ t: '2 mois', i: 'Vaccin hexavalent (DT-Polio-Hib-HepB 1), Rota 1e dose, Bexsero 1, MenACWY 1re dose (Nimenrix), pneumocoque 1' });
+  vac.push({ t: '3 mois', i: 'Bexsero 2e dose (m\u00e9ningocoque B)' });
+  vac.push({ t: '4 mois', i: 'Hexavalent 2, Rota 2e dose, pneumocoque 2, MenACWY 2e dose' });
+  vac.push({ t: '5 mois', i: 'Bexsero 3e dose (m\u00e9ningocoque B)' });
+  vac.push({ t: '11 mois', i: 'Hexavalent 3, pneumocoque 3 (rappel)' });
+  vac.push({ t: '12 mois', i: 'Rappel MenACWY (Nimenrix ou Menquadfi) \u2014 Rougeole-Rub\u00e9ole-Oreillons (RRO) 1re dose, h\u00e9patite A selon contexte' });
+  vac.push({ t: '16\u201318 mois', i: 'RRO 2e dose (rattrapage possible plus t\u00f4t d\u00e8s 12 mois)' });
+  const weight = [];
+  weight.push('Naissance : 3,3 kg en moyenne (perte max 10 % les 3 premiers jours, regained vers J10\u201314)');
+  weight.push('0\u20133 mois : +25 \u00e0 30 g/jour (double le poids de naissance \u00e0 4\u20135 mois)');
+  weight.push('3\u20136 mois : +15 \u00e0 20 g/jour');
+  weight.push('6\u201312 mois : +10 \u00e0 15 g/jour (tripled le poids de naissance \u00e0 1 an)');
+  weight.push('12\u201324 mois : +5 \u00e0 10 g/jour ; taille +12 cm la 1re ann\u00e9e, +8 cm la 2e');
+  const lait = [];
+  lait.push('0\u20131 mois : 6\u20138 repas/jour, 60\u201390 mL par repas (app\u00e9tit libre)');
+  lait.push('1\u20132 mois : 5\u20136 repas, 90\u2013120 mL');
+  lait.push('2\u20133 mois : 5 repas, 120\u2013150 mL');
+  lait.push('3\u20135 mois : 4\u20135 repas, 150\u2013180 mL (max \u2248 210 mL)');
+  lait.push('5\u20136 mois : 4 repas, 180\u2013210 mL \u2014 d\u00e9but diversification entre 4 et 6 mois (fen\u00eatre d\u2019acceptation)');
+  lait.push('R\u00e8gle pratique : 1/10e du poids corporel en mL/jour, sans d\u00e9passer \u2248 1 L/jour. Allaitement : \u00e0 la demande, sans comptage.');
+  const divers = [];
+  divers.push('4\u20136 mois : d\u00e9but l\u00e9gumes et fruits (2\u20133 cuill\u00e8res \u2192 progresser) \u2014 lait reste principal');
+  divers.push('6\u20137 mois : 1 repas mix\u00e9 complet (l\u00e9gumes \u2248 130 g + viande/poisson 5\u201310 g ou 1/4 jaune d\u2019\u0153uf) + laitage ou fruit en dessert');
+  divers.push('7\u20138 mois : 2 repas diversifi\u00e9s/jour \u2014 prot\u00e9ines 10 g/jour, f\u00e9culents (20\u201330 g), gluten \u00e0 introduire entre 4 et 7 mois');
+  divers.push('9\u201312 mois : textures moulin\u00e9es puis petits morceaux \u2014 prot\u00e9ines 20 g/jour (viande/poisson ou 1/2 \u0153uf), 500 mL de lait/jour minimum');
+  divers.push('12\u201324 mois : morceaux, repas quasi familial \u2014 prot\u00e9ines 20\u201330 g/jour, lait de croissance ou lait entier (500 mL/j), 3\u20134 repas + 1 collation ; \u00e9viter : miel < 1 an, lait de vache seul < 1 an, sel, sucres ajout\u00e9s, fruits \u00e0 coque entiers < 4 ans');
+  const next = vac.filter(v => {
+    const mm = v.t.match(/(\d+)(?:\u2013(\d+))?\s*mois/);
+    return mm && (+mm[1] >= m);
+  });
+  panel.innerHTML = `
+  <div class="pedia-box">
+    <div class="pedia-head">\ud83e\udde0 Suivi p\u00e9diatrique \u2014 ${f(m)} mois</div>
+    <div class="pedia-grid">
+      <div class="pedia-sec"><div class="pedia-sec-title">\ud83d\udc89 Prochain(s) rendez-vous vaccinaux</div>
+        ${next.length ? next.map(v => `<div class="pedia-row"><strong>${v.t} :</strong> ${escapeHtml(v.i)}</div>`).join('') : '<div class="pedia-row">Calendrier de base termin\u00e9 pour cette p\u00e9riode \u2014 RRO 2 vers 16\u201318 mois, rappels dTP \u00e0 6 ans puis 11\u201313 ans.</div>'}
+      </div>
+      <div class="pedia-sec"><div class="pedia-sec-title">\u2696\ufe0f Prise de poids attendue</div>
+        ${weight.map(w => `<div class="pedia-row">${escapeHtml(w)}</div>`).join('')}
+      </div>
+      <div class="pedia-sec"><div class="pedia-sec-title">\ud83e\udd5b Quantit\u00e9s de lait (biberon)</div>
+        ${lait.map(w => `<div class="pedia-row">${escapeHtml(w)}</div>`).join('')}
+      </div>
+      <div class="pedia-sec"><div class="pedia-sec-title">\ud83e\udd57 Diversification alimentaire</div>
+        ${divers.map(w => `<div class="pedia-row">${escapeHtml(w)}</div>`).join('')}
+      </div>
+    </div>
+    <div class="pedia-foot">Rep\u00e8res moyens \u2014 calendrier vaccinal 2025 \u2014 adapter au contexte clinique.</div>
+  </div>`;
+}
 function renderEtat(p) {
   const panel = document.getElementById('etat-panel');
   if (!panel) return;
@@ -1006,6 +1066,7 @@ function render() {
   document.getElementById('patient-warn').classList.toggle('hidden', !!complete);
 
   const reminders = [];
+  renderPedia(p);
   renderEtat(p);
   renderKdigo(p);
   renderCvr(p);
@@ -1197,7 +1258,7 @@ document.addEventListener('change', e => {
   render();
 });
 
-['pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-ic', 'pat-dfg', 'pat-rac', 'pat-imc', 'pat-ldl', 'pat-sbp', 'pat-chol', 'pat-hdl', 'pat-hba1c'].forEach(idn =>
+['pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-ic', 'pat-dfg', 'pat-rac', 'pat-imc', 'pat-ldl', 'pat-sbp', 'pat-chol', 'pat-hdl', 'pat-hba1c', 'pat-age-mois'].forEach(idn =>
   document.getElementById(idn).addEventListener('change', render));
 
 document.getElementById('pat-date').value = new Date().toISOString().slice(0, 10);
@@ -1215,6 +1276,7 @@ document.getElementById('btn-save').addEventListener('click', () => {
     patient: {
       name: document.getElementById('pat-name').value,
       age: document.getElementById('pat-age').value,
+      ageMois: document.getElementById('pat-age-mois').value,
       sex: document.getElementById('pat-sex').value,
       tabac: document.getElementById('pat-tabac').value,
       pa: document.getElementById('pat-pa').value,
@@ -1244,6 +1306,7 @@ document.getElementById('btn-load').addEventListener('click', () => {
   const data = JSON.parse(raw);
   document.getElementById('pat-name').value = data.patient?.name || '';
   document.getElementById('pat-age').value = data.patient?.age || '';
+  document.getElementById('pat-age-mois').value = data.patient?.ageMois || '';
   document.getElementById('pat-sex').value = data.patient?.sex || '';
   document.getElementById('pat-tabac').value = data.patient?.tabac || '';
   document.getElementById('pat-pa').value = data.patient?.pa || '';

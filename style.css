@@ -426,3 +426,11 @@ button.rx-head:hover { filter: none; background: transparent; }
 .rx-sub[open] summary::before { transform: rotate(90deg); }
 .rx-sub-body { padding: 2px 12px 8px; font-size: 0.9em; color: #444; line-height: 1.45; }
 .rx-sub-body > div { margin: 3px 0; }
+/* ---------- Pediatrie ---------- */
+.pedia-box { background: #f4fbff; border: 1px solid #b3d9f2; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; }
+.pedia-head { font-weight: 700; color: #0d5a8c; margin-bottom: 8px; font-size: .95rem; }
+.pedia-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; }
+.pedia-sec { background: #fff; border: 1px solid #d8e8f5; border-radius: 8px; padding: 8px 12px; }
+.pedia-sec-title { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: #0d5a8c; font-weight: 700; margin-bottom: 5px; }
+.pedia-row { font-size: .87rem; line-height: 1.45; margin: 3px 0; color: #333; }
+.pedia-foot { font-size: .75rem; color: #888; margin-top: 8px; font-style: italic; }

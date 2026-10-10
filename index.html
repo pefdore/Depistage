@@ -19,6 +19,7 @@
     <div class="patient-grid">
       <label>Nom / Initiales <input type="text" id="pat-name" placeholder="Initiales ou nom"></label>
       <label>Âge <input type="number" id="pat-age" min="0" max="120" placeholder="ans"></label>
+      <label>Âge (mois) <input type="number" id="pat-age-mois" min="0" max="36" step="0.5" placeholder="si &lt; 24 mois"></label>
       <label>Sexe
         <select id="pat-sex">
           <option value="">—</option>
@@ -72,6 +73,7 @@
 
   <section class="card">
     <h2>📋 État des lieux</h2>
+    <div id="pedia-panel"></div>
     <div id="etat-panel"></div>
     <div id="kdigo-panel"></div>
     <div id="cvr-panel"></div>
