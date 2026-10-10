@@ -449,3 +449,13 @@ details.pedia-test[open] summary { border-bottom: 1px solid #d7ebf7; }
 .pedia-sec-title { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: #0d5a8c; font-weight: 700; margin-bottom: 5px; }
 .pedia-row { font-size: .87rem; line-height: 1.45; margin: 3px 0; color: #333; }
 .pedia-foot { font-size: .75rem; color: #888; margin-top: 8px; font-style: italic; }
+/* Timeline pédia mois par mois */
+.pedia-timeline { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.pedia-month-chip { border: 1px solid #b3d9f2; background: #fff; color: #0d5a8c; border-radius: 12px; min-width: 30px; padding: 3px 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background .15s; }
+.pedia-month-chip:hover { background: #d7ebf7; }
+.pedia-month-chip.pedia-month-cur { background: #0d5a8c; color: #fff; border-color: #0d5a8c; }
+.pedia-month-chip.pedia-month-real { box-shadow: 0 0 0 2px #2e7d32; }
+.pedia-legend { font-size: .72rem; color: #666; font-style: italic; }
+.pedia-alert-row { background: #fff3e0; border: 1px solid #ffb74d; border-radius: 6px; padding: 5px 8px; }
+.pedia-flag { border-left: 3px solid #e57373; padding-left: 8px; }
+.pedia-flag-cur { background: #ffebee; border-radius: 6px; }

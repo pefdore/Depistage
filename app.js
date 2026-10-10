@@ -93,150 +93,165 @@ function renderPedia(p) {
   const m = p.ageMois;
   if (m === null || m >= 24) { panel.innerHTML = ''; window._pediaMonth = null; return; }
   const f = v => String(v).replace('.', ',');
-  const vac = [];
-  vac.push({ t: 'Naissance', i: 'BCG (si risque) \u2014 Vitamine K1' });
-  vac.push({ t: '2 mois', i: 'Vaccin hexavalent (DT-Polio-Hib-HepB 1), Rota 1e dose, Bexsero 1, MenACWY 1re dose (Nimenrix), pneumocoque 1' });
-  vac.push({ t: '3 mois', i: 'Bexsero 2e dose (m\u00e9ningocoque B)' });
-  vac.push({ t: '4 mois', i: 'Hexavalent 2, Rota 2e dose, pneumocoque 2, MenACWY 2e dose' });
-  vac.push({ t: '5 mois', i: 'Bexsero 3e dose (m\u00e9ningocoque B)' });
-  vac.push({ t: '11 mois', i: 'Hexavalent 3, pneumocoque 3 (rappel)' });
-  vac.push({ t: '12 mois', i: 'Rappel MenACWY (Nimenrix ou Menquadfi) \u2014 Rougeole-Rub\u00e9ole-Oreillons (RRO) 1re dose, h\u00e9patite A selon contexte' });
-  vac.push({ t: '16\u201318 mois', i: 'RRO 2e dose (rattrapage possible plus t\u00f4t d\u00e8s 12 mois)' });
-  const weight = [];
-  weight.push('Naissance : 3,3 kg en moyenne (perte max 10 % les 3 premiers jours, regained vers J10\u201314)');
-  weight.push('0\u20133 mois : +25 \u00e0 30 g/jour (double le poids de naissance \u00e0 4\u20135 mois)');
-  weight.push('3\u20136 mois : +15 \u00e0 20 g/jour');
-  weight.push('6\u201312 mois : +10 \u00e0 15 g/jour (tripled le poids de naissance \u00e0 1 an)');
-  weight.push('12\u201324 mois : +5 \u00e0 10 g/jour ; taille +12 cm la 1re ann\u00e9e, +8 cm la 2e');
-  const lait = [];
-  lait.push('0\u20131 mois : 6\u20138 repas/jour, 60\u201390 mL par repas (app\u00e9tit libre)');
-  lait.push('1\u20132 mois : 5\u20136 repas, 90\u2013120 mL');
-  lait.push('2\u20133 mois : 5 repas, 120\u2013150 mL');
-  lait.push('3\u20135 mois : 4\u20135 repas, 150\u2013180 mL (max \u2248 210 mL)');
-  lait.push('5\u20136 mois : 4 repas, 180\u2013210 mL \u2014 d\u00e9but diversification entre 4 et 6 mois (fen\u00eatre d\u2019acceptation)');
-  lait.push('R\u00e8gle pratique : 1/10e du poids corporel en mL/jour, sans d\u00e9passer \u2248 1 L/jour. Allaitement : \u00e0 la demande, sans comptage.');
-  const divers = [];
-  divers.push('4\u20136 mois : d\u00e9but l\u00e9gumes et fruits (2\u20133 cuill\u00e8res \u2192 progresser) \u2014 lait reste principal');
-  divers.push('6\u20137 mois : 1 repas mix\u00e9 complet (l\u00e9gumes \u2248 130 g + viande/poisson 5\u201310 g ou 1/4 jaune d\u2019\u0153uf) + laitage ou fruit en dessert');
-  divers.push('7\u20138 mois : 2 repas diversifi\u00e9s/jour \u2014 prot\u00e9ines 10 g/jour, f\u00e9culents (20\u201330 g), gluten \u00e0 introduire entre 4 et 7 mois');
-  divers.push('9\u201312 mois : textures moulin\u00e9es puis petits morceaux \u2014 prot\u00e9ines 20 g/jour (viande/poisson ou 1/2 \u0153uf), 500 mL de lait/jour minimum');
-  divers.push('12\u201324 mois : morceaux, repas quasi familial \u2014 prot\u00e9ines 20\u201330 g/jour, lait de croissance ou lait entier (500 mL/j), 3\u20134 repas + 1 collation ; \u00e9viter : miel < 1 an, lait de vache seul < 1 an, sel, sucres ajout\u00e9s, fruits \u00e0 coque entiers < 4 ans');
-  const psycho = [];
-  psycho.push({ t: '0–2 mois', i: 'Répond aux bruits (sursaut), fixe le visage, sourire social vers 6–8 semaines, suit du regard' });
-  psycho.push({ t: '3–4 mois', i: 'Tient la tête relevée, tourne la tête vers le bruit, suit un objet des yeux, sourire social franc, gazouille' });
-  psycho.push({ t: '5–6 mois', i: 'Se retourne dos → ventre, attrape un objet et le porte à la bouche, tient assis avec appui, gazouillis variés' });
-  psycho.push({ t: '7–9 mois', i: 'Station assise seule et stable, réagit à son prénom, jeu de coucou, anxiété face à l’inconnu, passe l’objet d’une main à l’autre' });
-  psycho.push({ t: '10–12 mois', i: 'Se déplace à 4 pattes, préhension en pince pouce–index, « mama/dada », comprend « non », tient debout, premiers pas vers 12–15 mois' });
-  psycho.push({ t: '12–18 mois', i: 'Marche seule acquise (~13–15 mois), montre du doigt, 3–6 mots, mange seul à la cuillère, empile 2 cubes' });
-  psycho.push({ t: '18–24 mois', i: 'Court, monte les escaliers, 20–50 mots, phrases de 2 mots, montre 3 parties du corps, jeu symbolique (fait semblant)' });
-  psycho.push({ t: '⚠️ Signaux d’alerte', i: 'Pas de sourire social à 3 mois, pas de tenue de tête à 4 mois, pas d’assise à 9 mois, pas de marche à 18 mois, pas de pointage à 18 mois, ou perte d’un acquis : avis pédiatrique' });
-  const devTests = [];
-  devTests.push({ age: 0, due: 'à chaque examen', title: '🪵 Hanches (luxation congénitale) — Manœuvres d’Ortolani–Barlow', sec: [
-    ['Comment faire', 'Bébé détendu, sur le dos : saisir les cuisses, pousser doucement en axial (Barlow : cherche à luxer), puis abduire en ramenant la tête fémorale dans le cotyle (Ortolani : ressaut de réduction). Comparer l’abduction des deux hanches et les plis de l’aine.'],
-    ['Normal', 'Aucun ressaut, abduction symétrique ≈ 60–90°, plis symétriques. Un ressaut disparaissant avant 2–4 semaines peut être simple immaturité.'],
-    ['Pathologique', 'Ressaut, claquement, limitation d’abduction, asymétrie des plis, inégalité des membres : échographie des hanches à 4 mois (plus tôt si facteur de risque : siège, antécédent familial, fille, oligohydramnios) et avis orthopédique. Luxation non traitée = boiterie et arthrose précoce.'],
-  ]});
-  devTests.push({ age: 4, due: 'examen des 4 mois', title: '👁️ Vision — poursuite, strabisme, lueur pupillaire', sec: [
-    ['Comment faire', 'Bébé éveillé sur les genoux du parent : présenter un visage/objet coloré à ≈ 30 cm, vérifier la fixation puis la poursuite des yeux dans les 4 directions. Éclairer chaque œil : réflexe photomoteur, et lueur pupillaire symétrique (réflexe rétinien).'],
-    ['Normal', 'Poursuite symétrique des deux yeux, fixation stable, lueur pupillaire identique des deux côtés (rouge/orangée), pas de strabisme fixé (intermittence possible avant 3–4 mois).'],
-    ['Pathologique', 'Strabisme persistant après 4 mois, lueur pupillaire blanche ou asymétrique (leucocorie : rétinoblastome ou cataracte jusqu’à preuve du contraire — urgent), absence de poursuite, nystagmus, photophobie–larmoiement : avis ophtalmologique rapide.'],
-  ]});
-  devTests.push({ age: 4, due: 'examen des 4 mois', title: '👂 Audition — réaction aux bruits + PEAM', sec: [
-    ['Comment faire', 'Bruit non orienté type hochet, claquement de doigts ou voix, ≈ 30 cm hors du champ visuel, sans vibration transmise : chercher l’arrêt, le sourire ou la rotation de la tête vers le son. Vérifier au dossier que le PEAM (potentiels évoqués auditifs, dépistage maternité) a été fait et est normal.'],
-    ['Normal', 'Réaction d’orientation ou d’arrêt aux bruits, sursaut aux bruits forts, gazouillis naissant, PEAM normal.'],
-    ['Pathologique', 'Aucune réaction aux bruits, babillage pauvre/non modulé, PEAM non fait, suspect ou non reçu : orientation ORL pédiatrique sans attendre — chaque mois sans audition aggrave le retard de langage.'],
-  ]});
-  devTests.push({ age: 9, due: 'examen des 9 mois', title: '👁️ Vision — dépistage de l’amblyopie (avant 2 ans)', sec: [
-    ['Comment faire', 'Poursuite + occlusion alternée : cacher tour à tour chaque œil avec la main et observer — bébé accepte-t-il le masquage des deux côtés ? Chercher un strabisme (réflexe de lumière cornéenne centré ; cover-test si doute), et l’intérêt pour les petits objets.'],
-    ['Normal', 'Masquage accepté des deux côtés, poursuite symétrique, yeux parallèles, attrape les petites miettes.'],
-    ['Pathologique', 'Bébé se débat quand on cache un œil (l’autre est amblyope), strabisme manifeste, lueur blanche : avis ophtalmo pédiatrique rapide. L’amblyopie se traite avant 2 ans (période de plasticité visuelle) — au-delà, la perte devient définitive.'],
-  ]});
-  devTests.push({ age: 9, due: 'examen des 9–12 mois', title: '👂 Audition — test vocal (seuil ≈ 35 dB)', sec: [
-    ['Comment faire', 'À distance de ≈ 1 m, hors champ visuel, voix chuchotée ou ludophone/jouet sonore calibré ≈ 35 dB : bébé doit tourner la tête ou rechercher la source. Si doute, audiométrie comportementale (BOA) en cabine.'],
-    ['Normal', 'Orientation de la tête vers le son d’un seuil ≈ 35 dB, réaction à son prénom, babille « mama/baba ».'],
-    ['Pathologique', 'Pas d’orientation à 35–50 dB, indifférence à la voix : ORL + audiométrie objective (PEAM/ASSR) — suspicion de surdité ≥ 35 dB. Un déficit unilatéral passe inaperçu : vérifier chaque oreille séparément.'],
-  ]});
-  devTests.push({ age: 18, due: 'examen des 18–24 mois', title: '💬 Langage et développement — signes d’alerte TSA', sec: [
-    ['Comment faire', 'Demander aux parents : combien de mots ? pointe-t-il du doigt pour montrer ? répond-il à son prénom ? cherche-t-il le regard et le partage ? Test M-CHAT-R à 18–24 mois si inquiétude (screening TSA).'],
-    ['Normal', '≥ 10–20 mots à 18 mois, pointage protodéclaratif (montre pour partager), intérêt social, réponse au prénom.'],
-    ['Pathologique', 'Aucun mot à 18 mois, pas de pointage, évitement du regard, régression du langage : réaliser le M-CHAT-R et adresser pédopsychiatrie/réseau TSA précocement — l’intervention avant 3 ans améliore le pronostic.'],
-  ]});
   const cur = (window._pediaMonth !== null && window._pediaMonth !== undefined) ? Math.min(23, Math.max(0, window._pediaMonth)) : m;
   const curR = Math.round(cur);
   const moisLbl = x => x === 0 ? 'Naissance' : x + ' mois';
-  const findVac = x => vac.filter(v => { const mm = v.t.match(/(\d+)(?:\u2013(\d+))?\s*mois/); return mm && (+mm[1] === x || (mm[2] && +mm[2] >= x && +mm[1] <= x)); }).map(v => v.i).join(' + ');
-  const vacAt = x => {
-    if (x === 0) return 'BCG (si risque) \u2014 Vitamine K1';
-    return findVac(x) || null;
+
+  const vacByMonth = {
+    0: 'BCG (si risque) — Vitamine K1',
+    2: 'Hexavalent 1 (DT-Polio-Hib-HepB) + Rota 1 + Bexsero 1 (méningo B) + MenACWY 1 (Nimenrix) + pneumocoque 1',
+    3: 'Bexsero 2 (méningocoque B)',
+    4: 'Hexavalent 2 + Rota 2 + pneumocoque 2 + MenACWY 2',
+    5: 'Bexsero 3 (méningocoque B)',
+    11: 'Hexavalent 3 + pneumocoque 3 (rappel)',
+    12: 'Rappel MenACWY (Nimenrix/Menquadfi) + RRO 1 (rougeole-rubéole-oreillons) + hépatite A selon contexte',
   };
+  const nextVac = () => { for (let x = Math.floor(m) + 1; x <= 24; x++) if (vacByMonth[x]) return { at: x, txt: vacByMonth[x] }; return null; };
+
   const weightAt = x => {
-    if (x <= 3) return '+25 \u00e0 30 g/jour (poids de naissance doubl\u00e9 vers 4\u20135 mois)';
-    if (x <= 6) return '+15 \u00e0 20 g/jour';
-    if (x <= 12) return '+10 \u00e0 15 g/jour (poids de naissance tripl\u00e9 vers 1 an)';
-    return '+5 \u00e0 10 g/jour';
+    if (x <= 0) return 'Perte max 10 % les 3 premiers jours, regained vers J10–14. +25 à 30 g/jour ensuite (poids de naissance doublé vers 4–5 mois)';
+    if (x <= 3) return '+25 à 30 g/jour — poids de naissance doublé vers 4–5 mois';
+    if (x <= 6) return '+15 à 20 g/jour';
+    if (x <= 12) return '+10 à 15 g/jour — poids de naissance triplé vers 1 an';
+    return '+5 à 10 g/jour — taille : +12 cm la 1re année, +8 cm la 2e';
   };
+
   const laitAt = x => {
-    if (x <= 1) return '6\u20138 repas/jour, 60\u201390 mL par repas';
-    if (x <= 2) return '5\u20136 repas/jour, 90\u2013120 mL';
-    if (x <= 3) return '5 repas/jour, 120\u2013150 mL';
-    if (x <= 5) return '4\u20135 repas/jour, 150\u2013180 mL (max \u2248 210 mL)';
-    if (x <= 6) return '4 repas/jour, 180\u2013210 mL \u2014 d\u00e9but diversification';
-    return '500 mL de lait/jour minimum en parall\u00e8le de la diversification';
+    if (x <= 1) return '6–8 repas/jour, 60–90 mL par repas (appétit libre)';
+    if (x <= 2) return '5–6 repas/jour, 90–120 mL';
+    if (x <= 3) return '5 repas/jour, 120–150 mL';
+    if (x <= 5) return '4–5 repas/jour, 150–180 mL (max ≈ 210 mL par biberon)';
+    if (x <= 6) return '4 repas/jour, 180–210 mL — début diversification entre 4 et 6 mois';
+    if (x <= 12) return '≥ 500 mL de lait/jour (2e âge ou suite) en parallèle de la diversification';
+    return '500 mL/jour de lait de croissance ou lait entier — allaitement maternel : à la demande, sans comptage (règle biberon : ≈ 1/10e du poids/jour, max ≈ 1 L)';
   };
+
   const diversAt = x => {
-    if (x < 4) return 'Lait exclusif \u2014 pas encore de diversification (d\u00e9but entre 4 et 6 mois)';
-    if (x <= 6) return 'D\u00e9but l\u00e9gumes et fruits (2\u20133 cuill\u00e8res \u2192 progresser) \u2014 le lait reste principal';
-    if (x <= 7) return '1 repas mix\u00e9 complet (l\u00e9gumes \u2248 130 g + viande/poisson 5\u201310 g ou 1/4 jaune d\u2019\u0153uf) + laitage ou fruit';
-    if (x <= 8) return '2 repas diversifi\u00e9s/jour \u2014 prot\u00e9ines 10 g/jour, f\u00e9culents 20\u201330 g, gluten entre 4 et 7 mois';
-    if (x <= 12) return 'Textures moulin\u00e9es puis petits morceaux \u2014 prot\u00e9ines 20 g/jour, 500 mL de lait/jour minimum';
-    return 'Repas quasi familial \u2014 prot\u00e9ines 20\u201330 g/jour, lait de croissance ou entier (500 mL/j), 3\u20134 repas + 1 collation ; \u00e9viter miel < 1 an, lait de vache seul < 1 an, sel, sucres ajout\u00e9s';
+    if (x < 4) return 'Lait exclusif — pas encore de diversification (début entre 4 et 6 mois, fenêtre d’acceptation). Éviter absolument : miel < 1 an, lait de vache seul < 1 an';
+    if (x <= 6) return 'Début : légumes et fruits (2–3 cuillères → progresser) — le lait reste l’aliment principal. Gluten à introduire entre 4 et 7 mois';
+    if (x <= 7) return '1 repas mixé complet/jour : légumes ≈ 130 g + viande/poisson 5–10 g (ou 1/4 de jaune d’œuf) + laitage ou fruit en dessert';
+    if (x <= 8) return '2 repas diversifiés/jour — protides ≈ 10 g/jour, féculents 20–30 g';
+    if (x <= 12) return 'Textures moulinées puis petits morceaux — protides ≈ 20 g/jour (viande/poisson ou 1/2 œuf), ≥ 500 mL de lait/jour';
+    return 'Repas quasi familial, morceaux — protides 20–30 g/jour, 3–4 repas + 1 collation ; éviter : sel, sucres ajoutés, fruits à coque entiers < 4 ans';
   };
+
   const psychoAt = x => {
-    const r = psycho.filter(px => { const mm = px.t.match(/(\d+)(?:\u2013(\d+))?\s*mois/); return mm && ((+mm[1] === x) || (mm[2] && x >= +mm[1] && x <= +mm[2])); });
-    if (r.length) return r.map(px => px.i).join(' ; ');
-    if (x === 0) return 'R\u00e9pond aux bruits (sursaut), fixe le visage';
-    return psycho[psycho.length - 1].i;
+    if (x <= 2) return 'Répond aux bruits (sursaut), fixe le visage, suit du regard ; sourire social vers 6–8 semaines';
+    if (x <= 4) return 'Tient la tête relevée, tourne la tête vers le bruit, suit un objet des yeux, sourire social franc, gazouille';
+    if (x <= 6) return 'Se retourne dos → ventre, attrape un objet et le porte à la bouche, tient assis avec appui, gazouillis variés';
+    if (x <= 9) return 'Station assise seule et stable, réagit à son prénom, jeu de coucou, anxiété face à l’inconnu, passe l’objet d’une main à l’autre';
+    if (x <= 12) return 'Se déplace à 4 pattes, préhension en pince pouce–index, « mama/dada », comprend « non », tient debout';
+    if (x <= 18) return 'Marche seule acquise (~13–15 mois), montre du doigt, 3–6 mots, mange seul à la cuillère, empile 2 cubes';
+    return 'Court, monte les escaliers, 20–50 mots, phrases de 2 mots, montre 3 parties du corps, jeu symbolique';
   };
-  const next = vac.filter(v => {
-    const mm = v.t.match(/(\d+)(?:\u2013(\d+))?\s*mois/);
-    return mm && (+mm[1] >= m);
-  });
+
+  const alerteAt = x => {
+    if (x < 3) return 'Pas de sourire social, hypotonie, succion pauvre, plafonnement du regard';
+    if (x < 5) return 'Pas de tenue de tête, pas de poursuite visuelle, strabisme fixé';
+    if (x < 9) return 'Ne se retourne pas, ne tient pas assis, ne porte pas les objets à la bouche';
+    if (x < 14) return 'Pas d’assise stable, pas de préhension en pince, aucun babille « mama/dada »';
+    if (x < 18) return 'Pas de marche, pas de pointage, aucun mot';
+    return 'Pas de phrases de 2 mots, régression d’un acquis, évitement du regard';
+  };
+
+  const redFlags = [
+    { a: '0–3 mois', t: '🚨 Infection invasive / IIA (ECBNP, strepto B, E. coli)', i: 'Fièvre ≥ 38 °C chez < 3 mois = urgence : ECBU + hémoculture + PL si contexte. Aucune antibiothérapie orale d’attente. TvF, gris pâle, marbrures, geignements, REFUS BIBERON = signes graves.' },
+    { a: '0–2 mois', t: '🚨 Mastoïdite / omphalite du nouveau-né', i: 'Écoulement omphalique purulent + œdème péritonfil : omphalite à traiter rapidement (risque de portail infectieux).' },
+    { a: '3–6 mois', t: '🚨 Torticolis aigu + boiterie / signes neuro', i: 'Boiterie douloureuse de hanche chez nourrisson : arthrite septique à éliminer en urgence (fièvre, impotence, position en flexion-abduction).' },
+    { a: '4–9 mois', t: '🚨 Détresse respiratoire / bronchiolite < 3 mois', i: 'Bronchiolite : terrain prématuré, cardiopathie, dysplasie bronchopulmonaire, apnées, SpO₂ < 92 % = hospitalisation.' },
+    { a: '6–24 mois', t: '🚨 Invagination intestinale aiguë', i: 'Douleurs paroxystiques (enfant se tord, pâlit, hurle), vomiting, fosse iliaque droite vide, sang dans selles (gelée framboise), léthargie entre crises : échographie abdo urgente, réduction (pneumatique/chirurgicale).' },
+    { a: '6–24 mois', t: '🚨 Syndrome de Kawasaki', i: 'Fièvre ≥ 5 jours + ≥ 4/5 : conjonctivite bilatérale non purulente, éruption polymorphe, atteinte bouche/lèvres sèches fissurées, érythème œdème mains-pieds, adénopathie cervicale ≥ 1,5 cm. CRP/VS très élevées. Urgence : IgIV dans les 10 jours pour éviter l’anévrisme coronaire.' },
+    { a: '0–12 mois', t: '🚨 Mort inattendue du nourrisson / tête tombante', i: 'Toute malaise grave : surveillance, recherche cause (RGO, infection, cardiopathie, malaise vagal, méningite) avant de conclure à un simple malaise.' },
+    { a: '0–6 mois', t: '🚨 Cardiopathie congénitale', i: 'Souffle + RCFA (tirs, sueurs du front, pâleur), cyanose, hépatomégalie, difficultés alimentaires avec pause/froid cutané : échographie cardiaque sans attendre.' },
+    { a: '9–24 mois', t: '🚨 Diabète inaugural (acidocétose)', i: 'Polyurie-polydipsie (couches anormalement lourdes), amaigrissement, asthénie, douleurs abdominales + Kussmaul : glycémie capillaire + cétonurie immédiatement — urgence si acidose.' },
+    { a: '0–24 mois', t: '🚨 Hypertonie / retard de croissance', i: 'Cassure de la courbe de poids ou de taille, hypotonie/troubles du tonus, micro/macrocéphalie : avis pédiatrique + courbes à revoir, ne jamais banaliser.' },
+    { a: '12–24 mois', t: '🚨 Rougeole', i: 'Fièvre + catarrhe oculo-nasal + Koplik puis éruption descendante : isolement, déclaration obligatoire, statut vaccinal des contacts (RRO à 12 mois).' },
+    { a: '18–24 mois', t: '🚨 Signes d’alerte TSA / régression', i: 'Perte d’acquis (langage, regard, pointage) : M-CHAT-R à 18–24 mois, orientation réseau TSA sans attendre.' },
+  ];
+
+  const pathoAt = x => {
+    const r = redFlags.filter(rx => { const mm = rx.a.match(/(\d+)(?:\u2013|\s*-\s*)(\d+)/); return mm && x >= +mm[1] && x <= +mm[2]; });
+    return r.length ? r : [];
+  };
+
+  const sensory = [
+    { age: 0, due: 'à chaque examen', title: '🦵 Hanches (luxation congénitale) — Manœuvres d’Ortolani–Barlow', sec: [
+      ['Comment faire', 'Bébé détendu, sur le dos : saisir les cuisses, pousser doucement en axial (Barlow : cherche à luxer), puis abduire en ramenant la tête fémorale dans le cotyle (Ortolani : ressaut de réduction). Comparer l’abduction des deux hanches et les plis de l’aine.'],
+      ['Normal', 'Aucun ressaut, abduction symétrique ≈ 60–90°, plis symétriques. Un ressaut disparaissant avant 2–4 semaines peut être simple immaturité.'],
+      ['Pathologique', 'Ressaut, claquement, limitation d’abduction, asymétrie des plis, inégalité des membres : échographie des hanches à 4 mois (plus tôt si facteur de risque : siège, antécédent familial, fille, oligohydramnios) et avis orthopédique. Luxation non traitée = boiterie et arthrose précoce.'],
+    ]},
+    { age: 4, due: 'examen des 4 mois', title: '👁 Vision — poursuite, strabisme, lueur pupillaire', sec: [
+      ['Comment faire', 'Bébé éveillé sur les genoux du parent : présenter un visage/objet coloré à ≈ 30 cm, vérifier la fixation puis la poursuite des yeux dans les 4 directions. Éclairer chaque œil : réflexe photomoteur, et lueur pupillaire symétrique (réflexe rétinien).'],
+      ['Normal', 'Poursuite symétrique des deux yeux, fixation stable, lueur pupillaire identique des deux côtés (rouge/orangée), pas de strabisme fixé (intermittence possible avant 3–4 mois).'],
+      ['Pathologique', 'Strabisme persistant après 4 mois, lueur pupillaire blanche ou asymétrique (leucocorie : rétinoblastome ou cataracte jusqu’à preuve du contraire — urgent), absence de poursuite, nystagmus, photophobie–larmoiement : avis ophtalmologique rapide.'],
+    ]},
+    { age: 4, due: 'examen des 4 mois', title: '👂 Audition — réaction aux bruits + PEAM', sec: [
+      ['Comment faire', 'Bruit non orienté type hochet, claquement de doigts ou voix, ≈ 30 cm hors du champ visuel, sans vibration transmise : chercher l’arrêt, le sourire ou la rotation de la tête vers le son. Vérifier au dossier que le PEAM (potentiels évoqués auditifs, dépistage maternité) a été fait et est normal.'],
+      ['Normal', 'Réaction d’orientation ou d’arrêt aux bruits, sursaut aux bruits forts, gazouillis naissant, PEAM normal.'],
+      ['Pathologique', 'Aucune réaction aux bruits, babillage pauvre/non modulé, PEAM non fait, suspect ou non reçu : orientation ORL pédiatrique sans attendre — chaque mois sans audition aggrave le retard de langage.'],
+    ]},
+    { age: 9, due: 'examen des 9 mois', title: '👁 Vision — dépistage de l’amblyopie (avant 2 ans)', sec: [
+      ['Comment faire', 'Poursuite + occlusion alternée : cacher tour à tour chaque œil avec la main et observer — bébé accepte-t-il le masquage des deux côtés ? Chercher un strabisme (réflexe de lumière cornéenne centré ; cover-test si doute), et l’intérêt pour les petits objets.'],
+      ['Normal', 'Masquage accepté des deux côtés, poursuite symétrique, yeux parallèles, attrape les petites miettes.'],
+      ['Pathologique', 'Bébé se débat quand on cache un œil (l’autre est amblyope), strabisme manifeste, lueur blanche : avis ophtalmo pédiatrique rapide. L’amblyopie se traite avant 2 ans (période de plasticité visuelle) — au-delà, la perte devient définitive.'],
+    ]},
+    { age: 9, due: 'examen des 9–12 mois', title: '👂 Audition — test vocal (seuil ≈ 35 dB)', sec: [
+      ['Comment faire', 'À distance de ≈ 1 m, hors champ visuel, voix chuchotée ou ludophone/jouet sonore calibré ≈ 35 dB : bébé doit tourner la tête ou rechercher la source. Si doute, audiométrie comportementale (BOA) en cabine.'],
+      ['Normal', 'Orientation de la tête vers le son d’un seuil ≈ 35 dB, réaction à son prénom, babille « mama/baba ».'],
+      ['Pathologique', 'Pas d’orientation à 35–50 dB, indifférence à la voix : ORL + audiométrie objective (PEAM/ASSR) — suspicion de surdité ≥ 35 dB. Un déficit unilatéral passe inaperçu : vérifier chaque oreille séparément.'],
+    ]},
+    { age: 18, due: 'examen des 18–24 mois', title: '🧠 Langage et développement — signes d’alerte TSA', sec: [
+      ['Comment faire', 'Demander aux parents : combien de mots ? pointe-t-il du doigt pour montrer ? répond-il à son prénom ? cherche-t-il le regard et le partage ? Test M-CHAT-R à 18–24 mois si inquiétude (screening TSA).'],
+      ['Normal', '≥ 10–20 mots à 18 mois, pointage protodéclaratif (montre pour partager), intérêt social, réponse au prénom.'],
+      ['Pathologique', 'Aucun mot à 18 mois, pas de pointage, évitement du regard, régression du langage : réaliser le M-CHAT-R et adresser pédopsychiatrie/réseau TSA précocement — l’intervention avant 3 ans améliore le pronostic.'],
+    ]},
+  ];
+
+  const timeline = [];
+  for (let x = 0; x <= 23; x++) {
+    timeline.push({ x, vac: vacByMonth[x] || null, w: weightAt(x), psy: psychoAt(x), patho: pathoAt(x).length });
+  }
+  const isCurrent = x => (curR === x);
+  const nv = nextVac();
+  const pathoCur = pathoAt(curR);
+
   panel.innerHTML = `
   <div class="pedia-box">
-    <div class="pedia-head">\ud83e\udde0 Suivi p\u00e9diatrique \u2014 ${f(m)} mois</div>
+    <div class="pedia-head">🧠 Suivi pédiatrique — ${f(m)} mois</div>
     <div class="pedia-grid">
       <div class="pedia-sec pedia-focus-sec">
-        <div class="pedia-sec-title">📍 Focus \u2014 ${moisLbl(curR)}${curR === Math.round(m) ? ' (mois actuel)' : ''}</div>
+        <div class="pedia-sec-title">📍 Focus — ${moisLbl(curR)}${curR === Math.round(m) ? ' (mois actuel)' : ''}</div>
         <div class="pedia-nav">
           <button type="button" class="pedia-nav-btn" data-pedia-month="${Math.max(0, curR - 1)}"${curR <= 0 ? ' disabled' : ''}>◀ ${moisLbl(Math.max(0, curR - 1))}</button>
           <button type="button" class="pedia-nav-btn" data-pedia-month="${Math.min(23, curR + 1)}"${curR >= 23 ? ' disabled' : ''}>${moisLbl(Math.min(23, curR + 1))} ▶</button>
           ${window._pediaMonth !== null && window._pediaMonth !== undefined ? `<button type="button" class="pedia-nav-btn pedia-reset" data-pedia-month="auto">✖ Mois actuel (${moisLbl(Math.round(m))})</button>` : ''}
         </div>
-        <div class="pedia-row"><strong>💉 Vaccins :</strong> ${vacAt(curR) ? escapeHtml(vacAt(curR)) : 'Aucun rendez-vous vaccinal ce mois-ci'}</div>
+        <div class="pedia-row"><strong>💉 Vaccins :</strong> ${vacByMonth[curR] ? escapeHtml(vacByMonth[curR]) : 'Aucun rendez-vous vaccinal ce mois-ci'}</div>
         <div class="pedia-row"><strong>⚖️ Poids :</strong> ${escapeHtml(weightAt(curR))}</div>
         <div class="pedia-row"><strong>🥛 Lait :</strong> ${escapeHtml(laitAt(curR))}</div>
-        <div class="pedia-row"><strong>🥗 Diversification :</strong> ${escapeHtml(diversAt(curR))}</div>
+        <div class="pedia-row"><strong>🥗 Diversification (apports quotidiens) :</strong> ${escapeHtml(diversAt(curR))}</div>
         <div class="pedia-row"><strong>🧩 Psychomoteur :</strong> ${escapeHtml(psychoAt(curR))}</div>
+        <div class="pedia-row"><strong>⚠️ Signaux d’alerte :</strong> ${escapeHtml(alerteAt(curR))} — ou perte d’un acquis : avis pédiatrique</div>
+        ${pathoCur.length ? `<div class="pedia-row pedia-alert-row"><strong>🚨 Ne jamais oublier à cet âge :</strong> ${pathoCur.map(px => escapeHtml(px.t)).join(' · ')}</div>` : ''}
+        ${nv && !vacByMonth[curR] ? `<div class="pedia-row"><strong>📅 Prochain vaccin :</strong> ${moisLbl(nv.at)} — ${escapeHtml(nv.txt)}</div>` : ''}
       </div>
-      <div class="pedia-sec"><div class="pedia-sec-title">\ud83d\udc89 Prochain(s) rendez-vous vaccinaux</div>
-        ${next.length ? next.map(v => `<div class="pedia-row"><strong>${v.t} :</strong> ${escapeHtml(v.i)}</div>`).join('') : '<div class="pedia-row">Calendrier de base termin\u00e9 pour cette p\u00e9riode \u2014 RRO 2 vers 16\u201318 mois, rappels dTP \u00e0 6 ans puis 11\u201313 ans.</div>'}
+
+      <div class="pedia-sec"><div class="pedia-sec-title">📆 Vision par mois (cliquer un mois)</div>
+        <div class="pedia-timeline">
+          ${timeline.map(t => `<button type="button" class="pedia-month-chip${t.x === curR ? ' pedia-month-cur' : ''}${t.x === Math.round(m) ? ' pedia-month-real' : ''}${t.vac ? ' pedia-month-vac' : ''}" data-pedia-month="${t.x}" title="${t.vac ? 'Vaccins : ' + escapeHtml(t.vac) : ''}Psychomoteur : ${escapeHtml(t.psy)}${t.patho ? ' — ' + t.patho + ' pathologie(s) à ne pas oublier' : ''}">${t.x === 0 ? 'N' : t.x}${t.vac ? ' 💉' : ''}</button>`).join('')}
+        </div>
+        <div class="pedia-row pedia-legend">💡 Vaccin ce mois-là : 💉 — mois sélectionné : fond bleu — mois réel : liseré vert</div>
       </div>
-      <div class="pedia-sec"><div class="pedia-sec-title">\u2696\ufe0f Prise de poids attendue</div>
-        ${weight.map(w => `<div class="pedia-row">${escapeHtml(w)}</div>`).join('')}
+
+      <div class="pedia-sec"><div class="pedia-sec-title">🚨 Pathologies à ne jamais oublier par âge</div>
+        ${redFlags.map(rx => `<div class="pedia-row pedia-flag${(() => { const mm = rx.a.match(/(\\d+)(?:\\u2013|\\s*-\\s*)(\\d+)/); return mm && curR >= +mm[1] && curR <= +mm[2] ? ' pedia-flag-cur' : ''; })()}"><strong>${rx.a} · ${rx.t} :</strong> ${escapeHtml(rx.i)}</div>`).join('')}
       </div>
-      <div class="pedia-sec"><div class="pedia-sec-title">\ud83e\udd5b Quantit\u00e9s de lait (biberon)</div>
-        ${lait.map(w => `<div class="pedia-row">${escapeHtml(w)}</div>`).join('')}
-      </div>
-      <div class="pedia-sec"><div class="pedia-sec-title">\ud83e\udd57 Diversification alimentaire</div>
-        ${divers.map(w => `<div class="pedia-row">${escapeHtml(w)}</div>`).join('')}
-      </div>
-      <div class="pedia-sec"><div class="pedia-sec-title">🧩 Développement psychomoteur</div>
-        ${psycho.map(x => `<div class="pedia-row"><strong>${x.t} :</strong> ${escapeHtml(x.i)}</div>`).join('')}
-      </div>
-    <div class="pedia-sub-title">🫂 Tests de dépistage — mode d’emploi (cliquer pour déplier)</div>
-    ${devTests.map(t => `<details class="pedia-test"${t.age <= m + 3 ? ' open' : ''}><summary>${t.title} <span class="pedia-due">${t.age <= m ? 'à faire / à vérifier' : 'à partir de ' + t.age + ' mois'}</span></summary><div class="pedia-test-body">${t.sec.map(([k, v]) => `<div class="pedia-row"><strong>${k} :</strong> ${escapeHtml(v)}</div>`).join('')}</div></details>`).join('')}
+    </div>
+
+    <div class="pedia-sub-title">🧪 Tests sensitifs / de dépistage — mode d’emploi (cliquer pour déplier)</div>
+    ${sensory.map(t => `<details class="pedia-test"${t.age <= m + 3 ? ' open' : ''}><summary>${t.title} <span class="pedia-due">${t.age <= m ? 'à faire / à vérifier' : 'à partir de ' + t.age + ' mois'}</span></summary><div class="pedia-test-body">${t.sec.map(([k, v]) => `<div class="pedia-row"><strong>${k} :</strong> ${escapeHtml(v)}</div>`).join('')}</div></details>`).join('')}
     ${window._pediaMonth !== null && window._pediaMonth !== undefined ? `<button type="button" class="pedia-nav-btn pedia-reset pedia-reset-foot" data-pedia-month="auto">✖ Revenir au mois actuel (${moisLbl(Math.round(m))})</button>` : ''}
-    <div class="pedia-foot">Repères moyens \u2014 calendrier vaccinal 2025 \u2014 adapter au contexte clinique.</div>
+    <div class="pedia-foot">Repères moyens — calendrier vaccinal 2025 — adapter au contexte clinique.</div>
   </div>`;
 }
 function renderEtat(p) {
