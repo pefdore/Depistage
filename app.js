@@ -1681,13 +1681,12 @@ function downloadFiche(f) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'fiches/' + f.id + '.html';
+  a.download = 'fiche-' + f.id + '.html';
+  a.style.display = 'none';
   document.body.appendChild(a);
   a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 4000);
 }
-
 function ficheSuggested(p) {
   const out = [];
   const seen = new Set();
@@ -1715,7 +1714,7 @@ function ficheSuggested(p) {
 }
 
 function ficheCard(f) {
-  return `<button type="button" class="fiche-card" data-fiche="${f.id}"><span class="fiche-cat">${escapeHtml(f.cat)}</span><span class="fiche-title">${escapeHtml(f.title)}</span><span class="fiche-action">⬇ Télécharger (fiches/${f.id}.html)</span></button>`;
+  return `<button type="button" class="fiche-card" data-fiche="${f.id}"><span class="fiche-cat">${escapeHtml(f.cat)}</span><span class="fiche-title">${escapeHtml(f.title)}</span><span class="fiche-action">⬇ Télécharger (fiche-${f.id}.html)</span></button>`;
 }
 
 function renderFiches() {
