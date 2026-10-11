@@ -99,12 +99,14 @@ function renderPedia(p) {
 
   const vacByMonth = {
     0: 'BCG (si risque) — Vitamine K1',
-    2: 'Hexavalent 1 (DT-Polio-Hib-HepB) + Rota 1 + Bexsero 1 (méningo B) + MenACWY 1 (Nimenrix) + pneumocoque 1',
-    3: 'Bexsero 2 (méningocoque B)',
-    4: 'Hexavalent 2 + Rota 2 + pneumocoque 2 + MenACWY 2',
-    5: 'Bexsero 3 (méningocoque B)',
-    11: 'Hexavalent 3 + pneumocoque 3 (rappel)',
-    12: 'Rappel MenACWY (Nimenrix/Menquadfi) + RRO 1 (rougeole-rubéole-oreillons) + hépatite A selon contexte',
+    2: 'Hexavalent 1 (DTCa-Polio-Hib-HepB) + pneumocoque 1 + Rotavirus 1 (recommandé, oral)',
+    3: 'Méningocoque B 1 (Bexsero)',
+    4: 'Hexavalent 2 + pneumocoque 2 + Rotavirus 2',
+    5: 'Méningocoque B 2 (Bexsero)',
+    6: 'Méningocoque ACWY 1 (Nimenrix)',
+    11: 'Hexavalent 3 (rappel) + pneumocoque 3 (rappel)',
+    12: 'Méningocoque B 3 (rappel, Bexsero) + Méningocoque ACWY 2 (Nimenrix/Menquadfi) + ROR 1 (rougeole-oreillons-rubéole)',
+    17: 'ROR 2 (16–18 mois)',
   };
   const nextVac = () => { for (let x = Math.floor(m) + 1; x <= 24; x++) if (vacByMonth[x]) return { at: x, txt: vacByMonth[x] }; return null; };
 
@@ -136,13 +138,13 @@ function renderPedia(p) {
   };
 
   const psychoAt = x => {
-    if (x <= 2) return 'Répond aux bruits (sursaut), fixe le visage, suit du regard ; sourire social vers 6–8 semaines';
-    if (x <= 4) return 'Tient la tête relevée, tourne la tête vers le bruit, suit un objet des yeux, sourire social franc, gazouille';
-    if (x <= 6) return 'Se retourne dos → ventre, attrape un objet et le porte à la bouche, tient assis avec appui, gazouillis variés';
-    if (x <= 9) return 'Station assise seule et stable, réagit à son prénom, jeu de coucou, anxiété face à l’inconnu, passe l’objet d’une main à l’autre';
-    if (x <= 12) return 'Se déplace à 4 pattes, préhension en pince pouce–index, « mama/dada », comprend « non », tient debout';
-    if (x <= 18) return 'Marche seule acquise (~13–15 mois), montre du doigt, 3–6 mots, mange seul à la cuillère, empile 2 cubes';
-    return 'Court, monte les escaliers, 20–50 mots, phrases de 2 mots, montre 3 parties du corps, jeu symbolique';
+    if (x <= 2) return 'Sursaut aux bruits, fixe le visage, commence à suivre du regard ; sourire réponse vers 6–8 semaines (repère carnet de santé)';
+    if (x <= 4) return 'Tenue de têpe, suit un objet des yeux, sourire social franc, gazouille, se redresse sur les avant-bras';
+    if (x <= 6) return 'Se retourne dos → ventre, attrape un objet et le porte à la bouche, tient assis avec appui, gazouillis variés, rit aux éclats';
+    if (x <= 9) return 'Assis seul et stable, réagit à son prénom, jeu de coucou, anxiété face à l’inconnu, passe l’objet d’une main à l’autre, babille « mama/dada » vers 8 mois';
+    if (x <= 12) return 'Se déplace à 4 pattes, préhension pince pouce–index, comprend « non », tient debout seul, 1–2 mots vers 12 mois, fait coucou-au revoir';
+    if (x <= 18) return 'Marche seule acquise (~12–15 mois), montre du doigt, 3–10 mots, empile 2–3 cubes, mange seul à la cuillère, aide à s’habiller';
+    return 'Court, monte les escaliers, 20–50 mots, phrases de 2 mots, montre 2–3 parties du corps, jeu symbolique (fait semblant)';
   };
 
   const alerteAt = x => {
@@ -155,24 +157,21 @@ function renderPedia(p) {
   };
 
   const redFlags = [
-    { a: '0–3 mois', t: '🚨 Infection invasive / IIA (ECBNP, strepto B, E. coli)', i: 'Fièvre ≥ 38 °C chez < 3 mois = urgence : ECBU + hémoculture + PL si contexte. Aucune antibiothérapie orale d’attente. TvF, gris pâle, marbrures, geignements, REFUS BIBERON = signes graves.' },
-    { a: '0–2 mois', t: '🚨 Mastoïdite / omphalite du nouveau-né', i: 'Écoulement omphalique purulent + œdème péritonfil : omphalite à traiter rapidement (risque de portail infectieux).' },
-    { a: '3–6 mois', t: '🚨 Torticolis aigu + boiterie / signes neuro', i: 'Boiterie douloureuse de hanche chez nourrisson : arthrite septique à éliminer en urgence (fièvre, impotence, position en flexion-abduction).' },
-    { a: '4–9 mois', t: '🚨 Détresse respiratoire / bronchiolite < 3 mois', i: 'Bronchiolite : terrain prématuré, cardiopathie, dysplasie bronchopulmonaire, apnées, SpO₂ < 92 % = hospitalisation.' },
-    { a: '6–24 mois', t: '🚨 Invagination intestinale aiguë', i: 'Douleurs paroxystiques (enfant se tord, pâlit, hurle), vomiting, fosse iliaque droite vide, sang dans selles (gelée framboise), léthargie entre crises : échographie abdo urgente, réduction (pneumatique/chirurgicale).' },
-    { a: '6–24 mois', t: '🚨 Syndrome de Kawasaki', i: 'Fièvre ≥ 5 jours + ≥ 4/5 : conjonctivite bilatérale non purulente, éruption polymorphe, atteinte bouche/lèvres sèches fissurées, érythème œdème mains-pieds, adénopathie cervicale ≥ 1,5 cm. CRP/VS très élevées. Urgence : IgIV dans les 10 jours pour éviter l’anévrisme coronaire.' },
-    { a: '0–12 mois', t: '🚨 Mort inattendue du nourrisson / tête tombante', i: 'Toute malaise grave : surveillance, recherche cause (RGO, infection, cardiopathie, malaise vagal, méningite) avant de conclure à un simple malaise.' },
-    { a: '0–6 mois', t: '🚨 Cardiopathie congénitale', i: 'Souffle + RCFA (tirs, sueurs du front, pâleur), cyanose, hépatomégalie, difficultés alimentaires avec pause/froid cutané : échographie cardiaque sans attendre.' },
-    { a: '9–24 mois', t: '🚨 Diabète inaugural (acidocétose)', i: 'Polyurie-polydipsie (couches anormalement lourdes), amaigrissement, asthénie, douleurs abdominales + Kussmaul : glycémie capillaire + cétonurie immédiatement — urgence si acidose.' },
-    { a: '0–24 mois', t: '🚨 Hypertonie / retard de croissance', i: 'Cassure de la courbe de poids ou de taille, hypotonie/troubles du tonus, micro/macrocéphalie : avis pédiatrique + courbes à revoir, ne jamais banaliser.' },
-    { a: '12–24 mois', t: '🚨 Rougeole', i: 'Fièvre + catarrhe oculo-nasal + Koplik puis éruption descendante : isolement, déclaration obligatoire, statut vaccinal des contacts (RRO à 12 mois).' },
-    { a: '18–24 mois', t: '🚨 Signes d’alerte TSA / régression', i: 'Perte d’acquis (langage, regard, pointage) : M-CHAT-R à 18–24 mois, orientation réseau TSA sans attendre.' },
+    { a: [0, 3], t: 'Infection invasive du nourrisson (IIA)', age: '0\u20133 mois', s: 'Fi\u00e8vre \u2265 38 \u00b0C, tvF, gris p\u00e2le, marbrures, geignements, hypotonie, refus des biberons, polypn\u00e9e', c: 'URGENCE : ECBU + h\u00e9moculture \u00b1 PL, aucune antibioth\u00e9rapie orale d\u2019attente, orientation hospitali\u00e8re' },
+    { a: [0, 2], t: 'Omphalite / infection du cordon', age: '0\u20132 mois', s: '\u00c9coulement omphalique purulent, \u0153d\u00e8me p\u00e9ri-ombilical, rougeur, fi\u00e8vre', c: 'Antibioth\u00e9rapie rapide (portail infectieux \u2192 risque de sepsis), avis p\u00e9diatrique' },
+    { a: [3, 6], t: 'Arthrite septique de hanche / ost\u00e9omy\u00e9lite', age: '3\u20136 mois', s: 'Boiterie ou impotence douloureuse, position en flexion-abduction, fi\u00e8vre, irritabilit\u00e9 au change', c: 'URGENCE : avis orthop\u00e9dique + imagerie, ponction articulaire \u2014 s\u00e9quelles si retard' },
+    { a: [4, 9], t: 'D\u00e9tresse respiratoire / bronchiolite grave', age: '< 3 mois \u00e0 risque', s: 'Apn\u00e9es, tirage marqu\u00e9, SpO\u2082 < 92 %, refus de boire, terrain pr\u00e9matur\u00e9 / cardiopathie / DBP', c: 'Hospitalisation (O\u2082, hydratation) \u2014 pas de bronchodilatateur syst\u00e9matique' },
+    { a: [6, 24], t: 'Invagination intestinale aigu\u00eb', age: '6\u201324 mois (pic 9\u201312 mois)', s: 'Douleurs paroxystiques (se tord, p\u00e2lit, hurle), vomissements, fosse iliaque droite vide, selles \u00ab gel\u00e9e de framboise \u00bb, l\u00e9thargie entre les crises', c: 'URGENCE : \u00e9chographie abdominale, r\u00e9duction pneumatique ou chirurgicale sans d\u00e9lai' },
+    { a: [6, 24], t: 'Syndrome de Kawasaki', age: '6\u201324 mois (pic < 1 an)', s: 'Fi\u00e8vre \u2265 5 jours + \u2265 4/5 : conjonctivite bilat\u00e9rale non purulente, l\u00e8vres s\u00e8ches fissur\u00e9es + rougeur buccale, \u00e9ruption polymorphe, \u00e9ryth\u00e8me/\u0153d\u00e8me mains et pieds, ad\u00e9nopathie cervicale \u2265 1,5 cm', c: 'URGENCE : IgIV + aspirine dans les 10 jours \u2014 an\u00e9vrismes coronaires si retard' },
+    { a: [0, 6], t: 'Cardiopathie cong\u00e9nitale', age: '0\u20136 mois', s: 'Souffle, tirs, sueurs du front au biberon, cassure de la courbe de poids, cyanose, h\u00e9patom\u00e9galie, p\u00e2leur', c: '\u00c9chographie cardiaque sans attendre, avis cardiop\u00e9diatrique' },
+    { a: [0, 12], t: 'Malaise grave du nourrisson / MIN', age: '0\u201312 mois', s: 'Malaise prolong\u00e9, hypertonie, regard fixe, p\u00e2leur/cyanose, apn\u00e9e ; tvF inexpliqu\u00e9', c: 'Recherche \u00e9tiologique syst\u00e9matique (infection, RGO, cardiopathie, m\u00e9ningite) avant de conclure \u00e0 un malaise vagal \u2014 hospitalisation si malaise grave' },
+    { a: [9, 24], t: 'Diab\u00e8te inaugural / acidoc\u00e9tose', age: '9\u201324 mois', s: 'Polyurie-polydipsie (couches anormalement lourdes), amaigrissement, asth\u00e9nie, douleurs abdominales, polypn\u00e9e de Kussmaul, haleine c\u00e9tonique', c: 'Glyc\u00e9mie capillaire + c\u00e9ton\u00e9mie imm\u00e9diate \u2014 urgence absolue si acidoc\u00e9tose' },
+    { a: [12, 24], t: 'Rougeole', age: '12\u201324 mois (si non vaccin\u00e9)', s: 'Fi\u00e8vre \u00e9lev\u00e9e + catarrhe oculo-nasal + taches de K\u00f6plik puis \u00e9ruption descendante', c: 'Isolement, d\u00e9claration obligatoire, prophylaxie des contacts, v\u00e9rifier le ROR (1re dose \u00e0 12 mois)' },
+    { a: [18, 24], t: 'Signes d\u2019alerte TSA / r\u00e9gression', age: '18\u201324 mois', s: 'Perte d\u2019acquis : langage, pointage, regard, int\u00e9r\u00eat social ; aucun mot \u00e0 18 mois, pas de pointage protod\u00e9claratif', c: 'M-CHAT-R, orientation pr\u00e9coce r\u00e9seau TSA / p\u00e9dopsychiatrie \u2014 avant 3 ans' },
+    { a: [0, 24], t: 'Cassure de croissance / hypotonie', age: '0\u201324 mois', s: 'Stagnation pond\u00e9rale, cassure de la courbe, hypertonie ou hypotonie, micro/macroc\u00e9phalie, plafonnement', c: 'Avis p\u00e9diatrique, ne jamais banaliser \u2014 \u00e9tiologie \u00e0 rechercher' },
   ];
 
-  const pathoAt = x => {
-    const r = redFlags.filter(rx => { const mm = rx.a.match(/(\d+)(?:\u2013|\s*-\s*)(\d+)/); return mm && x >= +mm[1] && x <= +mm[2]; });
-    return r.length ? r : [];
-  };
+  const pathoAt = x => redFlags.filter(rx => x >= rx.a[0] && x <= rx.a[1]);
 
   const sensory = [
     { age: 0, due: 'à chaque examen', title: '🦵 Hanches (luxation congénitale) — Manœuvres d’Ortolani–Barlow', sec: [
@@ -232,7 +231,7 @@ function renderPedia(p) {
         <div class="pedia-row"><strong>🥗 Diversification (apports quotidiens) :</strong> ${escapeHtml(diversAt(curR))}</div>
         <div class="pedia-row"><strong>🧩 Psychomoteur :</strong> ${escapeHtml(psychoAt(curR))}</div>
         <div class="pedia-row"><strong>⚠️ Signaux d’alerte :</strong> ${escapeHtml(alerteAt(curR))} — ou perte d’un acquis : avis pédiatrique</div>
-        ${pathoCur.length ? `<div class="pedia-row pedia-alert-row"><strong>🚨 Ne jamais oublier à cet âge :</strong> ${pathoCur.map(px => escapeHtml(px.t)).join(' · ')}</div>` : ''}
+        ${pathoCur.length ? `<div class="pedia-row pedia-alert-row"><strong>🚨 Ne jamais oublier à cet âge :</strong> ${pathoCur.map(px => escapeHtml(px.t)).join(' · ')} — <em>détail dans les cartes ci-dessous</em></div>` : ''}
         ${nv && !vacByMonth[curR] ? `<div class="pedia-row"><strong>📅 Prochain vaccin :</strong> ${moisLbl(nv.at)} — ${escapeHtml(nv.txt)}</div>` : ''}
       </div>
 
@@ -243,8 +242,8 @@ function renderPedia(p) {
         <div class="pedia-row pedia-legend">💡 Vaccin ce mois-là : 💉 — mois sélectionné : fond bleu — mois réel : liseré vert</div>
       </div>
 
-      <div class="pedia-sec"><div class="pedia-sec-title">🚨 Pathologies à ne jamais oublier par âge</div>
-        ${redFlags.map(rx => `<div class="pedia-row pedia-flag${(() => { const mm = rx.a.match(/(\\d+)(?:\\u2013|\\s*-\\s*)(\\d+)/); return mm && curR >= +mm[1] && curR <= +mm[2] ? ' pedia-flag-cur' : ''; })()}"><strong>${rx.a} · ${rx.t} :</strong> ${escapeHtml(rx.i)}</div>`).join('')}
+      <div class="pedia-sec"><div class="pedia-sec-title">🚨 Pathologies à ne jamais oublier par âge (cliquer pour déplier)</div>
+        ${redFlags.map(rx => `<details class="pedia-test pedia-flag-card${curR >= rx.a[0] && curR <= rx.a[1] ? ' pedia-flag-cur' : ''}"><summary><span>🚨 ${escapeHtml(rx.t)}</span><span class="pedia-due">${escapeHtml(rx.age)}</span></summary><div class="pedia-test-body"><div class="pedia-row"><strong>Symptômes évocateurs :</strong> ${escapeHtml(rx.s)}</div><div class="pedia-row"><strong>Conduite à tenir :</strong> ${escapeHtml(rx.c)}</div></div></details>`).join('')}
       </div>
     </div>
 
