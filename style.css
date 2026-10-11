@@ -205,7 +205,8 @@ button.secondary { background: #6c757d; }
 }
 
 /* ---------- KDIGO ---------- */
-.kdigo-box { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; font-size: 0.95em; box-shadow: 0 1px 3px rgba(13,90,140,.06); }
+.kdigo-box { display: none; }
+.kdigo-cvr { border-top: 4px solid var(--sc, #0d5a8c); }
 .kdigo-box strong { font-size: 1.05em; }
 .kdigo-box span { color: #444; }
 

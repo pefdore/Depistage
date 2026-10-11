@@ -270,18 +270,42 @@ function renderEtat(p) {
 function renderKdigo(p) {
   const panel = document.getElementById('kdigo-panel');
   const st = kdigoStage(p);
-  if (!st) { panel.innerHTML = ''; return; }
+  if (!st) { panel.innerHTML = ''; window._kdigoOpen = false; return; }
   const riskTxt = st.risk ? KDIGO_RISK_LABEL[st.risk] : 'RAC manquant — à doser';
   const color = st.risk ? KDIGO_RISK_COLOR[st.risk] : '#e0e0e0';
-  let html = `<div class="kdigo-box" style="border-left: 6px solid ${color}">
-    <strong>Stade KDIGO : ${st.g}${st.a ? ' ' + st.a : ''}</strong>
-    <span>DFG ${p.dfg} mL/min/1,73 m²${p.rac === 'nc' ? ' — RAC non calculable (microalbuminurie sous le seuil de dosage : catégorie A1)' : (p.rac !== null && p.rac !== undefined ? ' — RAC ' + String(p.rac).replace('.', ',') + ' mg/mmol' : ' — RAC non renseigné : à doser si MRC suspectée')}</span>
-    <span style="background:${color};padding:2px 8px;border-radius:10px;font-size:0.85em">${riskTxt}</span>`;
-  if (p.dfg < 60 || (st.a && st.a !== 'A1')) {
-    html += `<span>Maladie rénale chronique ${p.dfg < 60 ? '(DFG < 60)' : ''}${p.dfg < 60 && st.a && st.a !== 'A1' ? ' + ' : ''}${st.a && st.a !== 'A1' ? '(' + st.a + ')' : ''} — chronicité > 3 mois à confirmer</span>`;
-  }
-  html += `</div>`;
-  panel.innerHTML = html;
+  const racTxt = p.rac === 'nc' ? 'non calculable (microalbuminurie sous le seuil : catégorie A1)' : (p.rac !== null && p.rac !== undefined ? String(p.rac).replace('.', ',') + ' mg/mmol' : null);
+  const mrc = p.dfg < 60 || (st.a && st.a !== 'A1');
+  panel.innerHTML = `
+  <div class="cvr-box kdigo-cvr${window._kdigoOpen ? ' open' : ''}" style="--sc:${color}">
+    <div class="cvr-head" role="button" tabindex="0" aria-expanded="${window._kdigoOpen ? 'true' : 'false'}" data-kdigo-toggle="1">
+      <span class="cvr-title">🫘 Fonction rénale (KDIGO)</span>
+      <span class="cvr-verdict" style="color:${st.risk ? '#1a2b3c' : '#78909c'}; background:${color}">${st.g}${st.a ? ' ' + st.a : ''} · ${riskTxt}</span>
+      <span class="cvr-chevron">▸</span>
+    </div>
+    <div class="cvr-detail"><div class="cvr-detail-inner">
+      <div class="cvr-layout">
+        <div class="cvr-col">
+          <div class="cvr-panel-title">① Données rénales</div>
+          <div class="cvr-inputs">
+            <div class="cvr-input${p.dfg !== null ? ' ok' : ''}"><span class="cvr-input-k">DFG</span><span class="cvr-input-v">${p.dfg !== null ? p.dfg + ' mL/min/1,73 m²' : '—'}</span></div>
+            <div class="cvr-input${p.rac !== null ? ' ok' : ''}"><span class="cvr-input-k">RAC (albuminurie)</span><span class="cvr-input-v">${racTxt || 'non renseigné — à doser si MRC suspectée'}</span></div>
+          </div>
+          ${mrc ? `<div class="cvr-banner" style="--bc:#c62828; margin-top:10px"><strong>Maladie rénale chronique ${p.dfg < 60 ? '(DFG < 60)' : ''}${p.dfg < 60 && st.a && st.a !== 'A1' ? ' + ' : ''}${st.a && st.a !== 'A1' ? '(' + st.a + ')' : ''}</strong><p>Chronicité > 3 mois à confirmer — adapter les traitements (doses selon DFG), éviter les néphrotoxiques (AINS, produits de contraste).</p></div>` : ''}
+        </div>
+        <div class="cvr-col cvr-col-results">
+          <div class="cvr-scorecard" style="--sc:${color}">
+            <div class="cvr-scorecard-top">
+              <div class="cvr-gauge"><div class="cvr-gauge-fill" style="width:${(st.risk || 1) * 25}%; background:${color}"></div></div>
+              <div class="cvr-scorecard-pct">${st.g.replace('G', '')}<span class="cvr-pct-unit">G</span></div>
+            </div>
+            <div class="cvr-scorecard-cat" style="color:#1a2b3c">Stade KDIGO ${st.g}${st.a ? ' ' + st.a : ''}</div>
+            <div class="cvr-scorecard-sub">DFG ${p.dfg} mL/min/1,73 m²${racTxt ? ' · RAC ' + racTxt : ''}</div>
+            <div class="cvr-scorecard-act">${riskTxt}${st.risk >= 3 ? ' — avis néphrologique à discuter, bilan étiologique, dépistage cardiovasculaire associé.' : ' — surveillance annuelle du DFG/RAC, contrôle tensionnel et glycémique.'}</div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>`;
 }
 
 // ---------- Risque cardiovasculaire (SCORE2 / SCORE2-OP / SCORE2-Diabetes, région bas risque = France) ----------
@@ -1410,6 +1434,8 @@ function renderTodoChips(exams, list, muted) {
 
 // ---------- Événements ----------
 document.addEventListener('click', e => {
+  const kdHead = e.target.closest('[data-kdigo-toggle]');
+  if (kdHead) { window._kdigoOpen = !window._kdigoOpen; render(); return; }
   const pnav = e.target.closest('button[data-pedia-month]');
   if (pnav) {
     window._pediaMonth = pnav.dataset.pediaMonth === 'auto' ? null : +pnav.dataset.pediaMonth;
