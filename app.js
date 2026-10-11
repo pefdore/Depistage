@@ -1188,6 +1188,24 @@ function render() {
   const p = P();
   const complete = p.age !== null && p.sex && p.tabac;
   document.getElementById('patient-warn').classList.toggle('hidden', !!complete);
+  const details = document.getElementById('patient-info')?.querySelector('details');
+  const summary = document.getElementById('patient-summary');
+  if (details) {
+    if (!window._patientTouched) details.open = !complete;
+    if (summary) {
+      const bits = [];
+      if (p.age !== null && p.ageMois === null) bits.push(p.age + ' ans');
+      if (p.ageMois !== null) bits.push(String(p.ageMois).replace('.', ',') + ' mois');
+      if (p.sex === 'F') bits.push('Femme');
+      if (p.sex === 'M') bits.push('Homme');
+      if (p.tabac === 'actif') bits.push('fumeur');
+      if (p.tabac === 'sevré') bits.push('sevré');
+      if (p.tabac === 'jamais') bits.push('non fumeur');
+      if (p.diabete) bits.push('DT2');
+      if (p.hta) bits.push('HTA');
+      summary.textContent = bits.length ? bits.join(' · ') : '— cliquer pour renseigner —';
+    }
+  }
 
   const pedia = isPediaMode(p);
   ADULT_SECTIONS.forEach(id => {
@@ -1670,6 +1688,10 @@ function renderFiches() {
     : `<div class="fiche-sug-title">📚 Toutes les fiches (${list.length})</div>` + list.map(ficheCard).join('');
 }
 
+document.addEventListener('toggle', e => {
+  const det = e.target;
+  if (det && det.closest && det.closest('#patient-info')) window._patientTouched = true;
+}, true);
 document.addEventListener('input', e => {
   if (e.target && e.target.id === 'fiche-search') renderFiches();
 });

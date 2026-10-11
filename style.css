@@ -497,3 +497,10 @@ header h1 { margin: 0; }
 .fiche-sug-title { grid-column: 1 / -1; font-size: .8rem; font-weight: 700; color: #0d5a8c; text-transform: uppercase; letter-spacing: .03em; margin: 6px 0 2px; }
 #fiche-suggested { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; margin-bottom: 12px; }
 #fiche-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
+/* ---------- Bloc Patient repliable ---------- */
+.patient-details summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; user-select: none; }
+.patient-details summary::-webkit-details-marker { display: none; }
+.patient-details summary h2 { margin: 0; font-size: 1.05rem; }
+.patient-details[open] summary { border-bottom: 1px solid #d8e8f5; padding-bottom: 8px; margin-bottom: 8px; }
+#patient-summary { font-size: .8rem; font-weight: 600; color: #0d5a8c; background: #e3f2fd; padding: 3px 10px; border-radius: 12px; }
+.patient-toggle { font-size: .72rem; color: #888; margin-left: auto; }

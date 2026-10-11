@@ -29,7 +29,9 @@
 <main id="app">
 
   <section id="patient-info" class="card">
-    <h2>Patient</h2>
+    <details class="patient-details">
+      <summary><h2>👤 Patient</h2><span id="patient-summary"></span><span class="patient-toggle">▼ déplier / ▲ replier</span></summary>
+    <div class="patient-grid">
     <div class="patient-grid">
       <label>Nom / Initiales <input type="text" id="pat-name" placeholder="Initiales ou nom"></label>
       <label>Âge <input type="number" id="pat-age" min="0" max="120" placeholder="ans"></label>
@@ -83,6 +85,7 @@
     </div>
     <div id="patient-warn" class="warn hidden">⚠️ Renseignez l'âge, le sexe et le statut tabagique : les indications « auto » en découlent.</div>
     <div id="reminders" class="reminders hidden"></div>
+    </details>
   </section>
 
   <section class="card" id="etat">
