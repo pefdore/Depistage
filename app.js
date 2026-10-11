@@ -1220,6 +1220,7 @@ function render() {
   document.getElementById('reminders').classList.toggle('hidden', !reminders.length);
 
   updateSummary(pedia);
+  renderFiches();
 }
 
 function updateSummary(pedia) {
@@ -1615,16 +1616,58 @@ function downloadFiche(f) {
   URL.revokeObjectURL(url);
 }
 
+function ficheSuggested(p) {
+  const out = [];
+  const seen = new Set();
+  const add = id => { const f = PATIENT_SHEETS.find(x => x.id === id); if (f && !seen.has(id)) { seen.add(id); out.push(f); } };
+  const isPedia = p.ageMois !== null && p.ageMois < 24;
+  if (isPedia) {
+    add('vaccins-enfant');
+    add('diversification');
+    if (p.ageMois >= 2 && p.ageMois <= 18) add('bronchiolite');
+    if (p.ageMois >= 6) add('constipation-enfant');
+    if (p.ageMois >= 6 && p.ageMois <= 24) add('ipo-omga');
+    add('aplv');
+  } else {
+    if (p.tabac === 'actif') { add('sevrage-tabac'); add('cerveau-bpc'); add('apnee-sommeil'); }
+    if (p.tabac === 'sevré') add('sevrage-tabac');
+    if (p.diabete) add('dt2');
+    if (p.hta) add('hta');
+    if (p.imc !== null && p.imc >= 30) add('apnee-sommeil');
+    if (p.age !== null && p.age >= 50) add('prevention-cardio');
+    if (p.age !== null && p.age >= 55) add('dmla');
+    if (p.age !== null && p.age >= 18 && p.age <= 65) add('lombalgie');
+    if (p.diabete || p.hta || (p.age !== null && p.age >= 50)) add('anticoagulant');
+  }
+  return out;
+}
+
+function ficheCard(f) {
+  return `<button type="button" class="fiche-card" data-fiche="${f.id}"><span class="fiche-cat">${escapeHtml(f.cat)}</span><span class="fiche-title">${escapeHtml(f.title)}</span><span class="fiche-action">⬇ Télécharger (fiches/${f.id}.html)</span></button>`;
+}
+
 function renderFiches() {
   const input = document.getElementById('fiche-search');
   const results = document.getElementById('fiche-results');
   const count = document.getElementById('fiche-count');
+  const suggested = document.getElementById('fiche-suggested');
   if (!input || !results) return;
+
+  const p = P();
+  const sug = ficheSuggested(p);
+  if (suggested) {
+    suggested.innerHTML = sug.length
+      ? `<div class="fiche-sug-title">💡 Suggérées pour ce patient (${sug.length})</div>` + sug.map(ficheCard).join('')
+      : '<div class="fiche-empty">Renseignez le patient ci-dessus : les fiches adaptées à sa situation apparaîtront ici.</div>';
+  }
+
   const q = (input.value || '').trim().toLowerCase();
   const match = f => !q || f.title.toLowerCase().includes(q) || f.cat.toLowerCase().includes(q) || f.tags.toLowerCase().includes(q);
   const list = PATIENT_SHEETS.filter(match);
-  count.textContent = list.length ? list.length + ' fiche' + (list.length > 1 ? 's' : '') : '—';
-  results.innerHTML = list.map(f => `<button type="button" class="fiche-card" data-fiche="${f.id}"><span class="fiche-cat">${escapeHtml(f.cat)}</span><span class="fiche-title">${escapeHtml(f.title)}</span><span class="fiche-action">⬇ Télécharger (fiches/${f.id}.html)</span></button>`).join('') || '<div class="fiche-empty">Aucune fiche pour cette recherche.</div>';
+  if (count) count.textContent = list.length ? list.length + ' fiche' + (list.length > 1 ? 's' : '') : '—';
+  results.innerHTML = q
+    ? (list.map(ficheCard).join('') || '<div class="fiche-empty">Aucune fiche pour cette recherche.</div>')
+    : `<div class="fiche-sug-title">📚 Toutes les fiches (${list.length})</div>` + list.map(ficheCard).join('');
 }
 
 document.addEventListener('input', e => {
