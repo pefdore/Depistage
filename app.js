@@ -1168,18 +1168,37 @@ function renderSuivi(p) {
     </div>`).join('');
 }
 
+const ADULT_SECTIONS = ['cvr-section', 'rx-section', 'todo-section', 'suivi-section'];
+
+function isPediaMode(p) {
+  return p.ageMois !== null && p.ageMois < 24;
+}
+
 function render() {
   const p = P();
   const complete = p.age !== null && p.sex && p.tabac;
   document.getElementById('patient-warn').classList.toggle('hidden', !!complete);
 
+  const pedia = isPediaMode(p);
+  ADULT_SECTIONS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('hidden', pedia);
+  });
+
   const reminders = [];
   renderPedia(p);
   renderEtat(p);
-  renderKdigo(p);
-  renderCvr(p);
-  renderRx(p);
-  renderSuivi(p);
+  if (!pedia) {
+    renderKdigo(p);
+    renderCvr(p);
+    renderRx(p);
+    renderSuivi(p);
+  } else {
+    ['kdigo-panel', 'cvr-panel', 'rx-panel', 'suivi-panel'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '';
+    });
+  }
   if (p.tabac === 'actif') reminders.push('🚬 Patient fumeur : proposer une aide au sevrage (substitution, consultation).');
   if (p.fumeur && p.pa === null && p.age !== null && p.age >= 40) reminders.push('⚠️ Paquets-années non renseignées : nécessaires pour BPCO, cancer du poumon, AAA.');
   if (p.diabete && p.dfg === null) reminders.push('🩸 Patient diabétique : vérifier la fonction rénale (DFG, rapport protéinurie/créatinurie).');
@@ -1190,16 +1209,21 @@ function render() {
   document.getElementById('reminders').innerHTML = reminders.map(r => `<div>${escapeHtml(r)}</div>`).join('');
   document.getElementById('reminders').classList.toggle('hidden', !reminders.length);
 
-  updateSummary();
+  updateSummary(pedia);
 }
 
-function updateSummary() {
+function updateSummary(pedia) {
   const all = ALL_GROUPS.flatMap(g => g.exams).filter(e => !(e.hideIf && e.hideIf(P())));
   const todo = all.filter(e => examState(e).indicated && !doneExams[e.id]);
   const doneCount = all.filter(e => examState(e).indicated && doneExams[e.id]).length;
 
   const list = document.getElementById('todo-list');
   list.innerHTML = '';
+  if (pedia) {
+    document.getElementById('todo-count').textContent = '—';
+    document.getElementById('progress-info').textContent = 'Suivi pédiatrique — modules adultes masqués';
+    return;
+  }
   const CATS = [
     { key: 'chronique', title: 'D\u00e9pistage des maladies chroniques' },
     { key: 'neo', title: 'D\u00e9pistage n\u00e9oplasique' },
