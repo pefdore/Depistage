@@ -442,60 +442,114 @@ function renderCvr(p) {
   const target = ldlTarget(p, cvr);
   const ldlOk = target && p.ldl !== null && p.ldl < target.v;
   const ldlGap = target && p.ldl !== null ? Math.round((p.ldl - target.v) / target.v * 100) : null;
+  const d2 = v => v === null ? '—' : v;
 
-  const d2 = v => v === null ? '' : v;
+  const modelName = p.diabete ? 'SCORE2-Diabetes' : (age >= 70 ? 'SCORE2-OP' : 'SCORE2');
+  const verdict = extreme
+    ? { label: 'RISQUE EXTRÊME', color: '#6a1b9a', bg: '#f3e5f5' }
+    : hasTerrain
+      ? { label: 'Prévention secondaire', color: '#c62828', bg: '#fdecea' }
+      : result
+        ? { label: result.cat.label, pct: result.pct, color: result.cat.color, bg: result.cat.color + '18' }
+        : { label: 'À calculer', color: '#78909c', bg: '#eceff1' };
+
+  const gauge = result ? Math.min(100, Math.round(result.pct * (result.pct > 20 ? 3 : 6))) : 0;
+
+  const terrainChecks = TERRAIN_ITEMS.map(t =>
+    `<label class="cvr-terrain-item"><input type="checkbox" id="${t.id}" ${document.getElementById(t.id)?.checked ? 'checked' : ''}><span>${escapeHtml(t.label)}</span></label>`).join('')
+    + `<label class="cvr-terrain-item cvr-terrain-extreme"><input type="checkbox" id="${EXTREME_ITEM.id}" ${document.getElementById(EXTREME_ITEM.id)?.checked ? 'checked' : ''}><span>${escapeHtml(EXTREME_ITEM.label)}</span></label>`;
+
+  const inputs = [
+    { k: 'Tabac', v: p.tabac === '' ? 'non renseigné' : (p.tabac === 'actif' ? '🚬 actif' : (p.tabac === 'sevré' ? 'sevré (non fumeur pour le score)' : 'jamais')), ok: p.tabac !== '' },
+    { k: 'PAS', v: p.sbp === null ? '—' : p.sbp + ' mmHg', ok: p.sbp !== null },
+    { k: 'Chol. total', v: p.chol === null ? '—' : d2(p.chol) + ' g/L', ok: p.chol !== null },
+    { k: 'HDL', v: p.hdl === null ? '—' : d2(p.hdl) + ' g/L', ok: p.hdl !== null },
+  ];
+
+  const actTxt = result ? (p.diabete
+    ? (result.pct >= 20 ? 'Très haut risque : statine haute intensité (LDL < 0,55 g/L), iSGLT2/GLP-1 selon indication, TA < 130/80.'
+      : result.pct >= 10 ? 'Haut risque : statine (LDL < 0,7 g/L), iSGLT2/GLP-1 à évaluer, TA < 130/80.'
+      : result.pct >= 5 ? 'Risque modéré : hygiène de vie, statine à discuter (LDL < 1,0 g/L), contrôle annuel.'
+      : 'Risque faible : hygiène de vie, suivi annuel.')
+    : (result.cat.label === 'Risque élevé' ? 'Haut risque : statine indiquée (LDL < 0,7 g/L), TA < 130/80 si traitée.'
+      : result.cat.label === 'Risque modéré' ? 'Risque modéré : hygiène de vie, réévaluer à 3–6 mois, statine si facteurs persistants.'
+      : 'Risque faible : hygiène de vie, réévaluation régulière.')) : '';
+
   panel.innerHTML = `
   <div class="cvr-box${window._cvrOpen ? ' open' : ''}">
     <div class="cvr-head" role="button" tabindex="0" aria-expanded="${window._cvrOpen ? 'true' : 'false'}">
-      <span class="cvr-title">\u2764\ufe0f Risque cardiovasculaire (SCORE2 \u2014 ESC 2021/2023)</span>
-      <span class="cvr-verdict" style="color:${hasTerrain ? '#c62828' : (result ? result.cat.color : '#888')}">
-        ${extreme ? 'RISQUE EXTRÊME' : (hasTerrain ? 'TERRAIN : prévention secondaire' : (result ? result.pct.toFixed(1).replace('.', ',') + ' % \u00b7 ' + result.cat.label : '\u00e0 calculer \u25b8'))}</span>
-      <span class="cvr-chevron">\u25b8</span>
+      <span class="cvr-title">❤️ Risque cardiovasculaire</span>
+      <span class="cvr-verdict" style="color:${verdict.color}; background:${verdict.bg}">
+        ${result ? result.pct.toFixed(1).replace('.', ',') + ' % · ' : ''}${verdict.label}
+      </span>
+      <span class="cvr-chevron">▸</span>
     </div>
     <div class="cvr-detail"><div class="cvr-detail-inner">
-      <div class="cvr-sub">Algorithme d\u00e9cisionnel (logique risquecv.fr) :</div>
-      <div class="cvr-step">1 \u00b7 Terrain cardiovasculaire connu ? (pr\u00e9vention secondaire \u2014 on s'arr\u00eate l\u00e0)</div>
-      ${TERRAIN_ITEMS.map(t => `<label class="cvr-check"><input type="checkbox" id="${t.id}" ${document.getElementById(t.id)?.checked ? 'checked' : ''}><span>${escapeHtml(t.label)}</span></label>`).join('')}
-      <label class="cvr-check"><input type="checkbox" id="${EXTREME_ITEM.id}" ${document.getElementById(EXTREME_ITEM.id)?.checked ? 'checked' : ''}><span>${escapeHtml(EXTREME_ITEM.label)}</span></label>
-      ${extreme ? `<div class="cvr-stop" style="border-color:#6a1b9a"><strong>⚠ Risque extrême (ESC/EAS 2025)</strong> : cible LDL < 0,40 g/L (Class IIb). Traitement intensif maximal : statine haute intensité + ézétimibe → PCSK9 (ou inclisran) ± bempédoïque — évaluation spécialisée recommandée.</div>` : (hasTerrain ? `<div class="cvr-stop">\u26d4 Terrain ath\u00e9romateux : patient en <strong>pr\u00e9vention secondaire</strong> \u2014 pas de score n\u00e9cessaire. Prise en charge intensive : statine haute intensit\u00e9 (LDL < 0,55 g/L), antiagr\u00e9gant, contr\u00f4le TA, arr\u00eat tabac, r\u00e9adaptation.</div>` : `
-      <div class="cvr-step">2 \u00b7 Pas de terrain \u2192 score ${p.diabete ? 'SCORE2-Diabetes' : (age >= 70 ? 'SCORE2-OP' : 'SCORE2')} (r\u00e9gion bas risque \u2014 France)</div>
-      <div class="cvr-grid">
-        <div class="cvr-check">Tabac : <strong>${p.tabac === '' ? 'non renseigné' : (p.tabac === 'actif' ? 'actif' : (p.tabac === 'sevré' ? 'sevré (non fumeur pour le score)' : 'jamais'))}</strong> — pré-rempli depuis la partie Patient</div>
-        <div class="cvr-check">PAS : <strong>${d2(p.sbp)}</strong> mmHg — pré-rempli depuis la partie Patient</div>
-        <div class="cvr-check">Chol. total : <strong>${d2(p.chol)}</strong> g/L · HDL : <strong>${d2(p.hdl)}</strong> g/L — pré-remplis depuis la partie Patient</div>
-        ${isDm ? `
-        <label>HbA1c (mmol/mol) <input type="number" id="cvr-hba1c" min="20" max="150" step="1" value="${d2(st.hba1c)}" placeholder="ex. 58"></label>
-        <label>\u00c2ge diag. DT2 <input type="number" id="cvr-diabage" min="20" max="85" step="1" value="${d2(st.diabAge)}" placeholder="ex. 55"></label>` : ''}
-      </div>
-      ${result ? `
-      <div class="cvr-result" style="border-color:${result.cat.color}">
-        <div class="cvr-score" style="color:${result.cat.color}">${result.pct.toFixed(1).replace('.', ',')} %</div>
-        <div class="cvr-score-label">${result.cat.label} \u00b7 risque CV \u00e0 10 ans (${p.diabete ? 'SCORE2-Diabetes' : (age >= 70 ? 'SCORE2-OP' : 'SCORE2')}, France r\u00e9gion bas risque)</div>
-        <div class="cvr-act">${p.diabete
-          ? (result.pct >= 20 ? 'Tr\u00e8s haut risque : LDL < 0,55 g/L + statine haute intensit\u00e9, iSGLT2/GLP-1 selon indication, contr\u00f4le TA < 130/80.'
-            : result.pct >= 10 ? 'Haut risque : statine (LDL < 0,7 g/L), iSGLT2/GLP-1 \u00e0 \u00e9valuer, TA < 130/80.'
-            : result.pct >= 5 ? 'Risque mod\u00e9r\u00e9 (cible LDL < 1,0 g/L) : hygi\u00e8ne de vie, statine \u00e0 discuter, contr\u00f4le annuel.'
-            : 'Risque faible : hygi\u00e8ne de vie, suivi annuel.')
-          : (result.cat.label === 'Risque \u00e9lev\u00e9' ? 'Haut risque (cible LDL < 0,7 g/L) : consultation m\u00e9dicamenteuse \u2014 statine, TA < 130/80 si traitement.'
-            : result.cat.label === 'Risque mod\u00e9r\u00e9' ? 'Risque mod\u00e9r\u00e9 : conseils d\u2019hygi\u00e8ne de vie, r\u00e9\u00e9valuer \u00e0 3\u20136 mois, statine si facteurs persistants.'
-            : 'Risque faible : hygi\u00e8ne de vie, r\u00e9\u00e9valuation r\u00e9guli\u00e8re.')}</div>
-      </div>` : (missing.length ? `<div class="cvr-missing">\u26a0\ufe0f Pour calculer le score : ${missing.join(', ')}.</div>` : '')}
-      `)}
-      ${target ? `
-      <div class="cvr-result" style="border-color:${ldlOk ? '#2e7d32' : '#c62828'}">
-        <div class="cvr-score" style="color:${ldlOk ? '#2e7d32' : '#c62828'}">${target.label}</div>
-        <div class="cvr-score-label">Cible LDL-C (ESC 2021/2023) \u2014 ${target.why}</div>
-        <div class="cvr-act">${p.ldl === null
-          ? 'LDL non renseign\u00e9 \u2014 remplir le champ LDL (g/L) dans la partie Patient pour comparer.'
-          : (ldlOk
-            ? `\u2705 LDL patient : ${p.ldl} g/L \u2014 <strong>cible atteinte</strong>.`
-            : `\u274c LDL patient : ${p.ldl} g/L \u2014 cible d\u00e9pass\u00e9e de ${ldlGap > 0 ? '+' : ''}${ldlGap} % : statine indiqu\u00e9e (voir Traitements \u2192 Statines), r\u00e9\u00e9valuer \u00e0 3 mois.`)}</div>
+
+      ${extreme ? `
+      <div class="cvr-banner" style="--bc:#6a1b9a">
+        <strong>⚠ Risque extrême (ESC/EAS 2025)</strong>
+        <p>Cible LDL < 0,40 g/L (Class IIb). Traitement intensif maximal : statine haute intensité + ézétimibe → PCSK9 (ou inclisiran) ± bempédoïque — évaluation spécialisée recommandée.</p>
+      </div>` : hasTerrain ? `
+      <div class="cvr-banner" style="--bc:#c62828">
+        <strong>⛔ Terrain athéromateux — prévention secondaire</strong>
+        <p>Pas de score nécessaire. Prise en charge intensive : statine haute intensité (LDL < 0,55 g/L), antiagrégant, contrôle TA, arrêt tabac, réadaptation.</p>
       </div>` : ''}
+
+      <div class="cvr-layout">
+        <div class="cvr-col">
+          <div class="cvr-panel-title">① Terrain cardiovasculaire connu ?</div>
+          <div class="cvr-terrain-grid">${terrainChecks}</div>
+
+          <div class="cvr-panel-title">② Données du score <span class="cvr-model">${modelName} · France (bas risque)</span></div>
+          <div class="cvr-inputs">
+            ${inputs.map(i => `<div class="cvr-input${i.ok ? ' ok' : ''}"><span class="cvr-input-k">${i.k}</span><span class="cvr-input-v">${i.v}</span></div>`).join('')}
+            ${isDm ? `
+            <label class="cvr-input cvr-input-edit">HbA1c (mmol/mol)<input type="number" id="cvr-hba1c" min="20" max="150" step="1" value="${d2(st.hba1c)}" placeholder="ex. 58"></label>
+            <label class="cvr-input cvr-input-edit">Âge diag. DT2<input type="number" id="cvr-diabage" min="20" max="85" step="1" value="${d2(st.diabAge)}" placeholder="ex. 55"></label>` : ''}
+          </div>
+          ${!hasTerrain && missing.length ? `<div class="cvr-missing">⚠️ Pour calculer le score : ${missing.map(escapeHtml).join(', ')}.</div>` : ''}
+        </div>
+
+        <div class="cvr-col cvr-col-results">
+          ${result ? `
+          <div class="cvr-scorecard" style="--sc:${result.cat.color}">
+            <div class="cvr-scorecard-top">
+              <div class="cvr-gauge"><div class="cvr-gauge-fill" style="width:${gauge}%; background:${result.cat.color}"></div></div>
+              <div class="cvr-scorecard-pct">${result.pct.toFixed(1).replace('.', ',')}<span class="cvr-pct-unit">%</span></div>
+            </div>
+            <div class="cvr-scorecard-cat" style="color:${result.cat.color}">${result.cat.label}</div>
+            <div class="cvr-scorecard-sub">Risque CV à 10 ans — ${modelName}, région bas risque (France)</div>
+            <div class="cvr-scorecard-act">${actTxt}</div>
+          </div>` : (!hasTerrain && !extreme ? `
+          <div class="cvr-scorecard cvr-scorecard-empty">
+            <div class="cvr-scorecard-pct">?</div>
+            <div class="cvr-scorecard-cat">Score non calculé</div>
+            <div class="cvr-scorecard-sub">Renseignez les données manquantes</div>
+          </div>` : '')}
+
+          ${target ? `
+          <div class="cvr-ldl ${ldlOk === true ? 'ok' : (ldlOk === false ? 'ko' : '')}">
+            <div class="cvr-ldl-head">
+              <span class="cvr-ldl-target">${target.label}</span>
+              ${ldlOk === true ? '<span class="cvr-ldl-badge ok">✓ atteinte</span>' : (ldlOk === false ? `<span class="cvr-ldl-badge ko">+${ldlGap} %</span>` : '')}
+            </div>
+            <div class="cvr-ldl-why">${escapeHtml(target.why)}</div>
+            <div class="cvr-ldl-status">
+              ${p.ldl === null
+                ? 'LDL non renseigné — remplir le champ LDL (g/L) dans la partie Patient.'
+                : (ldlOk
+                  ? `✅ LDL du patient : ${d2(p.ldl)} g/L — cible atteinte.`
+                  : `❌ LDL du patient : ${d2(p.ldl)} g/L — cible dépassée de ${ldlGap > 0 ? '+' : ''}${ldlGap} % : statine indiquée (voir Traitements → Statines), réévaluer à 3 mois.`)}
+            </div>
+          </div>` : ''}
+        </div>
+      </div>
+
     </div></div>
   </div>`;
   bindCvr(p);
 }
-
 function bindCvr(p) {
   const panel = document.getElementById('cvr-panel');
   const head = panel.querySelector('.cvr-head');
