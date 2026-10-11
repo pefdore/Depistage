@@ -1477,6 +1477,167 @@ document.getElementById('btn-load').addEventListener('click', () => {
   render();
 });
 
+// ---------- Fiches info patient ----------
+const PATIENT_SHEETS = [
+  { id: 'goutte', cat: 'Rhumatologie', title: 'La crise de goutte', tags: 'goutte crise uricémie acide urique orteil podagre colchicine allopurinol', intro: 'La goutte est une inflammation articulaire très douloureuse provoquée par des cristaux d’acide urique qui se déposent dans l’articulation. Elle se soigne très bien : voici ce qu’il faut savoir.', sections: [
+    ['Qu’est-ce que c’est ?', 'L’acide urique est un déchet normal du sang. Quand son taux est trop élevé, il cristallise et se dépose dans les articulations (souvent le gros orteil, le pied, la cheville ou le genou). Ces cristaux déclenchent une inflammation brutale et très douloureuse : c’est la crise de goutte.'],
+    ['Pendant la crise', 'Repos de l’articulation, glaçage (poche de glace enveloppée 15–20 min, 3–4 fois/jour), hydratation abondante. Le traitement anti-inflammatoire (colchicine, anti-inflammatoire ou corticoïdes selon votre profil) est efficace en 24–48 h : prenez-le selon l’ordonnance et n’arrêtez pas en cours de route.'],
+    ['Après la crise : traiter la cause', 'Si les crises se répètent ou si l’acide urique reste élevé, un traitement de fond (allopurinol ou fébuxostat) vise à maintenir l’acide urique < 360 µmol/L (< 60 mg/L) pour dissoudre les cristaux. Il se prend À VIE, tous les jours, même sans crise — l’arrêter fait revenir les crises.'],
+    ['Alimentation : ce qui aide', 'Réduire : viandes rouges et abats, fruits de mer et anchois/sardines, alcool (surtout bière), sodas sucrés et fructose. Privilégier : eau (1,5–2 L/jour), produits laitiers allégés, légumes, cerises. Un régime seul ne suffit pas à normaliser l’acide urique, mais il renforce le traitement.'],
+    ['Surveiller', 'Prise de sang régulière (acide urique, fonction rénelle), tension artérielle, poids. La goutte est souvent associée à l’HTA, au diabète et à l’excès de poids : les traiter ensemble protège votre cœur et vos reins.'],
+  ]},
+  { id: 'hta', cat: 'Cardiologie', title: 'L’hypertension artérielle', tags: 'hta tension artérielle pas sel régime sport', intro: 'Votre tension artérielle est élevée. Elle ne fait pas mal, mais elle abîme silencieusement le cœur, le cerveau, les reins et les yeux. La traiter, c’est prévenir l’AVC et l’infarctus.', sections: [
+    ['Objectif', 'Tension < 140/90 mmHg en consultation (parfois < 130/80 selon votre profil). Mesurez aussi à domicile, matin et soir, 3 jours de suite, au calme après 5 min de repos : moyenne domiciliaire < 135/85.'],
+    ['Hygiène de vie : le 1er traitement', 'Réduire le sel (< 5–6 g/jour : attention au pain, fromage, plats préparés), activité physique 30 min/jour (marche rapide), perte de poids si excès, limiter l’alcool, arrêter le tabac, légumes et fruits à chaque repas.'],
+    ['Les médicaments', 'Ils se prennent tous les jours, sans arrêt, même si vous vous sentez bien. Ne stoppez jamais seul : une tension qui remonte ne se sent pas pas. Plusieurs classes existent (diurétique, IEC/ARA2, inhibiteur calcique) ; l’objectif compte plus que le médicament.'],
+    ['Surveillance', 'Tous les 3–6 mois : tension, poids, prise de sang (créatinine, potassium, sucre, lipides). Autosurveillance tensionnelle à domicile à noter dans un carnet.'],
+  ]},
+  { id: 'dt2', cat: 'Endocrinologie', title: 'Le diabète de type 2', tags: 'diabète sucre hba1c glycémie régime insuline', intro: 'Votre taux de sucre dans le sang est trop élevé. Bien équilibré, le diabète de type 2 permet une vie normale et prévient les complications.', sections: [
+    ['Objectif', 'HbA1c (hémoglobine glyquée) < 7 % en général, personnalisé selon votre âge et vos traitements. Elle reflète la moyenne de vos sucres des 3 derniers mois.'],
+    ['Alimentation et activité', 'Réduire sucres rapides (sodas, jus, confiseries), féculents en quantité raisonnable, privilégier légumes et fibres. Activité physique 30 min/jour (la marche muscle et fait baisser le sucre). Perte de poids de 5–10 % si excès : souvent très efficace sur le diabète.'],
+    ['Traitements', 'Comprimés (metformine en 1re intention), parfois autres classes (réduisent aussi le risque cardiovasculaire) ou insuline si besoin. Prenez-les régulièrement ; en cas de jeûne ou de maladie avec peu mangé, prévenez votre médecin.'],
+    ['Surveillance', 'HbA1c tous les 3–6 mois ; 1 fois/an : fond d’œil, bilan rénal (créatinine, albumine), bilan lipidique, dépistage du pied (sensibilité), vaccin grippe. Dents : contrôle annuel.'],
+  ]},
+  { id: 'sevrage-tabac', cat: 'Addictologie', title: 'Arrêter de fumer', tags: 'tabac sevrage cigarette nicotine patch substitution', intro: 'Arrêter le tabac est le geste le plus profitable pour votre santé : bénéfice cardiovasculaire dès les premières semaines, gain d’espérance de vie de plusieurs années. Vous n’avez pas à y arriver seul.', sections: [
+    ['Pourquoi arrêter', 'Risque d’infarctus divisé par 2 dès la 1re année, risque de cancer du poumon qui baisse fortement après 10 ans, souffle et goût améliorés en quelques semaines, économies substantielles.'],
+    ['Les méthodes qui marchent', 'Substituts nicotiniques (patch + formes orales : doublent les chances), accompagnement médical, et si besoin varénicine ou buprénorphine. Le combo substituts + suivi est le plus efficace. Choisissez une date d’arrêt et annoncez-la.'],
+    ['Gérer les envies', 'Une envie dure 3–5 min : boire de l’eau, marcher, respirer profondément. Éviter café/alcool les premières semaines, demander à l’entourage de ne pas fumer devant vous. Les envies espacent puis disparaissent.'],
+    ['Si ça recommence', 'Une rechute n’est pas un échec : c’est une étape. La plupart des ex-fumeurs ont fait plusieurs tentatives. On réanalyse ce qui a déclenché la reprise et on repart, souvent avec un traitement ajusté.'],
+  ]},
+  { id: 'anticoagulant', cat: 'Cardiologie', title: 'Les anticoagulants (AVK/AOD)', tags: 'anticoagulant avk aod warfarine rivaroxaban inr fibrillation', intro: 'Votre traitement anticoagulant fluidifie le sang pour prévenir la formation de caillots (AVC, phlébite). Bien pris, il est très efficace ; mal pris, il peut être dangereux.', sections: [
+    ['Pourquoi ce traitement', 'En cas de fibrillation auriculaire, de phlébite, d’embolie pulmonaire ou de prothèse valvulaire, un caillot peut se former et provoquer un AVC ou une embolie. L’anticoagulant empêche le sang de coaguler à mauvais escient.'],
+    ['AVK (Fluidione, warfarine…) : l’INR compte', 'Prise de sang régulière (INR) : cible généralement 2–3. Ne changez jamais la dose seul. Aliments riches en vitamine K (chou, épinards, brocoli) : les consommer est possible mais de façon régulière, sans excès ni arrêt brutal.'],
+    ['AOD (Xarelto, Eliquis, Pradaxa…) : l’heure compte', 'À heure fixe chaque jour. Pas de surveillance sanguine de routine mais une prise de sang rénales annuelle. En cas de saignement inhabituel (gencives, urines, selles noires), appelez votre médecin.'],
+    ['Signaux d’alerte', 'Saignements qui ne s’arrêtent pas, selles noires, urines rouges, hématomes spontanés, maux de tête brutaux, fatigue inhabituelle : contactez rapidement. Avant tout soin dentaire ou chirurgie, prévenez : anticoagulant à gérer. Ne prenez jamais d’aspirine ou d’anti-inflammatoire sans avis.'],
+  ]},
+  { id: 'aplv', cat: 'Pédiatrie', title: 'Allergie aux protéines du lait de vache (APLV)', tags: 'aplv allergie lait bébé colite eczéma hydrolysat', intro: 'Votre bébé est peut-être allergique aux protéines du lait de vache. C’est l’allergie la plus fréquante du nourrisson ; elle guérit dans la grande majorité des cas avant 1–2 ans.', sections: [
+    ['Qu’est-ce que c’est ?', 'Le système immunitaire du bébé réagit aux protéines du lait de vache. Signes possibles : vomissements, diarrhée, sang dans les selles, eczéma, pleurs après les biberons, cassure de croissance.'],
+    ['Le traitement : l’éviction', 'Retirer totalement le lait de vache 2 à 4 semaines : lait à hydrolysat de protéines prescrit par votre médecin. Si l’allaitement maternel se poursuit, la maman supprime les produits laitiers (calcium substitué).'],
+    ['Le test de réintroduction', 'Après l’éviction, on réintroduit le lait de vache en consultation : si les signes reviennent, le diagnostic est confirmé et l’éviction se poursuit. Ce test est indispensable avant de conclure.'],
+    ['Évolution', '80 % des enfants guérissent vers 1 an. La réintroduction se fait progressivement, sous suivi médical, souvent à partir de 9–12 mois. Ne supprimez jamais d’aliment au long cours sans avis médical.'],
+  ]},
+  { id: 'diversification', cat: 'Pédiatrie', title: 'La diversification alimentaire', tags: 'diversification bébé 4 mois 6 mois alimentation lait', intro: 'À partir de 4–6 mois, votre bébé découvre les aliments, en plus du lait qui reste son aliment principal jusqu’à 1 an.', sections: [
+    ['Quand commencer ?', 'Entre 4 et 6 mois révolus, jamais avant 4 mois : fenêtre idéale d’acceptation. Un bébé prêt tient sa tête, s’intéresse à l’assiette des grands et a perdu le réflexe de protrusion de la langue.'],
+    ['Comment introduire', 'Légumes puis fruits, 2–3 cuillères à café, puis on augmente progressivement. Un nouvel aliment à la fois, espacé de quelques jours. Le lait reste majoritaire (≥ 500 mL/jour) : on ne remplace pas les biberons d’un coup.'],
+    ['Ce qu’il ne faut JAMAIS', 'Miel avant 1 an (botulisme), lait de vache seul avant 1 an, aliments durs et ronds (fruits à coque entiers avant 4 ans, raisins coupés en 2), sel, sucres ajoutés, jus de fruits avant 1 an.'],
+    ['Les protéines : peu et pas trop tôt', 'Viande/poisson : 5–10 g vers 6–7 mois, 10 g vers 8 mois, 20 g vers 9–12 mois (l’équivalent d’1/2 œuf). Pas besoin de protéines en excès : elles surchargent les reins du bébé.'],
+  ]},
+  { id: 'bronchiolite', cat: 'Pédiatrie', title: 'La bronchiolite', tags: 'bronchiolite bébé toux sifflement virus vrs kinésithérapie', intro: 'La bronchiolite est une infection virale fréquente du nourrisson, très gênante mais le plus souvent bénigne. Voici les repères pour la maison et pour savoir quand consulter.', sections: [
+    ['C’est quoi ?', 'Un virus (VRS le plus souvent) encombre les petites bronches du bébé : toux, sifflements, respiration rapide, nez qui coule, fièvre modérée. Ça dure 8–10 jours, souvent un peu plus la nuit.'],
+    ['À la maison', 'Lavage de nez au sérum physiologique AVANT les repas (aussi souvent que nécessaire), fractionner les biberons (moitié plus souvent), position légèrement proclive, aérer la chambre, ne pas fumer à la maison. Hydratation indispensable.'],
+    ['Signes pour consulter en urgence', 'Respiration très rapide ou sifflante gênante, tirage (creux entre les côtes), apnées, refus total du biberon, pâleur, somnolence inhabituelle, moins de 3 couches mouillées/jour. Chez le < 3 mois : toute gêne respiratoire impose une consultation rapide.'],
+    ['Traitements', 'Aucun médicament n’est nécessaire dans la majorité des cas : ni antibiotique (c’est un virus), ni sirop contre-indiqué avant 2 ans. La kinésithérapie respiratoire n’est plus systématique : elle est décidée par le médecin.'],
+  ]},
+  { id: 'vaccins-enfant', cat: 'Pédiatrie', title: 'Les vaccins de bébé (calendrier 2025)', tags: 'vaccins bébé calendrier hexavalent ror méningocoque bexsero', intro: 'Voici le calendrier vaccinal de votre enfant né en 2025. Les vaccins protègent contre des maladies graves et sont obligatoires pour la collectivité (crèche, école).', sections: [
+    ['Les rendez-vous', '2 mois : hexavalent 1 + pneumocoque 1 + rotavirus 1 · 3 mois : méningocoque B 1 · 4 mois : hexavalent 2 + pneumocoque 2 + rotavirus 2 · 5 mois : méningocoque B 2 · 6 mois : méningocoque ACWY 1 · 11 mois : hexavalent 3 + pneumocoque 3 · 12 mois : méningocoque B 3 + ACWY 2 + ROR 1 · 16–18 mois : ROR 2.'],
+    ['Ces vaccins protègent de quoi ?', 'L’hexavalent : diphtérie, tétanos, polio, coqueluche, Hib, hépatite B. Le pneumocoque : méningites et pneumonies. Les méningocoques B et ACWY : méningites graves. Le ROR : rougeole, oreillons, rubéole. Le rotavirus : gastro-entérites sévères (recommandé).'],
+    ['Et après ?', 'Rappels dTP à 6 ans puis 11–13 ans, coqueluche à 11–13 ans, HPV à 11–14 ans (filles et garçons). Le carnet de santé est le document de référence : apportez-le à chaque consultation.'],
+    ['Effets secondaires', 'Fièvre modérée, rougeur ou grosseur à la piqûre pendant 24–48 h : banal. Paracétamol si besoin. Signaux plus rares (fièvre > 39 °C, éruption) : appelez votre médecin.'],
+  ]},
+  { id: 'constipation-enfant', cat: 'Pédiatrie', title: 'Constipation de l’enfant', tags: 'constipation enfant selles macrogol encoprésie', intro: 'La constipation de l’enfant est fréquente et se soigne bien. La règle d’or : ne pas laisser s’installer un cercle de douleur et de rétention.', sections: [
+    ['Reconnaître', 'Selles dures, rares, douloureuses, parfois avec douleur au ventre ou fissure. Chez le nourrisson allaité : des selles rares mais molles sont souvent normales — la constipation, c’est des selles DURES.'],
+    ['Premières mesures', 'Chez le nourrisson : masser le ventre, pédaler les jambes, bien réhydrater, laits adaptés si besoin. Chez le grand : eau, fruits/légumes, activité, temps aux toilettes après le repas sans stress, marchepied pour une bonne position.'],
+    ['Le traitement médicamenteux', 'Macrogols (laxatifs osmotiques sans accoutumance) : efficaces et bien tolérés, à dose suffisante et suffisamment longtemps (souvent plusieurs mois). Ne jamais faire des lavements répétés sans avis.'],
+    ['Encoprésie', 'Si des fuites de selles apparaissent dans les sous-vêtements : c’est souvent une constipation avec impaction (les selles liquides contournent le bouchon). Ce n’est pas de la « paresse » : traitement par déimpaction + éducation, avec suivi médical.'],
+  ]},
+  { id: 'ipo-omga', cat: 'ORL', title: 'Otite moyenne aiguë de l’enfant', tags: 'otite oreille enfant amoxicilline paracétamol ORL', intro: 'L’otite moyenne aiguë est très fréquente chez le jeune enfant. La plupart guérissent sans antibiotique : voici quand il en faut un et quoi faire à la maison.', sections: [
+    ['Reconnaître', 'Fièvre, douleur d’oreille (enfant qui se tient l’oreille, pleure la nuit), nez qui coule. Chez le bébé : parfois seulement fièvre et irritabilité — l’examen du tympan par le médecin fait le diagnostic.'],
+    ['Antibiotique ou pas ?', 'Après 2 ans, otite unilatérale sans gravité : paracétamol + surveillance 48–72 h suffisent souvent. Antibiotique (amoxicilline) si : enfant < 2 ans, otite bilatérale, fièvre élevée, douleur intense, otite qui traîne, ou échec de la surveillance.'],
+    ['À la maison', 'Paracétamol régulier pour la douleur, lavage de nez au sérum physiologique, hydratation, position tête un peu relevée la nuit. Pas de gouttes auriculaires sans avis, pas d’anti-inflammatoires chez le jeune enfant sans prescription.'],
+    ['Quand reconsulter', 'Si douleur qui persiste > 48–72 h, fièvre > 39 °C, écoulement de l’oreille (perforation : souvent soulagée après), ou enfant apathique. Otites à répétition (> 3 en 6 mois) : avis ORL pour vérifier l’audition.'],
+  ]},
+  { id: 'dmla', cat: 'Ophtalmologie', title: 'DMLA (dégénérescence maculaire)', tags: 'dmla œil vue maculaire lunettes injections', intro: 'La DMLA touche la macula, zone centrale de la rétine, après 50 ans. Le traitement des formes humides a transformé le pronostic : la précocité compte.', sections: [
+    ['Les signes d’alerte', 'Lignes déformées (une porte ou un carrelage qui ondule), tache grise au centre de la vision, difficulté à lire d’un œil. Test simple à la maison : couvrir chaque œil et regarder une grille (grille d’Amsler) chaque semaine.'],
+    ['Les deux formes', 'Sèche (atrophique) : évolution lente sur des années, surveillance + aides optiques. Humide (néovasculaire) : perte de vision rapide en semaines, traitée par injections intra-oculaires — efficace si débutée tôt.'],
+    ['Facteurs de risque', 'Tabac (facteur majeur — arrêter ralentit l’évolution), âge, antécédents familiaux, alimentation pauvre en pigments (légumes verts, épinards, chou), cardiovasculaire. Une supplémentation est prescrite dans certaines formes intermédiaires.'],
+    ['Suivi', 'Autosurveillance par grille d’Amsler chaque œil séparément, ophtalmologiste régulièrement, en urgence si déformation brutale des lignes.'],
+  ]},
+  { id: 'lombalgie', cat: 'Rhumatologie', title: 'Le lumbago (lombalgie aiguë)', tags: 'lumbago lombalgie dos sciatique anti-inflammatoire kiné', intro: 'Le lumbago est un blocage douloureux du dos très fréquent. Bonne nouvelle : dans l’immense majorité des cas, ça passe en quelques jours et l’activité est le meilleur traitement.', sections: [
+    ['Ce qu’il faut faire', 'RESTER ACTIF autant que la douleur le permet : la marche est excellente, évitez seulement le lit et l’immobilité prolongée. Antalgiques réguliers (paracétamol, ± anti-inflammatoire selon votre profil), chaleur locale. Reprise du travail et des activités dès que possible.'],
+    ['Combien de temps ?', 'La douleur aiguë diminue nettement en 4–6 jours et disparaît en 1–2 semaines dans la majorité des cas. Des récidives sont possibles : le renforcement musculaire (abdominaux, dos) et l’activité régulière les préviennent.'],
+    ['Sciatique associée', 'Si la douleur descend dans la jambe avec fourmillements ou engourdissement : c’est souvent une sciatique par hernie discale. Elle guérit dans 90 % des cas sans chirurgie en quelques semaines, avec les mêmes consignes d’activité.'],
+    ['Consultez en urgence si', 'Perte de force de la jambe ou du pied, troubles urinaires ou de la sensibilité des parties génitales (selle-miction), lombalgie brutale insomniante sans position antalgique, fièvre ou contexte de cancer : ces signes imposent une consultation sans délai.'],
+  ]},
+  { id: 'prevention-cardio', cat: 'Prévention', title: 'Prévenir l’infarctus et l’AVC', tags: 'prévention cardiovasculaire score2 cholestérol ldl statine', intro: 'Le risque cardiovasculaire (infarctus, AVC) se mesure et se réduit : tabac, tension, cholestérol, sucre et activité sont les 5 leviers principaux.', sections: [
+    ['Connaître son risque', 'Votre médecin calcule votre risque (SCORE2) à partir de l’âge, du sexe, du tabac, de la tension et du cholestérol. Un risque élevé ne veut pas dire une maladie certaine, mais qu’il faut agir plus fort.'],
+    ['Les 5 leviers', '1) Arrêter le tabac (le plus rentable) · 2) Tension < 140/90 · 3) Cholestérol selon risque : cible de LDL personnalisée · 4) Sucre et poids (HbA1c, tour de taille) · 5) Activité physique 150 min/semaine + alimentation méditerranéenne.'],
+    ['Les médicaments', 'Statine si risque élevé ou LDL trop haut : elle protège à long terme (paroi des artères). Aspirine uniquement sur avis (jamais en automédication de prévention). Tous les traitements se prennent régulièrement, pas « quand ça va mal ».'],
+    ['Suivi', 'Bilan annuel : tension, poids, bilan sanguin (sucre, lipides, créatinine), calcul du risque. Ne jamais arrêter un traitement de prévention sans avis : le risque, lui, ne s’arrête pas.'],
+  ]},
+  { id: 'apnee-sommeil', cat: 'Pneumologie', title: 'Apnées du sommeil (SAOS)', tags: 'apnées sommeil ronflements ppc fatigue', intro: 'Le syndrome d’apnées obstructives du sommeil (ronflements + pauses respiratoires + fatigue) est fréquent et se traite très bien.', sections: [
+    ['Reconnaître', 'Ronflements forts, pauses respiratoires constatées par le/la partenaire, sommeil non réparateur, fatigue diurne, endormissements au volant, maux de tête matinaux, nycturie.'],
+    ['Le diagnostic', 'Enregistrement du sommeil (polygraphie ventilatoire à domicile) prescrit par le médecin : il confirme l’apnée et son intensité. Toute somnolence au volant impose la recherche de SAOS.'],
+    ['Le traitement', 'PPC (pression positive continue) : masque la nuit qui souffle pour ouvrir les voies aériennes — traitement de référence des formes modérées à sévères. Orthèse d’avancée mandibulaire dans certains cas. Perte de poids si excès, arrêt de l’alcool du soir et du tabac, sommeil régulier.'],
+    ['Suivi', 'Perte de poids souvent très efficace, réévaluation du réglage du PPC, permis de conduire : déclaration selon somnolence.'],
+  ]},
+  { id: 'cerveau-bpc', cat: 'Pneumologie', title: 'La BPCO', tags: 'bpco bronchite chronique tabac souffle vems spirométrie', intro: 'La BPCO (bronchopneumopathie chronique obstructive) est un rétrécissement progressif des bronches, le plus souvent lié au tabac. Elle se dépiste tôt par une spirométrie et se traite.', sections: [
+    ['Reconnaître', 'Toux chronique (souvent matinale), crachats, essoufflement progressif à l’effort (montée d’escaliers, marche rapide). « Je suis juste moins en forme » est souvent le premier signe.'],
+    ['Dépistage et confirmation', 'Spirométrie (souffler dans un appareil) : confirme l’obstruction bronchique. À faire en cas de tabagisme ≥ 20 PA, ou symptômes chroniques, ou exposition professionnelle.'],
+    ['Traitements', 'ARRÊT DU TABAC : seule la progression de la maladie. Bronchodilatateurs inhalés (à heure régulière, technique d’inhalation vérifiée à chaque consultation), réhabilitation respiratoire (programme d’exercice très efficace), vaccinations grippe + pneumocoque + COVID.'],
+    ['Exacerbations', 'Crise de bronchite aiguë (essoufflement accru, crachats purulents) : consultation rapide, antibiotique ou corticoïdes selon les cas. Les exacerbations répétées abîment le poumon : chacune mérite un avis.'],
+  ]},
+];
+
+const ficheDoc = f => `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>${f.title} — Fiche info patient</title>
+<style>
+body { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; max-width: 720px; margin: 0 auto; padding: 24px; color: #222; line-height: 1.55; }
+h1 { font-size: 1.5rem; color: #0d5a8c; margin-bottom: 2px; }
+.cat { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: #888; margin-bottom: 16px; }
+.intro { background: #eaf5fd; border-left: 4px solid #0d5a8c; padding: 10px 14px; border-radius: 6px; margin-bottom: 20px; }
+h2 { font-size: 1.1rem; color: #0d5a8c; margin: 20px 0 6px; }
+p { margin: 6px 0; }
+.foot { margin-top: 28px; padding-top: 10px; border-top: 1px solid #ddd; font-size: .75rem; color: #888; font-style: italic; }
+@media print { body { padding: 0; } }
+</style>
+</head>
+<body>
+<h1>${f.title}</h1>
+<div class="cat">${f.cat} — Fiche d’information patient</div>
+<div class="intro">${f.intro}</div>
+${f.sections.map(([t, txt]) => `<h2>${t}</h2><p>${txt}</p>`).join('')}
+<div class="foot">Document d’information délivré en consultation — ne remplace pas l’avis de votre médecin. Source : Depistage.</div>
+</body>
+</html>`;
+
+function downloadFiche(f) {
+  const blob = new Blob([ficheDoc(f)], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'fiches/' + f.id + '.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function renderFiches() {
+  const input = document.getElementById('fiche-search');
+  const results = document.getElementById('fiche-results');
+  const count = document.getElementById('fiche-count');
+  if (!input || !results) return;
+  const q = (input.value || '').trim().toLowerCase();
+  const match = f => !q || f.title.toLowerCase().includes(q) || f.cat.toLowerCase().includes(q) || f.tags.toLowerCase().includes(q);
+  const list = PATIENT_SHEETS.filter(match);
+  count.textContent = list.length ? list.length + ' fiche' + (list.length > 1 ? 's' : '') : '—';
+  results.innerHTML = list.map(f => `<button type="button" class="fiche-card" data-fiche="${f.id}"><span class="fiche-cat">${escapeHtml(f.cat)}</span><span class="fiche-title">${escapeHtml(f.title)}</span><span class="fiche-action">⬇ Télécharger (fiches/${f.id}.html)</span></button>`).join('') || '<div class="fiche-empty">Aucune fiche pour cette recherche.</div>';
+}
+
+document.addEventListener('input', e => {
+  if (e.target && e.target.id === 'fiche-search') renderFiches();
+});
+document.addEventListener('click', e => {
+  const btn = e.target.closest('button[data-fiche]');
+  if (btn) {
+    const f = PATIENT_SHEETS.find(x => x.id === btn.dataset.fiche);
+    if (f) downloadFiche(f);
+  }
+});
+
 // ---------- Fiche patient ----------
 document.getElementById('btn-print').addEventListener('click', () => {
   const p = P();
@@ -1544,3 +1705,4 @@ document.getElementById('btn-print').addEventListener('click', () => {
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 render();
+renderFiches();

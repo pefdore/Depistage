@@ -3,13 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Indications de dépistage — Consultation</title>
+<title>Depistage — Aide de consultation</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header>
-  <h1>🩺 Indications de dépistage</h1>
-  <p class="subtitle">Rappel des indications par examen. Les cases pré-cochées « auto » découlent de l'âge, du sexe et du statut tabagique ; les autres indications cliniques sont à vérifier en consultation. Aide-mémoire, ne remplace pas le jugement clinique.</p>
+  <div class="header-row">
+    <h1>🩺 Depistage — Aide de consultation</h1>
+    <nav class="header-nav">
+      <a href="#patient-info">Patient</a>
+      <a href="#etat">État des lieux</a>
+      <a href="#rx-section">Traitements</a>
+      <a href="#todo-section">À faire</a>
+      <a href="#suivi-section">Suivi</a>
+      <a href="#fiches-section">Fiches patient</a>
+    </nav>
+  </div>
+  <p class="subtitle">Checklist de dépistage adulte et suivi pédiatrique : ne rien louper en consultation. Repères « auto » selon âge, sexe et statut tabagique ; cartes pathologies et petits problèmes courants en pédiatrie ; fiches d'information patient à télécharger. Aide-mémoire, ne remplace pas le jugement clinique.</p>
 </header>
 
 <main id="app">
@@ -71,7 +81,7 @@
     <div id="reminders" class="reminders hidden"></div>
   </section>
 
-  <section class="card">
+  <section class="card" id="etat">
     <h2>📋 État des lieux</h2>
     <div id="pedia-panel"></div>
     <div id="etat-panel"></div>
@@ -94,6 +104,16 @@
   <section class="card" id="suivi-section">
     <h2>🩺 Suivi des maladies chroniques</h2>
     <div id="suivi-panel"></div>
+  </section>
+
+  <section class="card" id="fiches-section">
+    <h2>📄 Fiches info patient</h2>
+    <p class="fiches-hint">Rechercher une fiche d'information patient (goutte, prévention, pédiatrie…) — le clic télécharge la fiche <code>HTML</code> dans le dossier <code>fiches/</code> du site, prête à être intégrée au dossier patient.</p>
+    <div class="fiches-search">
+      <input type="search" id="fiche-search" placeholder="Rechercher : goutte, HTA, APLV, sevrage tabac…" autocomplete="off">
+      <span id="fiche-count"></span>
+    </div>
+    <div id="fiche-results"></div>
   </section>
 
   <section id="summary-bar" class="summary-bar">

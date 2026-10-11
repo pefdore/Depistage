@@ -469,3 +469,22 @@ details.pedia-test[open] summary { border-bottom: 1px solid #d7ebf7; }
 .pedia-common-card { border-color: #a5d6a7; }
 .pedia-common-card summary { color: #2e7d32; }
 .pedia-common-card .pedia-due { background: #e8f5e9; color: #2e7d32; }
+/* ---------- Bandeau + Fiches info patient ---------- */
+.header-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; justify-content: space-between; }
+header h1 { margin: 0; }
+.header-nav { display: flex; flex-wrap: wrap; gap: 6px; }
+.header-nav a { color: #fff; text-decoration: none; font-size: .78rem; font-weight: 600; padding: 4px 10px; border-radius: 12px; background: rgba(255,255,255,.15); transition: background .15s; }
+.header-nav a:hover { background: rgba(255,255,255,.3); }
+.fiches-hint { font-size: .8rem; color: #666; margin: 4px 0 10px; }
+.fiches-hint code { background: #eef3f8; padding: 1px 5px; border-radius: 4px; }
+.fiches-search { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.fiches-search input { flex: 1; max-width: 420px; padding: 8px 12px; border: 1px solid #b3d9f2; border-radius: 8px; font-size: .9rem; }
+.fiches-search input:focus { outline: 2px solid #0d5a8c; border-color: #0d5a8c; }
+#fiche-count { font-size: .78rem; color: #0d5a8c; font-weight: 600; }
+#fiche-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
+.fiche-card { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left; background: #fff; border: 1px solid #b3d9f2; border-radius: 8px; padding: 10px 12px; cursor: pointer; transition: background .15s, border-color .15s; font: inherit; }
+.fiche-card:hover { background: #eaf5fd; border-color: #0d5a8c; }
+.fiche-cat { font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; color: #0d5a8c; font-weight: 700; background: #e3f2fd; padding: 1px 8px; border-radius: 8px; }
+.fiche-title { font-size: .9rem; font-weight: 600; color: #222; }
+.fiche-action { font-size: .72rem; color: #2e7d32; font-weight: 600; }
+.fiche-empty { font-size: .85rem; color: #888; font-style: italic; padding: 8px 0; }
