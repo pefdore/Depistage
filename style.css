@@ -22,7 +22,6 @@ header {
   padding: 18px 24px;
 }
 header h1 { margin: 0 0 4px; font-size: 1.4rem; }
-.subtitle { margin: 0; opacity: .9; font-size: .8rem; max-width: 900px; }
 
 main { max-width: 980px; margin: 0 auto; padding: 16px; }
 
@@ -420,7 +419,6 @@ details.pedia-test[open] summary { border-bottom: 1px solid #d7ebf7; }
 .pedia-common-card summary { color: #2e7d32; }
 .pedia-common-card .pedia-due { background: #e8f5e9; color: #2e7d32; }
 /* ---------- Bandeau + Fiches info patient ---------- */
-.header-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; justify-content: space-between; }
 header h1 { margin: 0; }
 .header-nav { display: flex; flex-wrap: wrap; gap: 6px; }
 .header-nav a { color: #fff; text-decoration: none; font-size: .78rem; font-weight: 600; padding: 4px 10px; border-radius: 12px; background: rgba(255,255,255,.15); transition: background .15s; }
@@ -439,7 +437,10 @@ header h1 { margin: 0; }
 .fiche-action { font-size: .72rem; color: #2e7d32; font-weight: 600; }
 .fiche-empty { font-size: .85rem; color: #888; font-style: italic; padding: 8px 0; }
 /* Recherche fiches dans le bandeau */
-.header-search { display: flex; align-items: center; gap: 10px; margin: 8px 0 6px; max-width: 640px; }
+header { padding: 12px 24px; }
+.header-search { position: relative; display: flex; align-items: center; gap: 10px; max-width: 560px; }
+.fiche-dropdown { position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: #fff; border: 1px solid #b3d9f2; border-radius: 10px; box-shadow: 0 8px 24px rgba(13,90,140,.18); max-height: 320px; overflow-y: auto; z-index: 50; display: grid; grid-template-columns: 1fr; gap: 4px; padding: 6px; }
+.fiche-dropdown:empty { display: none; }
 .header-search input { flex: 1; padding: 8px 14px; border: none; border-radius: 20px; font-size: .88rem; background: rgba(255,255,255,.92); color: #222; }
 .header-search input::placeholder { color: #777; }
 .header-search input:focus { outline: 2px solid #ffd54f; background: #fff; }

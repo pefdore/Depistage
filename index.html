@@ -8,22 +8,11 @@
 </head>
 <body>
 <header>
-  <div class="header-row">
-    <h1>🩺 Depistage — Aide de consultation</h1>
-    <nav class="header-nav">
-      <a href="#patient-info">Patient</a>
-      <a href="#etat">État des lieux</a>
-      <a href="#rx-section">Traitements</a>
-      <a href="#todo-section">À faire</a>
-      <a href="#suivi-section">Suivi</a>
-      <a href="#fiches-section">Fiches patient</a>
-    </nav>
-  </div>
   <div class="header-search">
     <input type="search" id="fiche-search" placeholder="📄 Rechercher une fiche info patient : goutte, HTA, APLV, tabac…" autocomplete="off">
     <span id="fiche-count"></span>
+    <div id="fiche-results" class="fiche-dropdown"></div>
   </div>
-  <p class="subtitle">Checklist de dépistage adulte et suivi pédiatrique : ne rien louper en consultation. Repères « auto » selon âge, sexe et statut tabagique ; cartes pathologies et petits problèmes courants en pédiatrie ; fiches d'information patient à télécharger. Aide-mémoire, ne remplace pas le jugement clinique.</p>
 </header>
 
 <main id="app">
@@ -115,9 +104,8 @@
 
   <section class="card" id="fiches-section">
     <h2>📄 Fiches info patient</h2>
-    <p class="fiches-hint">Fiches suggérées d'après la situation clinique renseignée ci-dessus — le clic télécharge la fiche <code>HTML</code> dans le dossier <code>fiches/</code> du site, prête à être intégrée au dossier patient. La recherche du bandeau permet d'accéder à toutes les fiches.</p>
+    <p class="fiches-hint">Fiches suggérées d'après la situation clinique renseignée ci-dessus — le clic télécharge directement la fiche dans le dossier de téléchargement (sous-dossier <code>fiches/</code>), prête à être glissée dans le dossier patient. La recherche en haut de page donne accès à toutes les fiches.</p>
     <div id="fiche-suggested"></div>
-    <div id="fiche-results"></div>
   </section>
 
   <section id="summary-bar" class="summary-bar">

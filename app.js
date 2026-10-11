@@ -1704,12 +1704,12 @@ function renderFiches() {
   }
 
   const q = (input.value || '').trim().toLowerCase();
-  const match = f => !q || f.title.toLowerCase().includes(q) || f.cat.toLowerCase().includes(q) || f.tags.toLowerCase().includes(q);
+  const match = f => f.title.toLowerCase().includes(q) || f.cat.toLowerCase().includes(q) || f.tags.toLowerCase().includes(q);
   const list = PATIENT_SHEETS.filter(match);
   if (count) count.textContent = list.length ? list.length + ' fiche' + (list.length > 1 ? 's' : '') : '—';
   results.innerHTML = q
     ? (list.map(ficheCard).join('') || '<div class="fiche-empty">Aucune fiche pour cette recherche.</div>')
-    : `<div class="fiche-sug-title">📚 Toutes les fiches (${list.length})</div>` + list.map(ficheCard).join('');
+    : '';
 }
 
 document.addEventListener('toggle', e => {
