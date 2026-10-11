@@ -465,3 +465,7 @@ details.pedia-test[open] summary { border-bottom: 1px solid #d7ebf7; }
 .pedia-flag-card.pedia-flag-cur { border-color: #d32f2f; background: #fff8f8; }
 .pedia-flag-card.pedia-flag-cur summary { background: #ffebee; border-bottom-color: #ffcdd2; }
 .pedia-flag-card.pedia-flag-cur .pedia-due { background: #ffcdd2; color: #b3541e; }
+/* Cartes petits problèmes courants */
+.pedia-common-card { border-color: #a5d6a7; }
+.pedia-common-card summary { color: #2e7d32; }
+.pedia-common-card .pedia-due { background: #e8f5e9; color: #2e7d32; }
