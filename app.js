@@ -390,7 +390,11 @@ const EXTREME_ITEM = { id: 'cvr-t-extreme', label: 'EXTRÊME : récidive d’év
 
 function cvrCompute(p) {
   const st = cvrState;
-  if (p.hba1c !== null && p.hba1c !== undefined) st.hba1c = p.hba1c > 25 ? p.hba1c : Math.round(p.hba1c * 10.93);
+  const hba1cEl = document.getElementById('cvr-hba1c');
+  if (hba1cEl && hba1cEl.value !== '' && !isNaN(parseFloat(hba1cEl.value))) { st.hba1c = parseFloat(hba1cEl.value) > 25 ? parseFloat(hba1cEl.value) : Math.round(parseFloat(hba1cEl.value) * 10.93); }
+  else if (p.hba1c !== null && p.hba1c !== undefined) { st.hba1c = p.hba1c > 25 ? p.hba1c : Math.round(p.hba1c * 10.93); }
+  const daEl = document.getElementById('cvr-diabage');
+  if (daEl && daEl.value !== '' && !isNaN(parseFloat(daEl.value))) st.diabAge = parseFloat(daEl.value);
   const terrChecked = TERRAIN_ITEMS.map(t => !!document.getElementById(t.id)?.checked);
   const hasTerrain = terrChecked.some(Boolean);
   const terrainReasons = TERRAIN_ITEMS.filter((t, i) => terrChecked[i]).map(t => t.label);
@@ -414,7 +418,7 @@ function cvrCompute(p) {
     if (p.sbp === null) missing.push('PAS (partie Patient)');
     if (p.chol === null) missing.push('cholestérol total (partie Patient)');
     if (p.hdl === null) missing.push('HDL (partie Patient)');
-    if (isDm && st.hba1c === null) missing.push('HbA1c (mmol/mol)');
+    if (isDm && st.hba1c === null) missing.push('HbA1c (en % dans la partie Patient, ou mmol/mol ci-contre)');
     if (isDm && st.diabAge === null) missing.push('\u00e2ge de diagnostic du diab\u00e8te');
     if (isDm && p.dfg === null) missing.push('DFG (déjà demandé plus haut)');
     const ready = !missing.length && age !== null;
@@ -505,7 +509,7 @@ function renderCvr(p) {
           <div class="cvr-inputs">
             ${inputs.map(i => `<div class="cvr-input${i.ok ? ' ok' : ''}"><span class="cvr-input-k">${i.k}</span><span class="cvr-input-v">${i.v}</span></div>`).join('')}
             ${isDm ? `
-            <label class="cvr-input cvr-input-edit">HbA1c (mmol/mol)<input type="number" id="cvr-hba1c" min="20" max="150" step="1" value="${d2(st.hba1c)}" placeholder="ex. 58"></label>
+            <label class="cvr-input cvr-input-edit">HbA1c (% ou mmol/mol)<input type="number" id="cvr-hba1c" min="3" max="150" step="0.1" value="${p.hba1c !== null ? d2(p.hba1c) : d2(st.hba1c)}" placeholder="ex. 7,5 % ou 58 mmol/mol"></label>
             <label class="cvr-input cvr-input-edit">Âge diag. DT2<input type="number" id="cvr-diabage" min="20" max="85" step="1" value="${d2(st.diabAge)}" placeholder="ex. 55"></label>` : ''}
           </div>
           ${!hasTerrain && missing.length ? `<div class="cvr-missing">⚠️ Pour calculer le score : ${missing.map(escapeHtml).join(', ')}.</div>` : ''}
@@ -559,7 +563,7 @@ function bindCvr(p) {
     render();
   });
   const hba1cEl = document.getElementById('cvr-hba1c');
-  if (hba1cEl) hba1cEl.addEventListener('change', e => { cvrState.hba1c = parseFloat(e.target.value) || null; renderCvr(P()); });
+  if (hba1cEl) hba1cEl.addEventListener('change', e => { const v = parseFloat(e.target.value) || null; cvrState.hba1c = (v !== null && v <= 25) ? Math.round(v * 10.93) : v; renderCvr(P()); });
   const daEl = document.getElementById('cvr-diabage');
   if (daEl) daEl.addEventListener('change', e => { cvrState.diabAge = parseFloat(e.target.value) || null; renderCvr(P()); });
   [EXTREME_ITEM, ...TERRAIN_ITEMS].forEach(t => {
@@ -1212,7 +1216,6 @@ function render() {
   const details = document.getElementById('patient-info')?.querySelector('details');
   const summary = document.getElementById('patient-summary');
   if (details) {
-    if (!window._patientTouched) details.open = !complete;
     if (summary) {
       const bits = [];
       if (p.age !== null && p.ageMois === null) bits.push(p.age + ' ans');
