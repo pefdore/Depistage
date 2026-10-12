@@ -642,28 +642,83 @@ function iecara2Advice(p) {
 
 function dmStrategy(p, cvr) {
   if (!p.diabete) return null;
-  const reasons = [];
-  const lines = [];
   const kd = kdigoStage(p);
   const hba1c = p.hba1c;
-  let target = null;
-  if (p.age !== null && p.age >= 65) target = 'HbA1c < 7,5 \u2013 8,0 % (cible individualis\u00e9e selon esp\u00e9rance de vie, comorbidit\u00e9s, risque hypoglyc\u00e9mie)';
-  else if (p.dfg !== null && p.dfg < 45) target = 'HbA1c < 7,5 \u2013 8,0 % (cible individualis\u00e9e \u2014 MRC)';
+  const imc = p.imc;
+  const dfg = p.dfg;
+  const age = p.age;
+  const hba1cTxt = hba1c !== null ? String(hba1c).replace('.', ',') + ' %' : 'non renseignée';
+
+  // Cible HbA1c individualisée (SFD/HAS)
+  let target;
+  if (age !== null && age >= 75) target = 'HbA1c < 7,5–8,0 % (sujet âgé : cible individualisée — espérance de vie, comorbidités, risque hypoglycémique)';
+  else if (age !== null && age >= 65) target = 'HbA1c < 7,0–7,5 % (cible individualisée selon comorbidités et risque hypoglycémie)';
+  else if (dfg !== null && dfg < 45) target = 'HbA1c < 7,5 % (MRC — cible individualisée)';
   else target = 'HbA1c < 7,0 % (cible commune, individualiser)';
-  lines.push('Cible : ' + target + '.');
+
   const profiles = [];
-  if (cvr.hasTerrain || cvr.extreme) profiles.push({ n: '1 \u2014 Maladie cardiovasculaire ath\u00e9romateuse \u00e9tablie', t: 'GLP-1 RA avec b\u00e9n\u00e9fice CV d\u00e9montr\u00e9 (s\u00e9maglutide SC, dulaglutide, liraglutide) ou tirz\u00e9patide \u2014 \u00b1 iSGLT2 si IC ou MRC associ\u00e9e. B\u00e9n\u00e9fice ind\u00e9pendant de l\u2019HbA1c, avec ou sans metformine (ESC 2023 \u00b7 ADA/EASD).' });
-  if (p.ic) profiles.push({ n: '2 \u2014 Insuffisance cardiaque', t: 'iSGLT2 (dapagliflozine, empagliflozine) \u2014 b\u00e9n\u00e9fice mortalit\u00e9/hospitalisation IC, ind\u00e9pendamment de l\u2019HbA1c ; GLP-1 RA si HFpEF avec ob\u00e9sit\u00e9 (ADA 2025).' });
-  if (kd && ((p.dfg !== null && p.dfg < 60) || (kd.a && kd.a !== 'A1'))) profiles.push({ n: '3 \u2014 Maladie r\u00e9nale chronique (KDIGO ' + kd.g + (kd.a ? ' ' + kd.a : '') + ')', t: 'iSGLT2 (DFG \u2265 20 : dapagliflozine, empagliflozine) + IEC/ARA2 \u00e0 dose maximale tol\u00e9r\u00e9e \u00b1 fin\u00e9r\u00e9none si albuminurie persistante (KDIGO 2024). GLP-1 RA possible ; m\u00e9tformine \u00e0 adapter si DFG < 45 (max 1 000 mg/j) ou arr\u00eater si DFG < 30.' });
-  if (p.imc !== null && p.imc >= 30) profiles.push({ n: '4 \u2014 Poids / ob\u00e9sit\u00e9 (IMC ' + String(p.imc).replace('.', ',') + ')', t: 'Tirz\u00e9patide (efficacit\u00e9 maximale) ou GLP-1 RA (s\u00e9maglutide 2,4 mg) ; privil\u00e9gier ces classes pour la perte de poids ; iSGLT2 si IC/MRC associ\u00e9e. Metformine utile sur le poids.' });
-  if (hba1c === null || hba1c >= 9) profiles.push({ n: '5 \u2014 Hyperglyc\u00e9mie marqu\u00e9e' + (hba1c !== null ? ' (HbA1c ' + String(hba1c).replace('.', ',') + ' %)' : ' (HbA1c non renseign\u00e9e)'), t: 'Si HbA1c \u2265 10 % et/ou sympt\u00f4mes (amagrir, polyuro-polydipsie) : insuline basale \u00b1 GLP-1 RA d\u2019embl\u00e9e. Si HbA1c \u2265 cible + 1,5 % : association d\u2019embl\u00e9e recommand\u00e9e (metformine + GLP-1 RA / iSGLT2).' });
-  if (p.age !== null && p.age >= 75) profiles.push({ n: '6 \u2014 Patient \u00e2g\u00e9 / fragile (' + p.age + ' ans)', t: 'Priorit\u00e9 aux classes sans hypoglyc\u00e9mie (GLP-1 RA, iSGLT2, DPP-4i, pioglitazone) ; \u00e9viter sulfonyl\u00e9es et insuline si possible ; d\u00e9sescalade si HbA1c < 7 % sous traitement (ADA 2025 : deintensification).' });
-  if (!profiles.length) profiles.push({ n: 'Aucun crit\u00e8re sp\u00e9cifique d\u00e9tect\u00e9', t: 'Metformine en 1re intention (si DFG \u2265 45, tol\u00e9rance correcte) + hygi\u00e8ne de vie ; intensifier selon les 6 profils ci-dessus d\u00e8s qu\u2019un crit\u00e8re appara\u00eet (ASCVD, IC, MRC, poids, hyperglyc\u00e9mie marqu\u00e9e, \u00e2ge/fragilit\u00e9, co\u00fbt).' });
+  const hasTerrain = cvr.hasTerrain || cvr.extreme;
+  const highRisk = !hasTerrain && cvr.result && cvr.result.pct >= 10;
+  const isElderly = age !== null && age >= 75;
+  const obese = imc !== null && imc >= 30;
+
+  // 1. Insuffisance cardiaque — iSGLT2 d'emblée (SFD 2023)
+  if (p.ic) profiles.push({ n: '1 — Insuffisance cardiaque', t: 'Bithérapie metformine + iSGLT2 d\u2019embl\u00e9e, ind\u00e9pendamment de l\u2019HbA1c (dapagliflozine, empagliflozine) — b\u00e9n\u00e9fice mortalit\u00e9 et hospitalisation. aGLP-1 (tirz\u00e9patide) si HFpEF avec ob\u00e9sit\u00e9 associ\u00e9e. (SFD 2023 · HAS 2024)' });
+
+  // 2. Maladie rénale chronique — iSGLT2 + sémaglutide (SFD 2025, FLOW)
+  if (kd && ((dfg !== null && dfg < 60) || (kd.a && kd.a !== 'A1'))) {
+    profiles.push({ n: '2 — Maladie r\u00e9nale chronique (KDIGO ' + kd.g + (kd.a ? ' ' + kd.a : '') + ')',
+      t: 'Bith\u00e9rapie metformine + iSGLT2 d\u2019embl\u00e9e, ind\u00e9pendamment de l\u2019HbA1c (dapagliflozine, empagliflozine si DFG \u2265 20). Ajouter le s\u00e9maglutide (b\u00e9n\u00e9fice r\u00e9nal d\u00e9montr\u00e9, FLOW — SFD 2025). IEC/ARA2 \u00e0 dose maximale tol\u00e9r\u00e9e \u00b1 fin\u00e9r\u00e9none si albuminurie persistante (KDIGO 2024). Metformine : max 1 000 mg/j si DFG 30\u201344, arr\u00eat si DFG < 30.' });
+  }
+
+  // 3. Athéromateuse avérée — metformine + iSGLT2 ou aGLP-1 (SFD 2023)
+  if (hasTerrain && !p.ic) {
+    profiles.push({ n: '3 — Maladie cardiovasculaire ath\u00e9romateuse \u00e9tablie',
+      t: 'Bith\u00e9rapie d\u2019embl\u00e9e, ind\u00e9pendamment de l\u2019HbA1c : metformine + aGLP-1 (s\u00e9maglutide, dulaglutide — b\u00e9n\u00e9fice CV d\u00e9montr\u00e9) ou metformine + iSGLT2. En cas d\u2019ant\u00e9c\u00e9dent d\u2019AVC isch\u00e9mique : privil\u00e9gier l\u2019aGLP-1. Trith\u00e9rapie metformine + aGLP-1 + iSGLT2 si\u00e8ge recherche de b\u00e9n\u00e9fice cardio-r\u00e9nal suppl\u00e9mentaire. (SFD 2023 · HAS 2024)' });
+  }
+
+  // 4. Haut risque CV en prévention primaire (SCORE2-Diabetes ≥ 10 %) — HAS 2024 / SFD
+  if (highRisk && !obese) {
+    profiles.push({ n: '4 — Haut risque CV en pr\u00e9vention primaire (SCORE2-Diabetes ' + cvr.result.pct.toFixed(1).replace('.', ',') + ' %)',
+      t: 'Ajouter un iSGLT2 ou un aGLP-1 \u00e0 la metformine, ind\u00e9pendamment de l\u2019HbA1c (HAS 2024 · SFD). Niveau de preuve plus faible qu\u2019en pr\u00e9vention secondaire, mais b\u00e9n\u00e9fice attendu sur les \u00e9v\u00e9nements CV. ' + (hba1c !== null && hba1c >= 8.5 ? 'HbA1c ' + hba1cTxt + ' \u2265 8,5 % : bith\u00e9rapie d\u2019embl\u00e9e justifi\u00e9e.' : '') });
+  }
+
+  // 5. Obésité (IMC ≥ 30) — aGLP-1 / tirzépatide
+  if (obese) {
+    profiles.push({ n: '5 — Ob\u00e9sit\u00e9 (IMC ' + String(imc).replace('.', ',') + ')',
+      t: (age !== null && age < 75) ? 'Privil\u00e9gier le tirz\u00e9patide (double agoniste GIP/GLP-1, efficacit\u00e9 maximale sur le poids et l\u2019HbA1c) ou un aGLP-1 (s\u00e9maglutide) \u2014 quelle que soit l\u2019HbA1c (SFD 2023/2025). Metformine maintenue. iSGLT2 utile si IC/MRC associ\u00e9e ou pour un surcro\u00eet de perte de poids en trith\u00e9rapie.' : 'Chez le sujet \u00e2g\u00e9 ob\u00e8se : aGLP-1 possible (pas d\u2019hypoglyc\u00e9mie), surveillance de la sarcop\u00e9nie ; iSGLT2 si IC/MRC.' });
+  }
+
+  // 6. Hyperglycémie marquée
+  if (hba1c === null || hba1c >= 8.5) {
+    profiles.push({ n: '6 — Hyperglyc\u00e9mie marqu\u00e9e (HbA1c ' + hba1cTxt + ')',
+      t: (hba1c !== null && hba1c >= 10) ? 'HbA1c \u2265 10 % et/ou sympt\u00f4mes (polyuro-polydipsie, amaigrissement) : insuline basale \u00b1 aGLP-1 d\u2019embl\u00e9e — avis endocrinologique souhaitable. D\u00e9sescalade possible secondairement vers les oraux une fois l\u2019\u00e9quilibre obtenu.' : 'HbA1c \u2265 8,5 % : bith\u00e9rapie d\u2019embl\u00e9e (metformine + aGLP-1 ou iSGLT2 selon le profil ci-dessus). Si HbA1c \u2265 cible + 1,5 % : association d\u2019embl\u00e9e recommand\u00e9e.' });
+  }
+
+  // 7. Sujet âgé / fragile
+  if (isElderly) {
+    profiles.push({ n: '7 — Patient \u00e2g\u00e9 (' + age + ' ans)',
+      t: 'Priorit\u00e9 aux classes sans hypoglyc\u00e9mie (aGLP-1, iSGLT2, iDPP4 — ce dernier bien tol\u00e9r\u00e9 mais peu puissant). \u00c9viter glibenclamide ; sulfamides/glinides seulement si risque hypoglyc\u00e9mie faible. D\u00e9sescalade si HbA1c < 7,0 % sous traitement (d\u00e9intensification — pr\u00e9venir les hypoglyc\u00e9mies iatrog\u00e8nes, source d\u2019hospitalisation et de chutes).' });
+  }
+
+  // 8. Situation « commune » : algorithme SFD par ordre de préférence
+  if (!hasTerrain && !highRisk && !p.ic && !(kd && ((dfg !== null && dfg < 60) || (kd.a && kd.a !== 'A1'))) && !isElderly) {
+    profiles.push({ n: 'Situation \u00ab commune \u00bb (' + (age !== null ? age + ' ans' : 'âge non renseigné') + (imc !== null ? ' · IMC ' + String(imc).replace('.', ',') : '') + ')',
+      t: '1re intention : hygi\u00e8ne de vie + metformine dose maximale tol\u00e9r\u00e9e (si DFG \u2265 30). Si l\u2019HbA1c reste au-dessus de la cible : bith\u00e9rapie en ajoutant, par ordre de pr\u00e9f\u00e9rence SFD 2023/2025 — un iSGLT2 ou un aGLP-1 (\u00b1 double agoniste GIP/GLP-1), puis un iDPP4, enfin sulfamide/glinide selon le profil (hypoglyc\u00e9mies, prise de poids, tol\u00e9rance). Si l\u2019IMC \u2265 30 : aGLP-1/tirz\u00e9patide prioritaire. Si HbA1c \u2265 cible + 1,5 % sous bith\u00e9rapie : trith\u00e9rapie (metformine + aGLP-1 + iSGLT2) ou insuline basale \u00b1 aGLP-1.' });
+  }
+
+  if (!profiles.length) profiles.push({ n: 'Situation \u00ab commune \u00bb', t: 'Hygi\u00e8ne de vie + metformine (si DFG \u2265 30, tol\u00e9rance correcte) ; intensifier selon les profils ci-dessus d\u00e8s qu\u2019un crit\u00e8re appara\u00eet (ASCVD, IC, MRC, ob\u00e9sit\u00e9, hyperglyc\u00e9mie marqu\u00e9e, \u00e2ge).' });
+
   const base = [];
-  if (p.dfg !== null && p.dfg < 30) base.push('M\u00e9tformine : arr\u00eat si DFG < 30 mL/min ; max 1 000 mg/j si DFG 30\u201344 ; iSGLT2 non initi\u00e9 si DFG < 20.');
-  else if (p.dfg !== null && p.dfg < 45) base.push('M\u00e9tformine : max 1 000 mg/j (DFG 30\u201344) ; iSGLT2 initi\u00e9 si DFG \u2265 20 (adaptation posologique).');
-  lines.push('Base du sch\u00e9ma : metformine (sauf CI) \u00b1 agents \u00e0 b\u00e9n\u00e9fice cardio-r\u00e9nal selon les profils applicable ci-dessous.');
-  return { target, profiles, base };
+  if (dfg !== null && dfg < 30) base.push('Metformine : arr\u00eat si DFG < 30 mL/min ; iSGLT2 non initi\u00e9 si DFG < 20.');
+  else if (dfg !== null && dfg < 45) base.push('Metformine : max 1 000 mg/j (DFG 30\u201344) ; iSGLT2 \u00e0 dose adapt\u00e9e si DFG \u2265 20.');
+  base.push('Rechercher une MASLD/st\u00e9atose h\u00e9patique (tr\u00e8s fr\u00e9quente dans le DT2) — si pr\u00e9sente : aGLP-1 quelle que soit l\u2019HbA1c (SFD 2024).');
+  base.push('D\u00e9pistage annuel des complications : fond d\u2019\u0153il, DFG/RAC, pieds, BU, statut vaccinal, bilan lipidique.');
+
+  const lines = ['Cible : ' + target + '.'];
+  lines.push('Base du sch\u00e9ma : metformine (sauf CI) \u00b1 agents \u00e0 b\u00e9n\u00e9fice cardio-r\u00e9nal selon les profils ci-dessous.');
+
+  return { target, profiles, base, lines };
 }
 function isglt2Advice(p) {
   const reasons = [];
