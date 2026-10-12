@@ -36,10 +36,10 @@ main { max-width: 980px; margin: 0 auto; padding: 16px; }
 .card h2 { margin: 0 0 8px; font-size: 1rem; color: var(--accent); }
 .card h3 { margin: 18px 0 6px; font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; color: #555; }
 
-.patient-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.patient-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px; }
 .patient-grid label { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; color: #555; }
 .patient-grid input, .patient-grid select {
-  padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 1rem;
+  padding: 4px 6px; border: 1px solid var(--border); border-radius: 5px; font-size: .82rem;
 }
 
 .warn { margin-top: 10px; padding: 8px 10px; background: #fff3cd; border-radius: 6px; font-size: .85rem; }
@@ -63,7 +63,7 @@ button {
 button:hover { filter: brightness(1.1); }
 button.secondary { background: #6c757d; }
 
-.group-title { margin: 20px 0 10px; font-size: .85rem; text-transform: uppercase; letter-spacing: .05em; color: #555; border-bottom: 2px solid var(--border); padding-bottom: 5px; }
+.group-title { margin: 10px 0 6px; font-size: .85rem; text-transform: uppercase; letter-spacing: .05em; color: #555; border-bottom: 2px solid var(--border); padding-bottom: 5px; }
 
 .reminders { margin-top: 10px; padding: 8px 10px; background: #f8d7da; border-radius: 6px; font-size: .85rem; }
 
@@ -332,9 +332,9 @@ button.rx-head:hover { filter: none; background: transparent; }
 .suivi-box {
   background: #f6f9ff;
   border: 1px solid #d5e0f0;
-  border-radius: 8px;
-  padding: 10px 12px;
-  margin-bottom: 10px;
+  border-radius: 6px;
+  padding: 5px 8px;
+  margin-bottom: 5px;
 }
 .suivi-title { font-weight: 700; margin-bottom: 6px; font-size: .92rem; }
 .suivi-item { font-size: .85rem; color: #333; margin: 3px 0; }
@@ -359,10 +359,10 @@ button.rx-head:hover { filter: none; background: transparent; }
   color: #aaa;
 }
 /* ---------- Cartes traitements v2 ---------- */
-.rx-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 6px; }
-.rx-chip { background: #e8f5e9; color: #1b5e20; border: 1px solid #a5d6a7; border-radius: 14px; padding: 3px 10px; font-size: 0.88em; line-height: 1.3; }
-.rx-drug { background: #e3f2fd; border: 1px solid #90caf9; border-left: 4px solid #1565c0; border-radius: 6px; padding: 6px 10px; margin: 6px 0; font-size: 0.95em; }
-.rx-goal { background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px; padding: 6px 10px; margin: 6px 0; font-size: 0.9em; }
+.rx-chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 2px 0 4px; }
+.rx-chip { background: #e8f5e9; color: #1b5e20; border: 1px solid #a5d6a7; border-radius: 12px; padding: 1px 8px; font-size: 0.8em; line-height: 1.25; }
+.rx-drug { background: #e3f2fd; border: 1px solid #90caf9; border-left: 4px solid #1565c0; border-radius: 5px; padding: 3px 7px; margin: 3px 0; font-size: 0.85em; }
+.rx-goal { background: #fff8e1; border: 1px solid #ffe082; border-radius: 5px; padding: 3px 7px; margin: 3px 0; font-size: 0.85em; }
 .rx-muted-line { color: #777; font-style: italic; margin: 2px 0; }
 .rx-flags { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 2px; }
 .rx-flag { position: relative; border-radius: 12px; padding: 2px 10px; font-size: 0.82em; font-weight: 600; cursor: help; }
@@ -458,17 +458,17 @@ header { padding: 12px 24px; }
 #patient-summary { font-size: .8rem; font-weight: 600; color: #0d5a8c; background: #e3f2fd; padding: 3px 10px; border-radius: 12px; }
 .patient-toggle { font-size: .72rem; color: #888; margin-left: auto; }
 /* ---------- Risque cardiovasculaire — refonte visuelle ---------- */
-.cvr-box { border: 1px solid #dfe7ee; border-radius: 14px; overflow: hidden; background: #fff; box-shadow: 0 2px 8px rgba(13,90,140,.07); margin-bottom: 12px; }
-.cvr-head { display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 14px 18px; background: linear-gradient(135deg, #fdf3f4 0%, #f4f9fd 100%); text-align: left; width: 100%; border: none; transition: filter .15s; }
+.cvr-box { border: 1px solid #dfe7ee; border-radius: 8px; overflow: hidden; background: #fff; box-shadow: 0 1px 3px rgba(13,90,140,.07); margin-bottom: 6px; }
+.cvr-head { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 6px 10px; background: linear-gradient(135deg, #fdf3f4 0%, #f4f9fd 100%); text-align: left; width: 100%; border: none; transition: filter .15s; }
 .cvr-head:hover { filter: brightness(.97); }
-.cvr-title { font-weight: 800; font-size: 1rem; color: #1a2b3c; flex: 0 0 auto; letter-spacing: .01em; }
-.cvr-verdict { margin-left: auto; font-weight: 800; font-size: .88rem; padding: 5px 14px; border-radius: 999px; white-space: nowrap; }
+.cvr-title { font-weight: 800; font-size: .82rem; color: #1a2b3c; flex: 0 0 auto; letter-spacing: .01em; }
+.cvr-verdict { margin-left: auto; font-weight: 800; font-size: .72rem; padding: 2px 10px; border-radius: 999px; white-space: nowrap; }
 .cvr-chevron { color: #0d5a8c; font-size: 1rem; transition: transform .25s; }
 .cvr-box.open .cvr-chevron { transform: rotate(90deg); }
 .cvr-detail { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows .3s ease, opacity .25s ease; }
 .cvr-box.open .cvr-detail { grid-template-rows: 1fr; opacity: 1; }
 .cvr-detail > .cvr-detail-inner { overflow: hidden; min-height: 0; padding: 0; background: #fbfdfe; }
-.cvr-box.open .cvr-detail > .cvr-detail-inner { padding: 16px; }
+.cvr-box.open .cvr-detail > .cvr-detail-inner { padding: 8px 10px; }
 
 .cvr-banner { border: 1px solid var(--bc); border-left: 6px solid var(--bc); background: #fff; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; box-shadow: 0 2px 6px rgba(0,0,0,.05); }
 .cvr-banner strong { color: var(--bc); font-size: .92rem; }
@@ -492,7 +492,7 @@ header { padding: 12px 24px; }
 
 .cvr-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 @media (max-width: 520px) { .cvr-inputs { grid-template-columns: 1fr; } }
-.cvr-input { background: #fff; border: 1px solid #e3eef7; border-radius: 9px; padding: 7px 10px; display: flex; flex-direction: column; gap: 2px; font-size: .78rem; border-left: 3px solid #ccc; }
+.cvr-input { background: #fff; border: 1px solid #e3eef7; border-radius: 6px; padding: 4px 7px; display: flex; flex-direction: column; gap: 2px; font-size: .78rem; border-left: 3px solid #ccc; }
 .cvr-input.ok { border-left-color: #2e7d32; }
 .cvr-input-k { font-weight: 800; color: #0d5a8c; font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; }
 .cvr-input-v { font-weight: 600; color: #333; }
@@ -539,13 +539,13 @@ header { padding: 12px 24px; }
 /* ---------- Vue « À faire » condensée ---------- */
 #todo-list, #todo-manual-list {
   margin-top: 8px; display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
-  gap: 4px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 3px;
 }
 .todo-row {
-  display: flex; align-items: center; gap: 6px;
-  background: #fff5f5; border: 1px solid #f1aeb5; border-left: 4px solid var(--todo);
-  border-radius: 6px; padding: 3px 7px; cursor: pointer;
+  display: flex; align-items: center; gap: 5px;
+  background: #fff5f5; border: 1px solid #f1aeb5; border-left: 3px solid var(--todo);
+  border-radius: 5px; padding: 2px 6px; cursor: pointer;
 }
 .todo-row:hover { background: #ffecec; }
 .todo-row .todo-name { font-size: .78rem; font-weight: 700; white-space: nowrap; }
