@@ -29,6 +29,9 @@ const P = () => {
     diabete: document.getElementById('pat-diabete').value === 'oui',
     hta: document.getElementById('pat-hta').value === 'oui',
     ic: document.getElementById('pat-ic').value === 'oui',
+    bpco: document.getElementById('pat-bpco')?.value === 'oui',
+    vems: isNaN(parseFloat(document.getElementById('pat-vems')?.value)) ? null : parseFloat(document.getElementById('pat-vems').value),
+    exacerb: isNaN(parseFloat(document.getElementById('pat-exac')?.value)) ? null : parseFloat(document.getElementById('pat-exac').value),
     dfg: isNaN(dfg) ? null : dfg,
     rac: (() => {
       const raw = (document.getElementById('pat-rac').value || '').trim().toLowerCase();
@@ -265,7 +268,98 @@ function renderPedia(p) {
 }
 function renderEtat(p) {
   const panel = document.getElementById('etat-panel');
-  if (panel) panel.innerHTML = '';
+  if (!panel) return;
+  const f = v => v === null ? '—' : String(v).replace('.', ',');
+  const kd = kdigoStage(p);
+  const cards = [];
+
+  // DT2
+  if (p.diabete) {
+    const hba1c = p.hba1c;
+    const status = hba1c === null ? { t: 'HbA1c à jour ?', c: '#78909c' } : hba1c < 7 ? { t: 'Équilibré', c: '#2e7d32' } : hba1c < 8 ? { t: 'Insuffisamment équilibré', c: '#ef6c00' } : { t: 'Déséquilibré', c: '#c62828' };
+    cards.push({
+      icon: '🍪', name: 'Diabète de type 2', status: status.t, color: status.c,
+      data: [`HbA1c : ${hba1c === null ? 'non renseignée' : f(hba1c) + ' %'}`, `DFG : ${p.dfg === null ? '—' : p.dfg + ' mL/min'}`, `IMC : ${p.imc === null ? '—' : f(p.imc)}`],
+      actions: hba1c === null ? 'Doser l\u2019HbA1c — base de la stratégie (voir Traitements → Stratégie antidiabétique)' : 'Stratégie à adapter selon profils : voir Traitements → Stratégie antidiabétique',
+    });
+  }
+
+  // BPCO
+  if (p.bpco) {
+    const v = p.vems;
+    const gold = v === null ? { t: 'VEMS non renseigné', c: '#78909c' } : v >= 80 ? { t: 'GOLD 1 — léger', c: '#2e7d32' } : v >= 50 ? { t: 'GOLD 2 — modéré', c: '#f9a825' } : v >= 30 ? { t: 'GOLD 3 — sévère', c: '#ef6c00' } : { t: 'GOLD 4 — très sévère', c: '#c62828' };
+    const ex = p.exacerb;
+    const risk = ex === null ? '' : (ex >= 2 ? ' — groupe E (≥ 2 exacerbations/an : LABA+LAMA d\u2019emblée)' : ' — groupe A/B');
+    cards.push({
+      icon: '🫁', name: 'BPCO', status: gold.t + risk, color: gold.c,
+      data: [`VEMS : ${v === null ? '—' : f(v) + ' % théor.'}`, `Exacerbations/an : ${ex === null ? '—' : ex}`, `Tabac : ${p.tabac === 'actif' ? '🚬 actif' : (p.tabac === 'sevré' ? 'sevré' : '—')}`],
+      actions: v === null ? 'Spirométrie à jour ? Le VEMS définit le stade GOLD et le traitement' : 'Réhabilitation respiratoire + vaccinations à jour ; sevrage tabagique si actif',
+    });
+  } else if (p.tabac === 'actif' && p.pa !== null && p.pa >= 20 && p.age !== null && p.age >= 40) {
+    cards.push({
+      icon: '🫁', name: 'Risque BPCO', status: 'À dépister', color: '#ef6c00',
+      data: [`${p.pa} PA · ${p.age} ans`, p.vems === null ? 'Pas de spirométrie renseignée' : `VEMS ${f(p.vems)} %`],
+      actions: 'Spirométrie recommandée (tabagisme ≥ 20 PA après 40 ans) — voir À faire',
+    });
+  }
+
+  // HTA
+  if (p.hta) {
+    const sbp = p.sbp;
+    const status = sbp === null ? { t: 'TA à jour ?', c: '#78909c' } : sbp < 140 ? { t: 'Contrôlée', c: '#2e7d32' } : sbp < 160 ? { t: 'Non contrôlée (niveau 1)', c: '#ef6c00' } : { t: 'Non contrôlée (niveau 2+)', c: '#c62828' };
+    cards.push({
+      icon: '🩺', name: 'Hypertension artérielle', status: status.t, color: status.c,
+      data: [`PAS : ${sbp === null ? '—' : sbp + ' mmHg'}`, `DFG : ${p.dfg === null ? '—' : p.dfg}`, `LDL : ${p.ldl === null ? '—' : f(p.ldl) + ' g/L'}`],
+      actions: 'Automesure TA à domicile ; réévaluation du traitement si non contrôlée (voir Traitements → Antihypertenseurs)',
+    });
+  }
+
+  // MRC
+  if (p.dfg !== null && p.dfg < 60) {
+    const risk = kd && kd.risk ? KDIGO_RISK_LABEL[kd.risk] : 'RAC manquant';
+    const color = kd && kd.risk ? KDIGO_RISK_COLOR[kd.risk] : '#9e9e9e';
+    cards.push({
+      icon: '🫘', name: 'Maladie rénale chronique', status: `KDIGO ${kd ? kd.g + (kd.a ? ' ' + kd.a : '') : '—'} · ${risk}`, color,
+      data: [`DFG : ${p.dfg} mL/min`, `RAC : ${p.rac !== null && p.rac !== undefined ? (p.rac === 'nc' ? 'NC (A1)' : f(p.rac) + ' mg/mmol') : 'à doser'}`],
+      actions: 'Détail dans le bloc Fonction rénale ci-dessous',
+    });
+  }
+
+  // IC
+  if (p.ic) {
+    cards.push({
+      icon: '💔', name: 'Insuffisance cardiaque', status: 'Connue', color: '#c62828',
+      data: [`Poids à surveiller quotidiennement`, `iSGLT2 à vérifier (voir Traitements)`],
+      actions: 'Quadrithérapie si FEVG réduite ; ionogramme 7–14 j après chaque modification',
+    });
+  }
+
+  // Obésité / SAS
+  if (p.imc !== null && p.imc >= 30) {
+    cards.push({
+      icon: '⚖️', name: 'Obésité', status: `IMC ${f(p.imc)}`, color: p.imc >= 40 ? '#c62828' : '#ef6c00',
+      data: [`IMC : ${f(p.imc)} kg/m²`, `Tour de taille non renseigné`],
+      actions: 'Dépister SAS (STOP-Bang dans À faire) ; GLP-1/tirzépatide si DT2 (voir Stratégie antidiabétique)',
+    });
+  }
+
+  // Tabagisme actif
+  if (p.tabac === 'actif' && !p.bpco) {
+    cards.push({
+      icon: '🚬', name: 'Tabagisme actif', status: p.pa !== null ? `${p.pa} PA` : 'PA à préciser', color: '#c62828',
+      data: [p.pa !== null ? `${p.pa} paquets-années` : 'Paquets-années non renseignés', p.age !== null ? `${p.age} ans` : ''],
+      actions: 'Aide au sevrage à chaque consultation — fiche info patient « Arrêter de fumer » disponible',
+    });
+  }
+
+  if (!cards.length) { panel.innerHTML = ''; return; }
+  panel.innerHTML = `<div class="etat-grid">${cards.map(c => `
+    <div class="etat-box" style="border-left: 5px solid ${c.color}">
+      <div class="etat-title">${c.icon} ${escapeHtml(c.name)}</div>
+      <div class="etat-status" style="color:${c.color}">${escapeHtml(c.status)}</div>
+      ${c.data.filter(Boolean).map(d => `<div class="etat-txt">${escapeHtml(d)}</div>`).join('')}
+      <div class="etat-act">${escapeHtml(c.actions)}</div>
+    </div>`).join('')}</div>`;
 }
 function renderKdigo(p) {
   const panel = document.getElementById('kdigo-panel');

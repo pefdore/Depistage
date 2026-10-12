@@ -62,6 +62,15 @@
           <option value="oui">Oui</option>
         </select>
       </label>
+      <label>BPCO connue
+        <select id="pat-bpco">
+          <option value="">—</option>
+          <option value="non">Non</option>
+          <option value="oui">Oui</option>
+        </select>
+      </label>
+      <label>VEMS (%) <input type="number" id="pat-vems" min="0" max="150" step="1" placeholder="% théor."></label>
+      <label>Exacerbations/an <input type="number" id="pat-exac" min="0" max="30" step="1" placeholder="nb"></label>
       <label>DFG <input type="number" id="pat-dfg" min="0" max="200" placeholder="mL/min"></label>
       <label>RAC (albuminurie) <input type="text" id="pat-rac" placeholder="mg/mmol ou « Non calculable »"></label>
       <label>IMC <input type="number" id="pat-imc" min="0" max="100" step="0.1" placeholder="kg/m²"></label>
