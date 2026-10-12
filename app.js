@@ -649,12 +649,19 @@ function dmStrategy(p, cvr) {
   const age = p.age;
   const hba1cTxt = hba1c !== null ? String(hba1c).replace('.', ',') + ' %' : 'non renseignée';
 
-  // Cible HbA1c individualisée (SFD/HAS)
-  let target;
-  if (age !== null && age >= 75) target = 'HbA1c < 7,5–8,0 % (sujet âgé : cible individualisée — espérance de vie, comorbidités, risque hypoglycémique)';
-  else if (age !== null && age >= 65) target = 'HbA1c < 7,0–7,5 % (cible individualisée selon comorbidités et risque hypoglycémie)';
-  else if (dfg !== null && dfg < 45) target = 'HbA1c < 7,5 % (MRC — cible individualisée)';
-  else target = 'HbA1c < 7,0 % (cible commune, individualiser)';
+  // Cible HbA1c individualisée (SFD/HAS) + grille complète
+  const allTargets = [
+    { l: 'HbA1c < 6,5 %', w: 'Possible chez le sujet jeune, DT2 récent, sans comorbidité, si hypoglycémies bien tolérées (bénéfice microvasculaire)' },
+    { l: 'HbA1c < 7,0 %', w: 'Cible commune chez l\u2019adulte — à individualiser' },
+    { l: 'HbA1c < 7,0–7,5 %', w: '65–74 ans, comorbidités modérées, ou risque d\u2019hypoglycémie' },
+    { l: 'HbA1c < 7,5–8,0 %', w: '≥ 75 ans, espérance de vie limitée, fragilité, MRC évoluée, antécédent d\u2019hypoglycémie sévère' },
+    { l: 'HbA1c < 8,0–8,5 %', w: 'Sujet très âgé/fragile, fin de vie — bénéfice limité de l\u2019intensification' },
+  ];
+  let target, targetIdx;
+  if (age !== null && age >= 75) { target = 'HbA1c < 7,5–8,0 % (sujet âgé)'; targetIdx = 3; }
+  else if (age !== null && age >= 65) { target = 'HbA1c < 7,0–7,5 % (65–74 ans)'; targetIdx = 2; }
+  else if (dfg !== null && dfg < 45) { target = 'HbA1c < 7,5 % (MRC)'; targetIdx = 3; }
+  else { target = 'HbA1c < 7,0 %'; targetIdx = 1; }
 
   const profiles = [];
   const hasTerrain = cvr.hasTerrain || cvr.extreme;
@@ -709,16 +716,20 @@ function dmStrategy(p, cvr) {
 
   if (!profiles.length) profiles.push({ n: 'Situation \u00ab commune \u00bb', t: 'Hygi\u00e8ne de vie + metformine (si DFG \u2265 30, tol\u00e9rance correcte) ; intensifier selon les profils ci-dessus d\u00e8s qu\u2019un crit\u00e8re appara\u00eet (ASCVD, IC, MRC, ob\u00e9sit\u00e9, hyperglyc\u00e9mie marqu\u00e9e, \u00e2ge).' });
 
-  const base = [];
-  if (dfg !== null && dfg < 30) base.push('Metformine : arr\u00eat si DFG < 30 mL/min ; iSGLT2 non initi\u00e9 si DFG < 20.');
-  else if (dfg !== null && dfg < 45) base.push('Metformine : max 1 000 mg/j (DFG 30\u201344) ; iSGLT2 \u00e0 dose adapt\u00e9e si DFG \u2265 20.');
+  const dfgTxt = dfg !== null ? dfg + ' mL/min/1,73 m\u00b2' : 'non renseign\u00e9';
+  const racTxt = p.rac !== null && p.rac !== undefined ? (p.rac === 'nc' ? 'non calculable (A1)' : String(p.rac).replace('.', ',') + ' mg/mmol') : 'non renseign\u00e9';
+  const base = ['DFG du patient : ' + dfgTxt + ' \u00b7 RAC : ' + racTxt + (kd ? ' \u00b7 stade KDIGO ' + kd.g + (kd.a ? ' ' + kd.a : '') : '') + '.'];
+  if (dfg === null) base.push('DFG non renseign\u00e9 \u2014 le remplir dans la partie Patient pour les adaptations posologiques (metformine, iSGLT2, aGLP-1).');
+  else if (dfg < 30) base.push('Metformine : arr\u00eat si DFG < 30 mL/min ; iSGLT2 non initi\u00e9 si DFG < 20.');
+  else if (dfg < 45) base.push('Metformine : max 1 000 mg/j (DFG 30\u201344) ; iSGLT2 \u00e0 dose adapt\u00e9e si DFG \u2265 20.');
+  else base.push('DFG \u2265 45 : posologies usuelles de la metformine ; iSGLT2 \u00e0 dose standard.');
   base.push('Rechercher une MASLD/st\u00e9atose h\u00e9patique (tr\u00e8s fr\u00e9quente dans le DT2) — si pr\u00e9sente : aGLP-1 quelle que soit l\u2019HbA1c (SFD 2024).');
   base.push('D\u00e9pistage annuel des complications : fond d\u2019\u0153il, DFG/RAC, pieds, BU, statut vaccinal, bilan lipidique.');
 
   const lines = ['Cible : ' + target + '.'];
   lines.push('Base du sch\u00e9ma : metformine (sauf CI) \u00b1 agents \u00e0 b\u00e9n\u00e9fice cardio-r\u00e9nal selon les profils ci-dessous.');
 
-  return { target, profiles, base, lines };
+  return { target, targetIdx, allTargets, profiles, base, lines };
 }
 function isglt2Advice(p) {
   const reasons = [];
@@ -933,7 +944,8 @@ function renderRx(p) {
   let dmBoxes = '';
   if (dms) {
     const dmDetail = `
-    <div class="rx-goal"><strong>${escapeHtml(dms.target)}</strong></div>
+    <div class="rx-goal"><strong>${escapeHtml(dms.target)}</strong> — cible proposée, à individualiser (grille ci-dessous)</div>
+    ${rxSub('Grille des cibles HbA1c (classification)', dms.allTargets.map((t, i) => (i === dms.targetIdx ? '▸ ' : '· ') + t.l + ' — ' + t.w))}
     ${dms.profiles.map(x => rxSub(x.n, [x.t])).join('')}
     ${rxSub('Adaptations r\u00e9nales (m\u00e9tformine / iSGLT2)', dms.base)}
     ${rxFlags(['DT2 = ALD 100 % ; insuline, metformine, GLP-1 RA (ob\u00e9sit\u00e9 IMC \u2265 30 ou \u2265 27 + comorbidit\u00e9), iSGLT2 (indications cardio-r\u00e9nales) rembours\u00e9s aux conditions habituelles (SMR important / insuffisant selon mol\u00e9cule)'], dms.base)}`;
