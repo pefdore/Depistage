@@ -940,6 +940,7 @@ function renderRx(p) {
     ${rxFlags(stt.remb, stt.ci)}`;
 
   const openState = window._rxOpen || {};
+  if (!window._rxTouched) openState.dm = false;
   const dms = dmStrategy(p, cvr);
   let dmBoxes = '';
   if (dms) {
@@ -966,6 +967,7 @@ document.addEventListener('click', e => {
   const willOpen = box.dataset.rxOpen !== '1';
   const nm = box.querySelector('.rx-name').textContent;
   const key = nm.includes('IEC') ? 'ie' : nm.includes('iSGLT2') ? 'gl' : nm.includes('Statines') ? 'st' : nm.includes('antidiab') ? 'dm' : 'gp';
+  window._rxTouched = true;
   window._rxOpen = window._rxOpen || {};
   window._rxOpen[key] = willOpen;
   box.dataset.rxOpen = willOpen ? '1' : '0';
