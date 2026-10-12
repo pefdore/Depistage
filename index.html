@@ -8,6 +8,7 @@
 </head>
 <body>
 <header>
+  <div id="flash-bar" class="flash-bar hidden"><span id="flash-identity"></span><span id="flash-bits"></span></div>
   <div class="header-search">
     <input type="search" id="fiche-search" placeholder="📄 Rechercher une fiche info patient : goutte, HTA, APLV, tabac…" autocomplete="off">
     <span id="fiche-count"></span>
@@ -95,6 +96,10 @@
       <span id="todo-count">—</span>
     </div>
     <div id="todo-list"></div>
+    <details id="todo-manual" class="todo-manual" hidden>
+      <summary>🔍 À vérifier manuellement — aucun critère auto détecté, cliquer si applicable <span id="todo-manual-count"></span></summary>
+      <div id="todo-manual-list"></div>
+    </details>
   </section>
 
   <section class="card" id="suivi-section">

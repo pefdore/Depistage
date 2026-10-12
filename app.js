@@ -1300,8 +1300,35 @@ function isPediaMode(p) {
   return p.ageMois !== null && p.ageMois < 24;
 }
 
+
+function updateFlashBar(p) {
+  const bar = document.getElementById('flash-bar');
+  const idEl = document.getElementById('flash-identity');
+  const bitsEl = document.getElementById('flash-bits');
+  if (!bar || !idEl || !bitsEl) return;
+  const name = (document.getElementById('pat-name')?.value || '').trim();
+  const bits = [];
+  const push = (txt, alert) => bits.push(`<span class="flash-bit${alert ? ' alert' : ''}">${escapeHtml(String(txt))}</span>`);
+  if (p.age !== null && p.ageMois === null) push(p.age + ' ans');
+  if (p.ageMois !== null) push(String(p.ageMois).replace('.', ',') + ' mois');
+  if (p.sex === 'F') push('Femme'); else if (p.sex === 'M') push('Homme');
+  if (p.tabac === 'actif') { push('fumeur', true); if (p.pa !== null) push(p.pa + ' PA', true); }
+  else if (p.tabac === 'sevré') { push('sevré', p.pa !== null && p.pa >= 20); if (p.pa !== null && p.pa >= 20) push(p.pa + ' PA', true); }
+  else if (p.tabac === 'jamais') push('non fumeur');
+  if (p.diabete) push('DT2', true); else if (p.hba1c !== null) push('HbA1c ' + String(p.hba1c).replace('.', ',') + ' %', p.hba1c >= 6.5);
+  if (p.hta) push('HTA', true); else if (p.sbp !== null) push('PAS ' + p.sbp, p.sbp >= 140);
+  if (p.ic) push('IC', true);
+  if (p.dfg !== null) push('DFG ' + p.dfg, p.dfg < 60);
+  if (p.rac !== null) push('RAC ' + (p.rac === 'nc' ? 'NC' : String(p.rac)), p.rac !== 'nc' && p.rac >= 3);
+  if (p.imc !== null) push('IMC ' + String(p.imc).replace('.', ','), p.imc >= 30);
+  if (p.ldl !== null) push('LDL ' + String(p.ldl).replace('.', ','), p.ldl >= 1.6);
+  idEl.textContent = name || 'Patient';
+  bitsEl.innerHTML = bits.join('');
+  bar.classList.toggle('hidden', !bits.length && !name);
+}
 function render() {
   const p = P();
+  updateFlashBar(p);
   const complete = p.age !== null && p.sex && p.tabac;
   document.getElementById('patient-warn').classList.toggle('hidden', !!complete);
   const details = document.getElementById('patient-info')?.querySelector('details');
@@ -1363,51 +1390,68 @@ function updateSummary(pedia) {
 
   const list = document.getElementById('todo-list');
   list.innerHTML = '';
+  const manualBox = document.getElementById('todo-manual');
+  const manualList = document.getElementById('todo-manual-list');
+  if (manualList) manualList.innerHTML = '';
   if (pedia) {
-    document.getElementById('todo-count').textContent = '—';
-    document.getElementById('progress-info').textContent = 'Suivi pédiatrique — modules adultes masqués';
+    document.getElementById('todo-count').textContent = '\u2014';
+    document.getElementById('progress-info').textContent = 'Suivi p\u00e9diatrique \u2014 modules adultes masqu\u00e9s';
+    if (manualBox) manualBox.hidden = true;
     return;
   }
-  const CATS = [
-    { key: 'chronique', title: 'D\u00e9pistage des maladies chroniques' },
-    { key: 'neo', title: 'D\u00e9pistage n\u00e9oplasique' },
-    { key: 'vaccinal', title: 'Suivi vaccinal' },
-  ];
-  const byCat = {};
-  const mutedByCat = {};
-  CATS.forEach(c => { byCat[c.key] = []; mutedByCat[c.key] = []; });
-  all.filter(e => !examState(e).indicated && !doneExams[e.id]).forEach(exam => {
-    if (exam.indications.some(i => !isChecked(i) && !i.auto)) mutedByCat[exam.cat || 'chronique'].push(exam);
-  });
-  if (!todo.length && !Object.values(mutedByCat).some(a => a.length)) {
+  const muted = all.filter(e => !examState(e).indicated && !doneExams[e.id]
+    && e.indications.some(i => !isChecked(i) && !i.auto));
+  if (!todo.length && !muted.length) {
     list.innerHTML = '<div class="todo-empty">' + (doneCount
-      ? '✅ Tout est traité pour ce patient.'
-      : 'Aucun examen indiqué actuellement.') + '</div>';
+      ? '\u2705 Tout est trait\u00e9 pour ce patient.'
+      : 'Aucun examen indiqu\u00e9 actuellement.') + '</div>';
   }
-  todo.forEach(exam => {
-    byCat[exam.cat || 'chronique'].push(exam);
-  });
-  CATS.forEach(cat => {
-    const exams = byCat[cat.key];
-    const mutedExams = (mutedByCat[cat.key] || []);
-    if (!exams.length && !mutedExams.length) return;
-    const h = document.createElement('div');
-    h.className = 'todo-cat-title';
-    h.textContent = cat.title;
-    list.appendChild(h);
-    if (exams.length) renderTodoChips(exams, list, false);
-    if (mutedExams.length) {
-      const sub = document.createElement('div');
-      sub.className = 'todo-muted-sub';
-      sub.textContent = 'Aucune indication détectée automatiquement — vérifier quand même :';
-      list.appendChild(sub);
-      renderTodoChips(mutedExams, list, true);
-    }
-  });
+  todo.forEach(exam => list.appendChild(renderTodoRow(exam, false)));
+  if (muted.length) {
+    if (manualBox) manualBox.hidden = false;
+    const cnt = document.getElementById('todo-manual-count');
+    if (cnt) cnt.textContent = '(' + muted.length + ')';
+    muted.forEach(exam => manualList.appendChild(renderTodoRow(exam, true)));
+  } else if (manualBox) manualBox.hidden = true;
   document.getElementById('todo-count').textContent =
-    todo.length ? `${todo.length} à faire${doneCount ? ` · ${doneCount} fait${doneCount > 1 ? 's' : ''}` : ''}` : (doneCount ? '✅ tout traité' : '—');
+    todo.length ? `${todo.length} \u00e0 faire${doneCount ? ` \u00b7 ${doneCount} fait${doneCount > 1 ? 's' : ''}` : ''}` : (doneCount ? '\u2705 tout trait\u00e9' : '\u2014');
   document.getElementById('progress-info').textContent =
-    `${todo.length} examen${todo.length > 1 ? 's' : ''} à faire`;
+    `${todo.length} examen${todo.length > 1 ? 's' : ''} \u00e0 faire`;
+}
+
+function renderTodoRow(exam, muted) {
+  const st = examState(exam);
+  const main = st.checked[0];
+  const others = exam.indications.filter(i => !isChecked(i));
+  const row = document.createElement('div');
+  row.className = 'todo-row todo-collapse' + (muted ? ' muted' : '') + (window._todoOpen?.[exam.id] ? ' open' : '');
+  row.dataset.todoExam = exam.id;
+  const checkedRows = st.checked.map(i => `
+    <div class="todo-detail-row"><input type="checkbox" data-ind="${i.id}" checked>
+      <span class="todo-detail-label">${escapeHtml(i.label)}${i.req ? ` <em class="req">(${escapeHtml(i.req)})</em>` : ''}</span></div>
+    ${i.why ? `<div class="todo-detail-why">${escapeHtml(i.why)}</div>` : ''}`).join('');
+  const otherRows = others.length ? `
+    <div class="todo-detail-sub">Autres indications \u00e0 v\u00e9rifier (cocher si applicable) :</div>
+    ${others.map(i => `
+      <div class="todo-detail-row"><input type="checkbox" data-ind="${i.id}">
+        <span class="todo-detail-label off">${escapeHtml(i.label)}${i.req ? ` <em class="req">(${escapeHtml(i.req)})</em>` : ''}</span></div>
+      ${i.why ? `<div class="todo-detail-why">${escapeHtml(i.why)}</div>` : ''}`).join('')}` : '';
+  row.innerHTML = `
+    <span class="todo-name">${exam.icon} ${escapeHtml(exam.title.split(' (')[0])}</span>
+    <span class="todo-why">${muted ? '\u00e0 v\u00e9rifier manuellement \u2014 aucun crit\u00e8re auto d\u00e9tect\u00e9' : (main ? escapeHtml(main.label) : '')}</span>
+    <span class="todo-actions">
+      <button class="todo-done" data-done="${exam.id}" data-st="fait" title="Fait">\u2713</button>
+      <button class="todo-nc" data-done="${exam.id}" data-st="nc" title="Non concern\u00e9">NC</button>
+      <button class="todo-ns" data-done="${exam.id}" data-st="ns" title="Non syst\u00e9matique">NS</button>
+      <button class="todo-letter" data-letter="${exam.id}" title="Copier un courrier d'adressage" data-motif="${escapeHtml(st.checked.map(i => i.label).join(' ; '))}">\u2709</button>
+    </span>
+    <span class="todo-chevron">\u25b8</span>
+    <div class="todo-detail"><div class="todo-detail-inner">
+      <div class="todo-detail-sub">Motif(s) retenu(s) :</div>
+      ${checkedRows}
+      ${otherRows}
+    </div></div>`;
+  return row;
 }
 
 function examLetter(examId, p, cvr, tg, motifs) {
@@ -1460,45 +1504,6 @@ function copyLetter(examId, motif) {
   });
 }
 
-function renderTodoChips(exams, list, muted) {
-  exams.forEach(exam => {
-    const st = examState(exam);
-    const others = exam.indications.filter(i => !isChecked(i));
-    const chip = document.createElement('div');
-    chip.className = 'todo-chip todo-collapse' + (muted ? ' muted' : '') + (window._todoOpen?.[exam.id] ? ' open' : '');
-    chip.dataset.todoExam = exam.id;
-    const checkedRows = st.checked.map(i => `
-      <div class="todo-detail-row"><input type="checkbox" data-ind="${i.id}" checked>
-        <span class="todo-detail-label">${escapeHtml(i.label)}${i.req ? ` <em class="req">(${escapeHtml(i.req)})</em>` : ''}</span></div>
-      ${i.why ? `<div class="todo-detail-why">${escapeHtml(i.why)}</div>` : ''}`).join('');
-    const otherRows = others.length ? `
-      <div class="todo-detail-sub">Autres indications à vérifier (cocher si applicable) :</div>
-      ${others.map(i => `
-        <div class="todo-detail-row"><input type="checkbox" data-ind="${i.id}">
-          <span class="todo-detail-label off">${escapeHtml(i.label)}${i.req ? ` <em class="req">(${escapeHtml(i.req)})</em>` : ''}</span></div>`).join('')}` : '';
-    chip.innerHTML = `
-      <div class="todo-head" role="button" tabindex="0" aria-expanded="${window._todoOpen?.[exam.id] ? 'true' : 'false'}">
-        <span class="todo-label">${exam.icon} ${escapeHtml(exam.title.split(' (')[0])}
-          <em>${muted ? 'aucune indication détectée — à vérifier' : st.checked.length + ' indication' + (st.checked.length > 1 ? 's' : '') + (st.level && exam.scoring ? ' — ' + escapeHtml(st.level) : '')}</em></span>
-        <span class="todo-head-right">
-          <span class="todo-chevron">▸</span>
-          <span class="todo-actions">
-            <button class="todo-done" data-done="${exam.id}" data-st="fait">✓ Fait</button>
-            <button class="todo-nc" data-done="${exam.id}" data-st="nc">NC</button>
-            <button class="todo-ns" data-done="${exam.id}" data-st="ns">NS</button>
-            <button class="todo-letter" data-letter="${exam.id}" title="Copier un courrier d'adressage" data-motif="${escapeHtml(st.checked.map(i => i.label).join(' ; '))}">\u2709</button>
-          </span>
-        </span>
-      </div>
-      <div class="todo-detail"><div class="todo-detail-inner">
-        <div class="todo-detail-sub">Motif(s) retenu(s) :</div>
-        ${checkedRows}
-        ${otherRows}
-      </div></div>`;
-    list.appendChild(chip);
-  });
-}
-
 // ---------- Événements ----------
 document.addEventListener('click', e => {
   const kdHead = e.target.closest('[data-kdigo-toggle]');
@@ -1520,14 +1525,12 @@ document.addEventListener('click', e => {
     copyLetter(letter.dataset.letter, letter.dataset.motif || '');
     return;
   }
-  const head = e.target.closest('.todo-head');
-  if (head) {
-    const chip = head.closest('.todo-collapse');
-    const id = chip.dataset.todoExam;
+  const trow = e.target.closest('.todo-row');
+  if (trow && !e.target.closest('button') && !e.target.closest('input')) {
+    const id = trow.dataset.todoExam;
     window._todoOpen = window._todoOpen || {};
     window._todoOpen[id] = !window._todoOpen[id];
-    chip.classList.toggle('open', window._todoOpen[id]);
-    head.setAttribute('aria-expanded', window._todoOpen[id]);
+    trow.classList.toggle('open', window._todoOpen[id]);
     return;
   }
 });
