@@ -1305,6 +1305,15 @@ const EXAMS = [
     { id: 'hcv-age', why: 'L\'hépatite C peut dormir des dizaines d\'années : une sérologie une fois dans la vie l\'élimine, et elle se guérit aujourd\'hui.', label: '18–59 ans : au moins une fois dans la vie', auto: p => between(p, 18, 59) },
     { id: 'hcv-risque', why: 'Ces situations exposent au virus de l\'hépatite C : une simple prise de sang l\'élimine.', label: 'Usage de drogues IV/intranasal, transfusion avant 1992, tatouage/percing, prison' },
   ],
+},{
+  id: 'cadmium', cat: 'chronique', title: 'Cadmium (cadmiurie) — campagne CNAM', icon: '⚙️',
+  indications: [
+    { id: 'cadmium-zone', why: 'Le cadmium s\'accumule via les aliments cultivés sur des sols contaminés (engrais phosphatés) ou l\'inhalation de poussières. La cadmiurie (urines) mesure l\'imprégnation ; remboursée depuis le 16 juin (décision UNCAM) pour les personnes potentiellement surexposées du fait de leur lieu de résidence, quand le sol a été reconnu pollué au cadmium par les autorités compétentes.', label: 'Résidence en zone à sol reconnu pollué par le cadmium (HAS 2024 : sols géologiquement riches — Champagne, Charente, Jura, Massif central — ou riverains de sites industriels pollués)', req: 'Remboursé 60 % — 27,50 € + 2 € forfait' },
+    { id: 'cadmium-suivi', why: 'Les personnes déjà identifiées comme intoxiquées de façon chronique bénéficient d\'une surveillance de leur cadmiurie, remboursée dans le même cadre.', label: 'Personnes surveillées pour intoxication chronique au cadmium', req: 'Remboursé 60 % — 27,50 € + 2 € forfait' },
+    { id: 'cadmium-sang', why: 'Si la cadmiurie est élevée, un dosage du cadmium sanguin réalisé en complément est également pris en charge (27,50 €, 60 %).', label: 'Cadmium sanguin en complément, si cadmiurie élevée', req: 'Remboursé 60 % si cadmiurie élevée' },
+    { id: 'cadmium-jugement', why: 'Le ministère précise que les personnes vivant hors des zones identifiées ne sont pas exclues : c\'est au médecin de juger de la pertinence des dosages, par exemple devant une atteinte rénale ou osseuse inexpliquée.', label: 'Hors zone : au médecin de juger — ex. atteinte rénale tubulaire ou osseuse inexpliquée, forte consommation d\'aliments très contaminés (céréales, pain, chocolat, coquillages, abats)', req: 'Remboursement au cas par cas' },
+    { id: 'cadmium-info', label: 'INFO : prescription médicale obligatoire, en laboratoire de ville. Pas de critère opératoire officiel (zonage flou) : documenter la justification dans la prescription en cas de doute. La Bretagne n\'est pas identifiée comme zone géologique à risque — seules les situations individuelles justifient le dosage', req: 'Info' },
+  ],
 },
 {
   id: 'ecg', cat: 'chronique', title: 'ÉCG', icon: '💓',
