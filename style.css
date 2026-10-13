@@ -544,3 +544,15 @@ header { padding: 12px 24px; }
 .dm-suivi-txt { color: #78909c; font-size: .68rem; line-height: 1.35; }
 .dm-comp-summary .dm-comp-line { font-size: .8rem; color: #333; margin-top: 6px; line-height: 1.45; }
 .dm-strategy-peek .cvr-ldl-status { margin-top: 4px; }
+/* Infobulle monofilament (module Diabète) */
+.dm-info-btn { border: none; background: #e3f2fd; color: #0d5a8c; border-radius: 999px; font-size: .68rem; font-weight: 800; cursor: pointer; padding: 1px 7px; margin-left: 6px; line-height: 1.5; transition: background .15s; }
+.dm-info-btn:hover { background: #bbdefb; }
+.dm-infobull { background: #fff; border: 1px solid #b3d9f2; border-left: 5px solid #0d5a8c; border-radius: 10px; padding: 12px 14px; margin-top: 10px; box-shadow: 0 4px 14px rgba(13,90,140,.12); }
+.dm-infobull-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.dm-infobull-title { font-weight: 800; font-size: .88rem; color: #1a2b3c; flex: 1; }
+.dm-infobull-close { border: none; background: #eceff1; color: #455a64; border-radius: 999px; cursor: pointer; font-size: .72rem; padding: 3px 9px; }
+.dm-infobull-close:hover { background: #cfd8dc; }
+.dm-infobull-sec { font-size: .74rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #0d5a8c; margin: 10px 0 4px; }
+.dm-infobull-list { margin: 0; padding-left: 18px; }
+.dm-infobull-list li { font-size: .78rem; color: #333; line-height: 1.55; margin-bottom: 4px; }
+.dm-infobull-list strong { color: #1a2b3c; }

@@ -477,7 +477,10 @@ function renderDiabete(p) {
     `<label class="cvr-terrain-item ${cls}"><input type="checkbox" id="${c.id}" ${dmChecks[c.id] ? 'checked' : ''}><span>${escapeHtml(c.label)}<em class="dm-comp-note">${escapeHtml(c.note)}</em></span></label>`).join('');
   const suiviRows = DM_SUIVI.filter(s => s.due(p)).map(s => {
     const done = dmSuiviDone(s.id);
-    return `<label class="dm-suivi-item${done ? ' done' : ''}"><input type="checkbox" id="${s.id}" ${done ? 'checked' : ''}><span class="dm-suivi-label">${escapeHtml(s.label)}</span><span class="dm-suivi-txt">${escapeHtml(s.txt)}</span></label>`;
+    const info = s.id === 'dm-suivi-pieds'
+      ? `<button type="button" class="dm-info-btn" data-dm-info="pieds" title="Comment réaliser le test au monofilament, l'interpréter et l'indication podologue">ⓘ</button>`
+      : '';
+    return `<span class="dm-suivi-item${done ? ' done' : ''}"><input type="checkbox" id="${s.id}" ${done ? 'checked' : ''}><span class="dm-suivi-label">${escapeHtml(s.label)}${info}</span><span class="dm-suivi-txt">${escapeHtml(s.txt)}</span></span>`;
   }).join('');
   const hba1cStatus = hba1c === null
     ? 'HbA1c non renseignée — la doser : base de l’état des lieux et de la stratégie (voir Traitements → Stratégie antidiabétique).'
@@ -515,6 +518,35 @@ function renderDiabete(p) {
           <div class="cvr-terrain-grid dm-comp-grid">${compChecks(DM_MACRO, 'dm-macro')}</div>
           <div class="cvr-panel-title">③ Dépistage annuel du diabète — cocher ce qui est à jour</div>
           <div class="dm-suivi-grid">${suiviRows}</div>
+          ${window._dmInfoPieds ? `
+          <div class="dm-infobull" data-dm-infobull>
+            <div class="dm-infobull-head">
+              <span class="dm-infobull-title">🦶 Test au monofilament de Semmes-Weinstein (5,07 g)</span>
+              <button type="button" class="dm-infobull-close" data-dm-info-close>✕</button>
+            </div>
+            <div class="dm-infobull-sec">Comment le réaliser</div>
+            <ul class="dm-infobull-list">
+              <li>Patient couché, yeux fermés, pieds déchaussés depuis quelques minutes (température ambiante).</li>
+              <li>Monofilament tenu par la base : appliquer perpendiculairement sur la peau, le fil se courbe en « C » pendant ~1 seconde, puis le retirer.</li>
+              <li>Ne pas tester sur les callosités, ulcères, cicatrices ou zones nécrotiques.</li>
+              <li>Testez <strong>4 points par pied</strong> : pulpe du gros orteil, 3<sup>e</sup> orteil, base du 5<sup>e</sup> métatarsien (plante), talon — surface dorsale du 1<sup>er</sup> espace interdigital (optionnel).</li>
+              <li>Commencez par une zone saine (main/avant-bras) pour montrer le geste au patient, sans le prévenir de l'emplacement exact sur le pied.</li>
+            </ul>
+            <div class="dm-infobull-sec">Comment l'interpréter</div>
+            <ul class="dm-infobull-list">
+              <li><strong>Test normal</strong> : le patient perçoit ≥ 2 stimulations sur les 4 points testés → sensibilité protectrice conservée.</li>
+              <li><strong>Test anormal (neuropathie périphérique dépistée)</strong> : absence de perception à ≥ 1 point, même après re-test en alternant stimulus réel/faux pour limiter les faux positifs.</li>
+              <li>Compléter avec la <strong>vibration</strong> (diapason 128 Hz ou neuro-esthésiomètre, seuil &gt; 25 V considéré anormal) et la <strong>piqûre</strong> (aiguille stérile, perception de la douleur).</li>
+              <li>Combiner au reste du bilan : inspection (déformation, fissure, mycose, onychomycose, ulcère actif ou cicatriciel), pouls pédieux/tibial postérieur (si abolition → ischémie → score IPS (à calculer)), chaussage.</li>
+            </ul>
+            <div class="dm-infobull-sec">Indication — prise en charge podologique remboursée</div>
+            <ul class="dm-infobull-list">
+              <li>En cas de <strong>test anormal</strong> (ou d'ulcère actif/amputation préalable) : le patient relève d'un <strong>pied diabétique à risque</strong>, justification d'une prise en charge par <strong>pédicure-podologue</strong>, conventionnée (prise en charge à 100 % dans le cadre du protocole ALD 30 « diabète » quand les soins sont en lien avec l’ALD).</li>
+              <li>Classification du risque : pied à <strong>risque faible</strong> (sensibilité normale, pas de déformation majeure) → suivi podologique simple ; <strong>risque modéré</strong> (neuropathie OU déformation OU artériopathie sans ulcère) → suivi podologique régulier ; <strong>risque élevé</strong> (neuropathie + artériopathie, ou déformation + artériopathie, ou antécédent d'ulcère) → suivi rapproché, chaussure thérapeutique, éducation thérapeutique.</li>
+              <li>Sur l'ordonnance : porter le diagnostic (« neuropathie diabétique périphérique — pied à risque » / « diabète compliqué »), demander une prise en charge en pédicurie/podologie avec mention « diabète de type 2 compliqué, ALD 30 » ; joindre le résultat du test au monofilament.</li>
+              <li>Le podologue réalise alors des soins de pédicurie remboursés au titre de l'ALD 30 (prise en charge 100 % pour les actes en lien avec l'ALD), sur prescription médicale écrite renouvelable.</li>
+            </ul>
+          </div>` : ''}
         </div>
         <div class="cvr-col cvr-col-results">
           <div class="cvr-scorecard" style="--sc:${control.color}">
@@ -1744,6 +1776,10 @@ document.addEventListener('click', e => {
   if (kdHead) { window._kdigoOpen = !window._kdigoOpen; render(); return; }
   const dmHead = e.target.closest('[data-dm-toggle]');
   if (dmHead) { window._dmOpen = !window._dmOpen; render(); return; }
+  const dmInfo = e.target.closest('[data-dm-info]');
+  if (dmInfo) { window._dmInfoPieds = !window._dmInfoPieds; render(); return; }
+  const dmInfoClose = e.target.closest('[data-dm-info-close]');
+  if (dmInfoClose) { window._dmInfoPieds = false; render(); return; }
   const pnav = e.target.closest('button[data-pedia-month]');
   if (pnav) {
     window._pediaMonth = pnav.dataset.pediaMonth === 'auto' ? null : +pnav.dataset.pediaMonth;
