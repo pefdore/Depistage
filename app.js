@@ -273,17 +273,6 @@ function renderEtat(p) {
   const kd = kdigoStage(p);
   const cards = [];
 
-  // DT2
-  if (p.diabete) {
-    const hba1c = p.hba1c;
-    const status = hba1c === null ? { t: 'HbA1c à jour ?', c: '#78909c' } : hba1c < 7 ? { t: 'Équilibré', c: '#2e7d32' } : hba1c < 8 ? { t: 'Insuffisamment équilibré', c: '#ef6c00' } : { t: 'Déséquilibré', c: '#c62828' };
-    cards.push({
-      icon: '🍪', name: 'Diabète de type 2', status: status.t, color: status.c,
-      data: [`HbA1c : ${hba1c === null ? 'non renseignée' : f(hba1c) + ' %'}`, `DFG : ${p.dfg === null ? '—' : p.dfg + ' mL/min'}`, `IMC : ${p.imc === null ? '—' : f(p.imc)}`],
-      actions: hba1c === null ? 'Doser l\u2019HbA1c — base de la stratégie (voir Traitements → Stratégie antidiabétique)' : 'Stratégie à adapter selon profils : voir Traitements → Stratégie antidiabétique',
-    });
-  }
-
   // BPCO
   if (p.bpco) {
     const v = p.vems;
@@ -396,6 +385,158 @@ function renderKdigo(p) {
             <div class="cvr-scorecard-sub">DFG ${p.dfg} mL/min/1,73 m²${racTxt ? ' · RAC ' + racTxt : ''}</div>
             <div class="cvr-scorecard-act">${riskTxt}${st.risk >= 3 ? ' — avis néphrologique à discuter, bilan étiologique, dépistage cardiovasculaire associé.' : ' — surveillance annuelle du DFG/RAC, contrôle tensionnel et glycémique.'}</div>
           </div>
+        </div>
+      </div>
+    </div></div>
+  </div>`;
+}
+
+// ---------- État des lieux Diabète (type diabétologue) ----------
+const DM_MICRO = [
+  { id: 'dm-micro-retino', label: 'Rétinopathie diabétique', note: 'Fond d’œil annuel (photographies rétiniennes si disponibles)' },
+  { id: 'dm-micro-nephro', label: 'Néphropathie diabétique', note: 'DFG/RAC : surveillance (voir module Fonction rénale)' },
+  { id: 'dm-micro-neuro', label: 'Neuropathie périphérique', note: 'Monofilament, piqûre, diapason aux pieds — annuel' },
+  { id: 'dm-micro-neuro-auto', label: 'Neuropathie autonome', note: 'Hypotension orthostatique, gastroparésie, troubles de l’érection, hypoglycémies non perçues (malaise hypoglycémique infraperçu)' },
+];
+const DM_MACRO = [
+  { id: 'dm-macro-coronaro', label: 'Coronaropathie / SCA', note: 'Prévention secondaire : LDL < 0,55, antiagrégant, bêtabloquant/IEC selon cas' },
+  { id: 'dm-macro-avc', label: 'AVC / AIT ischémique', note: 'aGLP-1 à privilégier (sémaglutide) ; LDL < 0,55 g/L' },
+  { id: 'dm-macro-aomi', label: 'Artériopathie des membres inférieurs', note: 'IPS, recherche de claudication ; LDL < 0,55 g/L' },
+  { id: 'dm-macro-cardio', label: 'Insuffisance cardiaque', note: 'iSGLT2 d’emblée ; poids quotidien ; ionogramme 7–14 j après modification' },
+];
+const DM_SUIVI = [
+  { id: 'dm-suivi-fo', label: 'Fond d’œil', due: p => p.age !== null, txt: 'Rétinographie ou ophtalmo — annuel' },
+  { id: 'dm-suivi-rein', label: 'DFG + RAC', due: p => true, txt: 'Bilan rénal — annuel (au minimum)' },
+  { id: 'dm-suivi-pieds', label: 'Examen des pieds', due: p => true, txt: 'Monofilament + inspection — annuel ; à chaque consultation si haut risque' },
+  { id: 'dm-suivi-lipides', label: 'Bilan lipidique', due: p => true, txt: 'LDL/HDL/triglycérides — annuel' },
+  { id: 'dm-suivi-ta', label: 'TA', due: p => true, txt: 'Objectif < 130/80 mmHg (automesure à domicile)' },
+  { id: 'dm-suivi-poids', label: 'Poids / IMC / tour de taille', due: p => true, txt: 'À chaque consultation' },
+  { id: 'dm-suivi-tabac', label: 'Statut tabagique', due: p => p.tabac === 'actif', txt: 'Aide au sevrage à chaque consultation' },
+  { id: 'dm-suivi-vaccins', label: 'Vaccins grippe + pneumocoque', due: p => true, txt: 'Grippe annuelle ; pneumocoque recommandé (diabète)' },
+  { id: 'dm-suivi-bucco', label: 'Bilan bucco-dentaire', due: p => true, txt: 'Examen/détartrage — annuel (diabète = facteur de risque parodontal)' },
+];
+
+function dmComplications() {
+  const micro = DM_MICRO.filter(c => dmChecks[c.id]);
+  const macro = DM_MACRO.filter(c => dmChecks[c.id]);
+  return { micro, macro, any: micro.length + macro.length > 0 };
+}
+
+function dmSuiviDone(id) { return !!dmChecks[id]; }
+
+function renderDiabete(p) {
+  const panel = document.getElementById('diabete-panel');
+  if (!panel) return;
+  if (!p.diabete) { panel.innerHTML = ''; window._dmOpen = false; return; }
+  const f = v => v === null ? '—' : String(v).replace('.', ',');
+  const kd = kdigoStage(p);
+  const cvr = cvrCompute(p);
+  const comp = dmComplications();
+  const hba1c = p.hba1c;
+  // Cible HbA1c individualisée (SFD/HAS)
+  let target = '< 7,0 %', targetWhy = 'Cible commune chez l’adulte — à individualiser (SFD/HAS)';
+  if (p.age !== null && p.age >= 75) { target = '< 7,5–8,0 %'; targetWhy = 'Sujet âgé/fragile : priorité à la sécurité (hypoglycémies, chutes)'; }
+  else if (p.age !== null && p.age >= 65) { target = '< 7,0–7,5 %'; targetWhy = '65–74 ans : cible légèrement assouplie'; }
+  else if (p.dfg !== null && p.dfg < 45) { target = '< 7,5 %'; targetWhy = 'MRC évoluée : cible assouplie'; }
+  // Équilibre vs cible
+  const targetMax = p.age >= 75 ? 8.0 : (p.age >= 65 ? 7.5 : (p.dfg !== null && p.dfg < 45 ? 7.5 : 7.0));
+  const ok = hba1c !== null && hba1c < targetMax;
+  const control = hba1c === null
+    ? { label: 'HbA1c à doser', color: '#78909c' }
+    : ok
+      ? { label: 'Dans la cible', color: '#2e7d32' }
+      : hba1c < targetMax + 1
+        ? { label: 'Hors cible (+< 1 pt)', color: '#f9a825' }
+        : { label: 'Déséquilibré', color: '#c62828' };
+  const gauge = hba1c === null ? 0 : Math.max(0, Math.min(100, Math.round((1 - Math.min(hba1c, 12) / 12) * 100)));
+  // Classification : simple vs compliqué
+  const microTxt = comp.micro.map(c => c.label);
+  const macroTxt = comp.macro.map(c => c.label);
+  const nbComp = comp.micro.length + comp.macro.length;
+  let classe, classeColor;
+  if (nbComp === 0) {
+    const highRisk = cvr.hasTerrain || cvr.extreme || (cvr.result && cvr.result.pct >= 10);
+    if (hba1c !== null && ok && !highRisk) { classe = 'Diabète simple — dans la cible, sans complication'; classeColor = '#2e7d32'; }
+    else if (hba1c !== null && !ok) { classe = 'Diabète non compliqué — mais hors cible thérapeutique'; classeColor = '#ef6c00'; }
+    else { classe = highRisk ? 'Diabète à haut risque CV — sans complication dépistée' : 'Diabète non compliqué — état des lieux à compléter'; classeColor = highRisk ? '#ef6c00' : '#78909c'; }
+  } else {
+    classe = 'Diabète compliqué — ' + nbComp + ' complication' + (nbComp > 1 ? 's' : '') + ' : ' + [...microTxt, ...macroTxt].join(', ');
+    classeColor = '#c62828';
+  }
+  const inputs = [
+    { k: 'HbA1c', v: hba1c === null ? 'non renseignée — à doser' : f(hba1c) + ' %', ok: hba1c !== null },
+    { k: 'Cible HbA1c', v: target, ok: true },
+    { k: 'DFG', v: p.dfg === null ? 'non renseigné' : p.dfg + ' mL/min' + (kd ? ' (KDIGO ' + kd.g + (kd.a ? ' ' + kd.a : '') + ')' : ''), ok: p.dfg !== null },
+    { k: 'RAC', v: p.rac === null || p.rac === undefined ? 'à doser' : (p.rac === 'nc' ? 'NC (A1)' : f(p.rac) + ' mg/mmol'), ok: p.rac !== null && p.rac !== undefined },
+    { k: 'IMC', v: p.imc === null ? '—' : f(p.imc) + ' kg/m²', ok: p.imc !== null },
+    { k: 'PAS', v: p.sbp === null ? '—' : p.sbp + ' mmHg', ok: p.sbp !== null },
+    { k: 'LDL', v: p.ldl === null ? '—' : f(p.ldl) + ' g/L', ok: p.ldl !== null },
+    { k: 'Tabac', v: p.tabac === 'actif' ? '🚬 actif' : (p.tabac === 'sevré' ? 'sevré' : (p.tabac === 'jamais' ? 'jamais' : '—')), ok: p.tabac !== '' },
+  ];
+  const compChecks = (items, cls) => items.map(c =>
+    `<label class="cvr-terrain-item ${cls}"><input type="checkbox" id="${c.id}" ${dmChecks[c.id] ? 'checked' : ''}><span>${escapeHtml(c.label)}<em class="dm-comp-note">${escapeHtml(c.note)}</em></span></label>`).join('');
+  const suiviRows = DM_SUIVI.filter(s => s.due(p)).map(s => {
+    const done = dmSuiviDone(s.id);
+    return `<label class="dm-suivi-item${done ? ' done' : ''}"><input type="checkbox" id="${s.id}" ${done ? 'checked' : ''}><span class="dm-suivi-label">${escapeHtml(s.label)}</span><span class="dm-suivi-txt">${escapeHtml(s.txt)}</span></label>`;
+  }).join('');
+  const hba1cStatus = hba1c === null
+    ? 'HbA1c non renseignée — la doser : base de l’état des lieux et de la stratégie (voir Traitements → Stratégie antidiabétique).'
+    : ok
+      ? `HbA1c ${f(hba1c)} % — dans la cible (${target}). Maintenir le traitement, surveillance annuelle.`
+      : `HbA1c ${f(hba1c)} % — hors cible (${target}) : renforcer hygiène de vie + adapter le traitement (voir Traitements → Stratégie antidiabétique) ; réévaluer à 3 mois.`;
+  const actTxt = nbComp
+    ? 'Diabète compliqué : traitement à bénéfice cardio-rénal (iSGLT2 / aGLP-1 selon territoire), prévention secondaire intensive (LDL selon territoire, TA < 130/80), dépistage des autres complications à compléter.'
+    : (ok
+      ? 'Diabète simple, dans la cible : suivi annuel du dépistage des complications (fond d’œil, DFG/RAC, pieds, lipides, TA).'
+      : 'Priorité : équilibre glycémique (HbA1c), puis dépistage annuel des complications et optimisation du traitement.');
+  const dms = dmStrategy(p, cvr);
+  panel.innerHTML = `
+  <div class="cvr-box dm-box${window._dmOpen ? ' open' : ''}" style="--sc:${control.color}">
+    <div class="cvr-head" role="button" tabindex="0" aria-expanded="${window._dmOpen ? 'true' : 'false'}" data-dm-toggle="1">
+      <span class="cvr-title">🍪 État des lieux — Diabète</span>
+      <span class="cvr-verdict" style="color:#1a2b3c; background:${control.color}22; border:1px solid ${control.color}55">${control.label === 'Dans la cible' ? '✓ ' : ''}${escapeHtml(control.label)}${hba1c !== null ? ' · HbA1c ' + f(hba1c) + ' %' : ''}</span>
+      <span class="cvr-chevron">▸</span>
+    </div>
+    <div class="cvr-detail"><div class="cvr-detail-inner">
+      <div class="cvr-layout">
+        <div class="cvr-col">
+          <div class="cvr-panel-title">① Données & équilibre glycémique <span class="cvr-model">${escapeHtml(classe.split(' — ')[0])}</span></div>
+          <div class="cvr-inputs">
+            ${inputs.map(i => `<div class="cvr-input${i.ok ? ' ok' : ''}"><span class="cvr-input-k">${i.k}</span><span class="cvr-input-v">${escapeHtml(i.v)}</span></div>`).join('')}
+          </div>
+          <div class="cvr-banner" style="--bc:${classeColor}; margin-top:10px">
+            <strong>${escapeHtml(classe)}</strong>
+            <p>${escapeHtml('Cible individuelle ' + target + ' — ' + targetWhy + '. ' + hba1cStatus)}</p>
+          </div>
+          <div class="cvr-panel-title">② Complications cliquables — cocher celles présentes</div>
+          <div class="cvr-panel-subtitle">Microvasculaires</div>
+          <div class="cvr-terrain-grid dm-comp-grid">${compChecks(DM_MICRO, 'dm-micro')}</div>
+          <div class="cvr-panel-subtitle">Macrovasculaires</div>
+          <div class="cvr-terrain-grid dm-comp-grid">${compChecks(DM_MACRO, 'dm-macro')}</div>
+          <div class="cvr-panel-title">③ Dépistage annuel du diabète — cocher ce qui est à jour</div>
+          <div class="dm-suivi-grid">${suiviRows}</div>
+        </div>
+        <div class="cvr-col cvr-col-results">
+          <div class="cvr-scorecard" style="--sc:${control.color}">
+            <div class="cvr-scorecard-top">
+              <div class="cvr-gauge"><div class="cvr-gauge-fill" style="width:${gauge}%; background:${control.color}"></div></div>
+              <div class="cvr-scorecard-pct">${hba1c === null ? '?' : f(hba1c)}<span class="cvr-pct-unit">%</span></div>
+            </div>
+            <div class="cvr-scorecard-cat" style="color:${control.color}">HbA1c · ${escapeHtml(control.label)}</div>
+            <div class="cvr-scorecard-sub">Cible ${target} (SFD/HAS, individualisée) · ${escapeHtml(comp.any ? 'Diabète compliqué' : 'Sans complication cochée')}</div>
+            <div class="cvr-scorecard-act">${escapeHtml(actTxt)}</div>
+          </div>
+          ${nbComp ? `
+          <div class="cvr-ldl ko dm-comp-summary">
+            <div class="cvr-ldl-head"><span class="cvr-ldl-target">Complications déclarées</span><span class="cvr-ldl-badge ko">${nbComp}</span></div>
+            ${comp.micro.length ? `<div class="dm-comp-line">Micro : ${escapeHtml(microTxt.join(', '))}</div>` : ''}
+            ${comp.macro.length ? `<div class="dm-comp-line">Macro : ${escapeHtml(macroTxt.join(', '))}</div>` : ''}
+          </div>` : ''}
+          ${dms && dms.target ? `
+          <div class="cvr-ldl dm-strategy-peek">
+            <div class="cvr-ldl-head"><span class="cvr-ldl-target">Stratégie antidiabétique</span><span class="cvr-ldl-badge ok">${escapeHtml(dms.target)}</span></div>
+            <div class="cvr-ldl-status">${dms.profiles.length} profil(s) actif(s) — détail dans Traitements → Stratégie antidiabétique (DT2).</div>
+          </div>` : ''}
         </div>
       </div>
     </div></div>
@@ -1428,12 +1569,14 @@ function render() {
   renderPedia(p);
   renderEtat(p);
   if (!pedia) {
+    readDmChecks();
     renderKdigo(p);
     renderCvr(p);
+    renderDiabete(p);
     renderRx(p);
     renderSuivi(p);
   } else {
-    ['kdigo-panel', 'cvr-panel', 'rx-panel', 'suivi-panel'].forEach(id => {
+    ['kdigo-panel', 'cvr-panel', 'diabete-panel', 'rx-panel', 'suivi-panel'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.innerHTML = '';
     });
@@ -1599,6 +1742,8 @@ function renderTodoChips(exams, list, muted) {
 document.addEventListener('click', e => {
   const kdHead = e.target.closest('[data-kdigo-toggle]');
   if (kdHead) { window._kdigoOpen = !window._kdigoOpen; render(); return; }
+  const dmHead = e.target.closest('[data-dm-toggle]');
+  if (dmHead) { window._dmOpen = !window._dmOpen; render(); return; }
   const pnav = e.target.closest('button[data-pedia-month]');
   if (pnav) {
     window._pediaMonth = pnav.dataset.pediaMonth === 'auto' ? null : +pnav.dataset.pediaMonth;
@@ -1638,6 +1783,10 @@ document.addEventListener('change', e => {
   render();
 });
 
+document.addEventListener('change', e => {
+  if (e.target.closest('#diabete-panel input[type=checkbox]')) render();
+});
+
 ['pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-ic', 'pat-dfg', 'pat-rac', 'pat-imc', 'pat-ldl', 'pat-sbp', 'pat-chol', 'pat-hdl', 'pat-hba1c', 'pat-age-mois'].forEach(idn =>
   document.getElementById(idn).addEventListener('change', render));
 
@@ -1647,9 +1796,13 @@ document.getElementById('btn-reset').addEventListener('click', () => {
   if (confirm('Réinitialiser les coches ?')) {
     Object.keys(overrides).forEach(k => delete overrides[k]);
     Object.keys(doneExams).forEach(k => delete doneExams[k]);
+    Object.keys(dmChecks).forEach(k => delete dmChecks[k]);
     render();
   }
 });
+const DM_CHECK_IDS = [...DM_MICRO, ...DM_MACRO, ...DM_SUIVI].map(c => c.id);
+const dmChecks = {};
+const readDmChecks = () => { DM_CHECK_IDS.forEach(id => { dmChecks[id] = !!document.getElementById(id)?.checked; }); };
 
 document.getElementById('btn-save').addEventListener('click', () => {
   const data = {
@@ -1674,7 +1827,8 @@ document.getElementById('btn-save').addEventListener('click', () => {
       date: document.getElementById('pat-date').value,
     },
     overrides,
-    doneExams
+    doneExams,
+    dmChecks
   };
   localStorage.setItem('depistage-last', JSON.stringify(data));
   alert('Sauvegardé (stockage local du navigateur).');
@@ -1706,6 +1860,8 @@ document.getElementById('btn-load').addEventListener('click', () => {
   Object.assign(overrides, data.overrides || {});
   Object.keys(doneExams).forEach(k => delete doneExams[k]);
   Object.assign(doneExams, data.doneExams || {});
+  Object.keys(dmChecks).forEach(k => delete dmChecks[k]);
+  Object.assign(dmChecks, data.dmChecks || {});
   render();
 });
 
@@ -1972,6 +2128,24 @@ document.getElementById('btn-print').addEventListener('click', () => {
         ${comorb.length ? `<div><span class="k">Antécédents</span><span class="v">${escapeHtml(comorb.join(', '))}</span></div>` : ''}
       </div>
 
+      ${(() => {
+        if (!p.diabete) return '';
+        const dms = dmStrategy(p, cvrCompute(p));
+        const comp = dmComplications();
+        const microTxt = comp.micro.map(c => c.label).join(', ');
+        const macroTxt = comp.macro.map(c => c.label).join(', ');
+        const suiviTodo = DM_SUIVI.filter(s => s.due(p) && !dmSuiviDone(s.id)).map(s => s.label);
+        const hba1cTxt = p.hba1c === null ? 'à doser' : String(p.hba1c).replace('.', ',') + ' %';
+        return `<div class="exam-box dm-doc-box">
+          <div class="exam-title">🍪 Votre diabète — état des lieux</div>
+          <table class="ind-table">
+            <tr><th>Ce qui est recommandé</th><th>Pourquoi c'est utile pour vous</th></tr>
+            <tr><td class="ind-label">HbA1c : ${escapeHtml(hba1cTxt)} — cible ${escapeHtml(dms ? dms.target : '< 7,0 %')}</td><td class="ind-why">L'HbA1c mesure l'équilibre du diabète sur 3 mois. Tenir la cible prévient les complications.</td></tr>
+            ${microTxt || macroTxt ? `<tr><td class="ind-label">Complications connues : ${escapeHtml([microTxt, macroTxt].filter(Boolean).join(' ; '))}</td><td class="ind-why">Un suivi régulier de chaque complication protège les yeux, les reins, le cœur, les nerfs et les pieds.</td></tr>` : `<tr><td class="ind-label">Aucune complication connue à ce jour</td><td class="ind-why">Le dépistage annuel (fond d'œil, reins, pieds) permet de détecter tôt toute complication.</td></tr>`}
+            ${suiviTodo.length ? `<tr><td class="ind-label">Suivi à planifier : ${escapeHtml(suiviTodo.join(', '))}</td><td class="ind-why">Ce sont les examens de routine recommandés chaque année pour le diabète.</td></tr>` : `<tr><td class="ind-label">Suivi annuel à jour</td><td class="ind-why">Continuez — à refaire chaque année.</td></tr>`}
+          </table>
+        </div>`;
+      })()}
       ${todoCount ? `<div class="intro">Lors de la consultation, nous avons repéré <strong>${todoCount} dépistage${todoCount > 1 ? 's' : ''}</strong> à planifier pour votre santé. Voici la liste et la raison pour chacun.</div>`
         : '<div class="intro ok">Aucun dépistage supplémentaire n\'est nécessaire aujourd\'hui. Votre suivi est à jour — pensez aux prochains rendez-vous de routine.</div>'}
 
