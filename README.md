@@ -22,6 +22,17 @@ Outil web simple, **100 % local** (aucune donnée envoyée sur le réseau), util
 - 🌸 Santé de la femme (contraception, grossesse, ménopause)
 - 🧠 Autres : audition, vision, dénutrition, cognition, chutes, VIH, hépatite C, iatrogénie…
 
+## Listes CPAM (ameli pro) — dépistages ciblés
+
+Le bandeau du haut donne accès à deux boutons :
+
+- **📋 Listes CPAM (dépistages ciblés)** — module de paramétrage : chaque trimestre, téléchargez sur **ameli pro** le fichier XML de chaque liste ciblée (maladie rénale chronique, dépistage du diabète, cancer colorectal, col de l'utérus, cancer du sein, suivi biologique du diabète), puis affectez-le à son dépistage. L'import remplace la liste précédente. Colonnes attendues : Nom (B), Prénom (C), Âge (D), NIR (E), Statut (F) : `exclu(e)` / `a vérifier` / `fait` (XML balisé ou fichier séparé `;`/tabulation).
+- **📊 Progression de mes dépistages** — compare l'évolution de vos dépistages : pourcentage de « fait » par liste (hors exclus), progression globale sur l'année.
+
+Dans le dossier patient, une carte **« 🏥 Listes CPAM »** interroge automatiquement toutes les listes importées à partir du champ Nom : d'un coup d'œil, pour chaque dépistage, le patient est **Non concerné** (pas dans la liste), **Fait**, **À faire** ou **Exclu(e)**.
+
+Toutes les listes restent stockées localement dans le navigateur (`localStorage`) — aucune donnée n'est envoyée sur le réseau.
+
 ## Avertissement
 
 Aide-mémoire fondé sur les recommandations françaises (HAS, dépistage organisé) — ne remplace pas le jugement clinique. Les seuils peuvent évoluer : vérifier les mises à jour HAS.

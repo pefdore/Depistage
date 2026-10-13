@@ -54,6 +54,98 @@ const between = (p, a, b) => p.age !== null && p.age >= a && p.age <= b;
 const isF = p => p.sex === 'F';
 const isM = p => p.sex === 'M';
 
+// ---------- Listes CPAM (ameli pro) ----------
+const CPAM_MODULES = [
+  { id: 'rc',   label: 'Maladie rénale chronique', icon: '🫘' },
+  { id: 'dia',  label: 'Dépistage du diabète', icon: '🍬' },
+  { id: 'crc',  label: 'Cancer colorectal (Hémoccult)', icon: '🧪' },
+  { id: 'cus',  label: 'Cancer du col de l\u2019utérus (frottis/HPV)', icon: '🌸' },
+  { id: 'sein', label: 'Cancer du sein (mammographie)', icon: '🎗️' },
+  { id: 'sbd',  label: 'Suivi biologique du diabète', icon: '🩸' },
+];
+const CPAM_STATUTS = {
+  'fait':      { txt: 'Fait',        cls: 'ok' },
+  'averifier': { txt: 'À faire',    cls: 'todo' },
+  'exclu':     { txt: 'Exclu(e)',   cls: 'na' },
+};
+function cpamStore() {
+  try { return JSON.parse(localStorage.getItem('depistage-cpam') || '{}'); }
+  catch { return {}; }
+}
+function cpamSave(store) { localStorage.setItem('depistage-cpam', JSON.stringify(store)); }
+function cpamNorm(s) { return String(s || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[\s\-_]/g, ''); }
+function cpamParseXml(text) {
+  const rows = [];
+  const clean = text.replace(/^\uFEFF/, '').trim();
+  if (clean.startsWith('<')) {
+    const doc = new DOMParser().parseFromString(clean, 'application/xml');
+    if (doc.querySelector('parsererror')) throw new Error('XML invalide');
+    const nodes = [...doc.querySelectorAll('ligne, row, Line, patient, Patient, item, record')];
+    nodes.forEach(n => {
+      const get = tag => (n.querySelector(tag)?.textContent || '').trim();
+      const attrs = {};
+      [...n.attributes].forEach(a => { attrs[a.name.toLowerCase()] = a.value; });
+      const nom = get('nom') || attrs['nom'] || get('colonneb') || '';
+      const prenom = get('prenom') || attrs['prenom'] || get('colonnec') || '';
+      const age = get('age') || attrs['age'] || get('colonned') || '';
+      const nir = get('nir') || attrs['nir'] || get('colonnee') || '';
+      const statut = get('statut') || attrs['statut'] || get('colonnef') || '';
+      if (nom || nir) rows.push({ nom, prenom, age: parseInt(age, 10) || null, nir, statut: cpamNorm(statut) });
+    });
+  } else {
+    clean.split(/\r?\n/).forEach(line => {
+      if (!line.trim()) return;
+      const cells = line.split(/[;\t|]/).map(c => c.replace(/^"|"$/g, '').trim());
+      if (cells.length < 4) return;
+      const isHeader = cpamNorm(cells[0]).includes('nom') && cpamNorm(cells[1]).includes('prenom');
+      if (isHeader) return;
+      rows.push({ nom: cells[0] || '', prenom: cells[1] || '', age: parseInt(cells[2], 10) || null, nir: cells[3] || '', statut: cpamNorm(cells[4]) });
+    });
+  }
+  if (!rows.length) throw new Error('Aucune ligne patient trouv\u00e9e');
+  return rows;
+}
+function cpamImport(moduleId, text) {
+  const rows = cpamParseXml(text);
+  const store = cpamStore();
+  store[moduleId] = { importedAt: new Date().toISOString(), count: rows.length, rows };
+  cpamSave(store);
+  return rows.length;
+}
+function cpamDeleteModule(moduleId) {
+  const store = cpamStore();
+  delete store[moduleId];
+  cpamSave(store);
+}
+function cpamMatchPatient(store) {
+  const nameRaw = (document.getElementById('pat-name').value || '').trim();
+  if (!nameRaw) return {};
+  const nameNorm = cpamNorm(nameRaw);
+  const words = nameNorm.split(',').length > 1
+    ? { nom: cpamNorm(nameNorm.split(',')[0]), prenom: cpamNorm(nameNorm.split(',')[1] || '') }
+    : { nom: nameNorm, prenom: '' };
+  const out = {};
+  CPAM_MODULES.forEach(m => {
+    const list = store[m.id];
+    if (!list) { out[m.id] = { status: 'no-list' }; return; }
+    const hit = list.rows.find(r => {
+      const rn = cpamNorm(r.nom), rp = cpamNorm(r.prenom);
+      if (!rn) return false;
+      if (words.nom && rn.startsWith(words.nom) && (!words.prenom || rp.startsWith(words.prenom))) return true;
+      if (words.prenom && rp.startsWith(words.prenom) && words.nom.length < 2) return true;
+      return false;
+    });
+    out[m.id] = hit ? { status: hit.statut, row: hit } : { status: 'absent' };
+  });
+  return out;
+}
+function cpamCount(list, kind) {
+  if (!list) return 0;
+  const k = cpamNorm(kind);
+  if (k === 'total') return list.rows.length;
+  return list.rows.filter(r => cpamNorm(r.statut).includes(k)).length;
+}
+
 // ---------- KDIGO ----------
 function kdigoCategory(p) {
   if (p.dfg === null || p.dfg === undefined) return null;
@@ -1624,8 +1716,139 @@ function render() {
   document.getElementById('reminders').classList.toggle('hidden', !reminders.length);
 
   updateSummary(pedia);
+  renderCpamPatient();
   renderFiches();
 }
+
+// ---------- CPAM : rendu ----------
+function renderCpamPatient() {
+  const box = document.getElementById('cpam-patient');
+  if (!box) return;
+  const store = cpamStore();
+  const name = (document.getElementById('pat-name').value || '').trim();
+  if (!name) {
+    box.innerHTML = '<div class="cpam-hint">Renseignez le nom du patient (champ « Nom / Initiales ») pour interroger les listes CPAM.</div>';
+    return;
+  }
+  const match = cpamMatchPatient(store);
+  const chips = CPAM_MODULES.map(m => {
+    const r = match[m.id] || { status: 'absent' };
+    let txt, cls;
+    if (r.status === 'no-list') { txt = 'Liste non importée'; cls = 'none'; }
+    else if (r.status === 'absent') { txt = 'Non concerné'; cls = 'nc'; }
+    else {
+      const st = CPAM_STATUTS[r.status] || { txt: r.status || '?', cls: 'todo' };
+      txt = st.txt; cls = st.cls;
+    }
+    const age = r.row && r.row.age ? ` · ${r.row.age} ans` : '';
+    return `<span class="cpam-chip ${cls}" title="${escapeHtml(m.label)}">${m.icon} ${escapeHtml(m.label)} : <strong>${escapeHtml(txt)}</strong>${escapeHtml(age)}</span>`;
+  }).join('');
+  const listsInfo = CPAM_MODULES.filter(m => store[m.id]).map(m =>
+    `<span class="cpam-list-info">${m.icon} ${escapeHtml(m.label)} : ${store[m.id].count} patients · maj ${escapeHtml((store[m.id].importedAt || '').slice(0, 10))}</span>`).join('');
+  box.innerHTML = `<div class="cpam-chips">${chips}</div>` +
+    (listsInfo ? `<details class="cpam-details"><summary>Détail des listes CPAM importées</summary><div class="cpam-lists">${listsInfo}</div></details>` : '<div class="cpam-hint">Aucune liste CPAM importée — utilisez « Listes CPAM » dans le bandeau du haut.</div>');
+}
+
+function renderCpamAdmin() {
+  const panel = document.getElementById('cpam-admin-panel');
+  if (!panel) return;
+  const store = cpamStore();
+  panel.innerHTML = `<p class="cpam-admin-hint">Chaque trimestre, téléchargez vos listes ciblées sur <strong>ameli pro</strong> (un XML par dépistage), puis affectez chaque fichier à son dépistage. Les données restent stockées localement dans ce navigateur.</p>` +
+    CPAM_MODULES.map(m => {
+      const list = store[m.id];
+      const importId = 'cpam-file-' + m.id;
+      return `<div class="cpam-admin-row" data-cpam-module="${m.id}">
+        <div class="cpam-admin-label">${m.icon} <strong>${escapeHtml(m.label)}</strong></div>
+        ${list ? `<div class="cpam-admin-status">✅ ${list.count} patients · importée le ${escapeHtml((list.importedAt || '').slice(0, 10))} · ${cpamCount(list, 'fait')} faits · ${cpamCount(list, 'a verifier')} à vérifier · ${cpamCount(list, 'exclu')} exclus</div>` : '<div class="cpam-admin-status none">— aucune liste importée</div>'}
+        <div class="cpam-admin-actions">
+          <input type="file" id="${importId}" accept=".xml,.csv,.txt" class="cpam-file-input">
+          <button type="button" class="secondary" data-cpam-import="${m.id}">📥 Importer la liste</button>
+          ${list ? `<button type="button" class="secondary" data-cpam-delete="${m.id}">🗑 Supprimer</button>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+}
+
+function renderCpamProgress() {
+  const panel = document.getElementById('cpam-progress-panel');
+  if (!panel) return;
+  const store = cpamStore();
+  const imported = CPAM_MODULES.filter(m => store[m.id]);
+  if (!imported.length) {
+    panel.innerHTML = '<div class="cpam-hint">Aucune liste CPAM importée. Importez vos listes trimestrielles (onglet « Listes CPAM ») pour visualiser la progression de vos dépistages.</div>';
+    return;
+  }
+  const year = new Date().getFullYear();
+  const rows = imported.map(m => {
+    const list = store[m.id];
+    const total = list.rows.length;
+    const done = cpamCount(list, 'fait');
+    const todo = cpamCount(list, 'a verifier');
+    const exclu = cpamCount(list, 'exclu');
+    const act = total - exclu;
+    const pct = act > 0 ? Math.round(done / act * 100) : 0;
+    return `<div class="cpam-prog-row">
+      <div class="cpam-prog-label">${m.icon} ${escapeHtml(m.label)}</div>
+      <div class="progress"><div class="cpam-prog-fill" style="width:${pct}%"></div></div>
+      <div class="cpam-prog-num"><strong>${pct} %</strong> (${done}/${act})</div>
+      <div class="cpam-prog-detail">${done} faits · ${todo} à vérifier · ${exclu} exclus · total ${total}</div>
+    </div>`;
+  }).join('');
+  const totals = imported.map(m => {
+    const list = store[m.id];
+    return { done: cpamCount(list, 'fait'), act: list.rows.length - cpamCount(list, 'exclu') };
+  }).reduce((a, b) => ({ done: a.done + b.done, act: a.act + b.act }), { done: 0, act: 0 });
+  const globalPct = totals.act ? Math.round(totals.done / totals.act * 100) : 0;
+  panel.innerHTML = `<div class="cpam-prog-global">Progression globale ${year} : <strong>${globalPct} %</strong> (${totals.done}/${totals.act} dépistages réalisés hors exclus)</div>` + rows +
+    '<div class="cpam-hint">Comparez avec le trimestre précédent : importez la nouvelle liste (mêmes modules) — la nouvelle importation remplace l\u2019ancienne.</div>';
+}
+
+function cpamHandleFile(input, moduleId) {
+  const file = input.files && input.files[0];
+  if (!file) { alert('Choisissez d\u2019abord un fichier XML téléchargé depuis ameli pro.'); return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const n = cpamImport(moduleId, reader.result);
+      const label = CPAM_MODULES.find(m => m.id === moduleId).label;
+      alert(`Liste « ${label} » importée : ${n} patients.\nLa liste remplace la précédente pour ce dépistage.`);
+      renderCpamAdmin();
+      renderCpamProgress();
+      renderCpamPatient();
+    } catch (err) {
+      alert('Import impossible : ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+document.addEventListener('click', e => {
+  const imp = e.target.closest('button[data-cpam-import]');
+  if (imp) {
+    const moduleId = imp.dataset.cpamImport;
+    const input = document.getElementById('cpam-file-' + moduleId);
+    if (input && input.files && input.files.length) cpamHandleFile(input, moduleId);
+    else if (input) input.click();
+    return;
+  }
+  const del = e.target.closest('button[data-cpam-delete]');
+  if (del) {
+    const moduleId = del.dataset.cpamDelete;
+    const label = CPAM_MODULES.find(m => m.id === moduleId).label;
+    if (confirm(`Supprimer la liste « ${label} » ?`)) {
+      cpamDeleteModule(moduleId);
+      renderCpamAdmin();
+      renderCpamProgress();
+      renderCpamPatient();
+    }
+  }
+});
+document.addEventListener('change', e => {
+  if (e.target.matches('input.cpam-file-input')) {
+    const row = e.target.closest('[data-cpam-module]');
+    if (row && e.target.files && e.target.files.length) cpamHandleFile(e.target, row.dataset.cpamModule);
+  }
+});
 
 function updateSummary(pedia) {
   const all = ALL_GROUPS.flatMap(g => g.exams).filter(e => !(e.hideIf && e.hideIf(P())));
@@ -2190,6 +2413,36 @@ document.getElementById('btn-print').addEventListener('click', () => {
       <p class="foot">Document remis en consultation — rappel des recommandations françaises de dépistage (HAS, dépistage organisé). Ne remplace pas l'avis médical.</p>
     </div>`;
   window.print();
+});
+
+// ---------- CPAM : dialogue ----------
+function cpamOpenDialog(tab) {
+  const dlg = document.getElementById('cpam-dialog');
+  if (!dlg) return;
+  dlg.classList.remove('hidden');
+  cpamSetTab(tab || 'admin');
+}
+function cpamSetTab(tab) {
+  const adminBtn = document.getElementById('cpam-tab-admin');
+  const progBtn = document.getElementById('cpam-tab-progress');
+  const adminPanel = document.getElementById('cpam-admin-panel');
+  const progPanel = document.getElementById('cpam-progress-panel');
+  const isAdmin = tab === 'admin';
+  if (adminBtn) adminBtn.classList.toggle('active', isAdmin);
+  if (progBtn) progBtn.classList.toggle('active', !isAdmin);
+  if (adminPanel) adminPanel.classList.toggle('hidden', !isAdmin);
+  if (progPanel) progPanel.classList.toggle('hidden', isAdmin);
+  if (isAdmin) renderCpamAdmin(); else renderCpamProgress();
+}
+document.addEventListener('click', e => {
+  if (e.target.closest('#btn-cpam-admin')) { cpamOpenDialog('admin'); return; }
+  if (e.target.closest('#btn-cpam-progress')) { cpamOpenDialog('progress'); return; }
+  if (e.target.closest('#cpam-dialog-close') || e.target.id === 'cpam-dialog') {
+    document.getElementById('cpam-dialog').classList.add('hidden');
+    return;
+  }
+  if (e.target.closest('#cpam-tab-admin')) { cpamSetTab('admin'); return; }
+  if (e.target.closest('#cpam-tab-progress')) { cpamSetTab('progress'); }
 });
 
 // ---------- Utilitaires ----------

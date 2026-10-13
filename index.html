@@ -13,7 +13,25 @@
     <span id="fiche-count"></span>
     <div id="fiche-results" class="fiche-dropdown"></div>
   </div>
+  <div class="header-cpam">
+    <button type="button" id="btn-cpam-admin" class="header-btn">📋 Listes CPAM (dépistages ciblés)</button>
+    <button type="button" id="btn-cpam-progress" class="header-btn">📊 Progression de mes dépistages</button>
+  </div>
 </header>
+<div id="cpam-dialog" class="cpam-dialog hidden">
+  <div class="cpam-dialog-card">
+    <div class="cpam-dialog-head">
+      <h2 id="cpam-dialog-title">Listes CPAM</h2>
+      <button type="button" id="cpam-dialog-close" class="cpam-dialog-close">✕</button>
+    </div>
+    <div class="cpam-dialog-tabs">
+      <button type="button" id="cpam-tab-admin" class="cpam-tab active">Paramétrage / Import</button>
+      <button type="button" id="cpam-tab-progress" class="cpam-tab">Progression</button>
+    </div>
+    <div id="cpam-admin-panel"></div>
+    <div id="cpam-progress-panel" class="hidden"></div>
+  </div>
+</div>
 
 <main id="app">
 
@@ -84,6 +102,11 @@
     <div id="patient-warn" class="warn hidden">⚠️ Renseignez l'âge, le sexe et le statut tabagique : les indications « auto » en découlent.</div>
     <div id="reminders" class="reminders hidden"></div>
     </details>
+  </section>
+
+  <section class="card" id="cpam-patient-card">
+    <h2>🏥 Listes CPAM — dépistages ciblés du patient</h2>
+    <div id="cpam-patient"></div>
   </section>
 
   <section class="card" id="etat">
