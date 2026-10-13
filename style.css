@@ -527,3 +527,20 @@ header { padding: 12px 24px; }
 .etat-status { font-weight: 800; font-size: .84rem; margin: 2px 0 4px; }
 .etat-txt { font-size: .8rem; color: #444; line-height: 1.45; }
 .etat-act { font-size: .76rem; color: #0d5a8c; margin-top: 6px; padding-top: 6px; border-top: 1px dashed #dfe7ee; font-style: italic; }
+/* ---------- État des lieux : Diabète ---------- */
+.dm-box .cvr-head { background: linear-gradient(135deg, #f6fbf6 0%, #f4f9fd 100%); }
+.cvr-panel-subtitle { font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #8d6e63; margin: 8px 0 4px; }
+.dm-comp-grid .cvr-terrain-item:has(input:checked) { background: #fdecea; border-color: #e57373; }
+.dm-comp-grid .cvr-terrain-item.dm-macro:has(input:checked) { background: #fff3e0; border-color: #fb8c00; }
+.dm-comp-note { display: block; font-size: .68rem; font-style: italic; color: #78909c; font-weight: 400; margin-top: 2px; line-height: 1.35; }
+.dm-suivi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+@media (max-width: 640px) { .dm-suivi-grid { grid-template-columns: 1fr; } }
+.dm-suivi-item { display: flex; align-items: flex-start; gap: 8px; background: #fff; border: 1px solid #e3eef7; border-radius: 9px; padding: 7px 10px; font-size: .78rem; cursor: pointer; transition: background .15s, border-color .15s; }
+.dm-suivi-item:hover { background: #eaf5fd; border-color: #b3d9f2; }
+.dm-suivi-item input { accent-color: #0d5a8c; margin-top: 2px; flex: 0 0 auto; }
+.dm-suivi-item.done { background: #f6fbf6; border-color: #a5d6a7; }
+.dm-suivi-item.done .dm-suivi-label { text-decoration: line-through; color: #2e7d32; }
+.dm-suivi-label { font-weight: 700; color: #1a2b3c; flex: 0 0 auto; }
+.dm-suivi-txt { color: #78909c; font-size: .68rem; line-height: 1.35; }
+.dm-comp-summary .dm-comp-line { font-size: .8rem; color: #333; margin-top: 6px; line-height: 1.45; }
+.dm-strategy-peek .cvr-ldl-status { margin-top: 4px; }
