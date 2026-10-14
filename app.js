@@ -73,6 +73,27 @@ function cpamStore() {
   catch { return {}; }
 }
 function cpamSave(store) { localStorage.setItem('depistage-cpam', JSON.stringify(store)); }
+function cpamCurrentPeriod() {
+  const d = new Date();
+  return d.getFullYear() + '-T' + (Math.floor(d.getMonth() / 3) + 1);
+}
+function cpamPeriodsOf(store, moduleId) {
+  const mod = store[moduleId];
+  if (!mod || typeof mod !== 'object') return [];
+  if (mod.rows) return ['']; // ancien format (sans trimestre)
+  return Object.keys(mod).sort();
+}
+function cpamGetList(store, moduleId, period) {
+  const mod = store[moduleId];
+  if (!mod) return null;
+  if (mod.rows) return period === undefined || period === '' ? mod : null;
+  return mod[period] || null;
+}
+function cpamLatestList(store, moduleId) {
+  const periods = cpamPeriodsOf(store, moduleId);
+  if (!periods.length) return null;
+  return cpamGetList(store, moduleId, periods[periods.length - 1]);
+}
 function cpamNorm(s) { return String(s || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[\s\-_]/g, ''); }
 function cpamParseXml(text) {
   const rows = [];
@@ -105,16 +126,21 @@ function cpamParseXml(text) {
   if (!rows.length) throw new Error('Aucune ligne patient trouv\u00e9e');
   return rows;
 }
-function cpamImport(moduleId, text) {
+function cpamImport(moduleId, period, text) {
   const rows = cpamParseXml(text);
   const store = cpamStore();
-  store[moduleId] = { importedAt: new Date().toISOString(), count: rows.length, rows };
+  if (store[moduleId] && store[moduleId].rows) store[moduleId] = {}; // migration ancien format
+  if (!store[moduleId] || typeof store[moduleId] !== 'object' || !store[moduleId]) store[moduleId] = {};
+  store[moduleId][period] = { importedAt: new Date().toISOString(), count: rows.length, rows };
   cpamSave(store);
   return rows.length;
 }
-function cpamDeleteModule(moduleId) {
+function cpamDeleteModule(moduleId, period) {
   const store = cpamStore();
-  delete store[moduleId];
+  const mod = store[moduleId];
+  if (!mod) return;
+  if (mod.rows) delete store[moduleId]; // ancien format
+  else { delete mod[period]; if (!Object.keys(mod).length) delete store[moduleId]; }
   cpamSave(store);
 }
 function cpamMatchPatient(store) {
@@ -126,7 +152,7 @@ function cpamMatchPatient(store) {
     : { nom: nameNorm, prenom: '' };
   const out = {};
   CPAM_MODULES.forEach(m => {
-    const list = store[m.id];
+    const list = cpamLatestList(store, m.id);
     if (!list) { out[m.id] = { status: 'no-list' }; return; }
     const hit = list.rows.find(r => {
       const rn = cpamNorm(r.nom), rp = cpamNorm(r.prenom);
@@ -1743,8 +1769,11 @@ function renderCpamPatient() {
     const age = r.row && r.row.age ? ` · ${r.row.age} ans` : '';
     return `<span class="cpam-chip ${cls}" title="${escapeHtml(m.label)}">${m.icon} ${escapeHtml(m.label)} : <strong>${escapeHtml(txt)}</strong>${escapeHtml(age)}</span>`;
   }).join('');
-  const listsInfo = CPAM_MODULES.filter(m => store[m.id]).map(m =>
-    `<span class="cpam-list-info">${m.icon} ${escapeHtml(m.label)} : ${store[m.id].count} patients · maj ${escapeHtml((store[m.id].importedAt || '').slice(0, 10))}</span>`).join('');
+  const listsInfo = CPAM_MODULES.filter(m => cpamPeriodsOf(store, m.id).length).map(m => {
+    const periods = cpamPeriodsOf(store, m.id).filter(p => p);
+    const latest = cpamLatestList(store, m.id);
+    return `<span class="cpam-list-info">${m.icon} ${escapeHtml(m.label)} : ${latest.count} patients · ${periods.length > 1 ? periods[periods.length - 1] + ' · ' : ''}maj ${escapeHtml((latest.importedAt || '').slice(0, 10))}</span>`;
+  }).join('');
   box.innerHTML = `<div class="cpam-chips">${chips}</div>` +
     (listsInfo ? `<details class="cpam-details"><summary>Détail des listes CPAM importées</summary><div class="cpam-lists">${listsInfo}</div></details>` : '<div class="cpam-hint">Aucune liste CPAM importée — utilisez « Listes CPAM » dans le bandeau du haut.</div>');
 }
@@ -1753,65 +1782,94 @@ function renderCpamAdmin() {
   const panel = document.getElementById('cpam-admin-panel');
   if (!panel) return;
   const store = cpamStore();
-  panel.innerHTML = `<p class="cpam-admin-hint">Chaque trimestre, téléchargez vos listes ciblées sur <strong>ameli pro</strong> (un XML par dépistage), puis affectez chaque fichier à son dépistage. Les données restent stockées localement dans ce navigateur.</p>` +
+  const cur = window._cpamPeriod || cpamCurrentPeriod();
+  const curYear = parseInt(cur.split('-')[0], 10);
+  const curQ = parseInt(cur.split('-T')[1], 10);
+  const periodOptions = [
+    `${curYear}-T${curQ}`, `${curYear}-T${(curQ + 2) % 4 + 1}`, `${curYear}-T${(curQ + 1) % 4 + 1}`, `${curYear - 1}-T${curQ}`,
+  ];
+  panel.innerHTML = `<p class="cpam-admin-hint">Chaque trimestre, téléchargez vos listes ciblées sur <strong>ameli pro</strong> (un XML par dépistage), sélectionnez le trimestre puis importez chaque fichier dans son dépistage. L'historique des trimestres est conservé pour suivre votre progression. Données stockées localement dans ce navigateur.</p>
+    <div class="cpam-period-picker">
+      <label>Trimestre de mise à jour
+        <select id="cpam-period-select">${periodOptions.map(p => `<option value="${p}"${p === cur ? ' selected' : ''}>${p}</option>`).join('')}</select>
+      </label>
+      <span class="cpam-period-note">La CPAM met à jour les listes tous les trimestres — importez le même trimestre pour chaque dépistage.</span>
+    </div>` +
     CPAM_MODULES.map(m => {
-      const list = store[m.id];
       const importId = 'cpam-file-' + m.id;
+      const list = cpamGetList(store, m.id, cur);
+      const periods = cpamPeriodsOf(store, m.id).filter(p => p);
       return `<div class="cpam-admin-row" data-cpam-module="${m.id}">
         <div class="cpam-admin-label">${m.icon} <strong>${escapeHtml(m.label)}</strong></div>
-        ${list ? `<div class="cpam-admin-status">✅ ${list.count} patients · importée le ${escapeHtml((list.importedAt || '').slice(0, 10))} · ${cpamCount(list, 'fait')} faits · ${cpamCount(list, 'a verifier')} à vérifier · ${cpamCount(list, 'exclu')} exclus</div>` : '<div class="cpam-admin-status none">— aucune liste importée</div>'}
+        ${list ? `<div class="cpam-admin-status">✅ ${cur} : ${list.count} patients · importée le ${escapeHtml((list.importedAt || '').slice(0, 10))} · ${cpamCount(list, 'fait')} faits · ${cpamCount(list, 'a verifier')} à vérifier · ${cpamCount(list, 'exclu')} exclus</div>` : `<div class="cpam-admin-status none">— aucune liste importée pour ${cur}</div>`}
+        ${periods.length ? `<div class="cpam-admin-periods">Trimestres importés : ${periods.map(p => `<span class="cpam-period-tag${p === cur ? ' active' : ''}">${p}</span>`).join(' ')}</div>` : ''}
         <div class="cpam-admin-actions">
           <input type="file" id="${importId}" accept=".xml,.csv,.txt" class="cpam-file-input">
-          <button type="button" class="secondary" data-cpam-import="${m.id}">📥 Importer la liste</button>
-          ${list ? `<button type="button" class="secondary" data-cpam-delete="${m.id}">🗑 Supprimer</button>` : ''}
+          <button type="button" class="secondary" data-cpam-import="${m.id}">📥 Importer ${cur}</button>
+          ${list ? `<button type="button" class="secondary" data-cpam-delete="${m.id}" data-cpam-period="${cur}">🗑 Supprimer ${cur}</button>` : ''}
         </div>
       </div>`;
     }).join('');
+  const sel = document.getElementById('cpam-period-select');
+  if (sel) sel.addEventListener('change', () => { window._cpamPeriod = sel.value; renderCpamAdmin(); });
 }
 
 function renderCpamProgress() {
   const panel = document.getElementById('cpam-progress-panel');
   if (!panel) return;
   const store = cpamStore();
-  const imported = CPAM_MODULES.filter(m => store[m.id]);
+  const imported = CPAM_MODULES.filter(m => cpamPeriodsOf(store, m.id).length);
   if (!imported.length) {
     panel.innerHTML = '<div class="cpam-hint">Aucune liste CPAM importée. Importez vos listes trimestrielles (onglet « Listes CPAM ») pour visualiser la progression de vos dépistages.</div>';
     return;
   }
   const year = new Date().getFullYear();
   const rows = imported.map(m => {
-    const list = store[m.id];
+    const periods = cpamPeriodsOf(store, m.id).filter(p => p);
+    const latestP = periods[periods.length - 1];
+    const list = cpamGetList(store, m.id, latestP);
+    const prevList = periods.length > 1 ? cpamGetList(store, m.id, periods[periods.length - 2]) : null;
     const total = list.rows.length;
     const done = cpamCount(list, 'fait');
     const todo = cpamCount(list, 'a verifier');
     const exclu = cpamCount(list, 'exclu');
     const act = total - exclu;
     const pct = act > 0 ? Math.round(done / act * 100) : 0;
+    let delta = '';
+    if (prevList) {
+      const prevExclu = cpamCount(prevList, 'exclu');
+      const prevAct = prevList.rows.length - prevExclu;
+      const prevPct = prevAct > 0 ? Math.round(cpamCount(prevList, 'fait') / prevAct * 100) : 0;
+      const d = pct - prevPct;
+      delta = ` <span class="cpam-delta ${d > 0 ? 'up' : d < 0 ? 'down' : ''}">${d > 0 ? '▲ +' + d : d < 0 ? '▼ ' + d : '＝'} vs ${periods[periods.length - 2]}</span>`;
+    }
     return `<div class="cpam-prog-row">
-      <div class="cpam-prog-label">${m.icon} ${escapeHtml(m.label)}</div>
+      <div class="cpam-prog-label">${m.icon} ${escapeHtml(m.label)} <span class="cpam-prog-period">${latestP || '—'}</span></div>
       <div class="progress"><div class="cpam-prog-fill" style="width:${pct}%"></div></div>
-      <div class="cpam-prog-num"><strong>${pct} %</strong> (${done}/${act})</div>
+      <div class="cpam-prog-num"><strong>${pct} %</strong> (${done}/${act})${delta}</div>
       <div class="cpam-prog-detail">${done} faits · ${todo} à vérifier · ${exclu} exclus · total ${total}</div>
     </div>`;
   }).join('');
   const totals = imported.map(m => {
-    const list = store[m.id];
+    const periods = cpamPeriodsOf(store, m.id).filter(p => p);
+    const list = cpamGetList(store, m.id, periods[periods.length - 1]);
     return { done: cpamCount(list, 'fait'), act: list.rows.length - cpamCount(list, 'exclu') };
   }).reduce((a, b) => ({ done: a.done + b.done, act: a.act + b.act }), { done: 0, act: 0 });
   const globalPct = totals.act ? Math.round(totals.done / totals.act * 100) : 0;
-  panel.innerHTML = `<div class="cpam-prog-global">Progression globale ${year} : <strong>${globalPct} %</strong> (${totals.done}/${totals.act} dépistages réalisés hors exclus)</div>` + rows +
-    '<div class="cpam-hint">Comparez avec le trimestre précédent : importez la nouvelle liste (mêmes modules) — la nouvelle importation remplace l\u2019ancienne.</div>';
+  panel.innerHTML = `<div class="cpam-prog-global">Progression globale ${year} (dernier trimestre importé par dépistage) : <strong>${globalPct} %</strong> (${totals.done}/${totals.act} dépistages réalisés hors exclus)</div>` + rows +
+    '<div class="cpam-hint">Chaque nouvel import trimestriel (onglet « Paramétrage ») enrichit l\u2019historique : l\u2019évolution « ▲/▼ vs trimestre précédent » apparaît automatiquement.</div>';
 }
 
 function cpamHandleFile(input, moduleId) {
   const file = input.files && input.files[0];
   if (!file) { alert('Choisissez d\u2019abord un fichier XML téléchargé depuis ameli pro.'); return; }
+  const period = window._cpamPeriod || cpamCurrentPeriod();
   const reader = new FileReader();
   reader.onload = () => {
     try {
-      const n = cpamImport(moduleId, reader.result);
+      const n = cpamImport(moduleId, period, reader.result);
       const label = CPAM_MODULES.find(m => m.id === moduleId).label;
-      alert(`Liste « ${label} » importée : ${n} patients.\nLa liste remplace la précédente pour ce dépistage.`);
+      alert(`Liste « ${label} » — trimestre ${period} importée : ${n} patients.\nLa liste ${period} remplace la précédente pour ce trimestre.`);
       renderCpamAdmin();
       renderCpamProgress();
       renderCpamPatient();
@@ -1834,9 +1892,10 @@ document.addEventListener('click', e => {
   const del = e.target.closest('button[data-cpam-delete]');
   if (del) {
     const moduleId = del.dataset.cpamDelete;
+    const period = del.dataset.cpamPeriod || window._cpamPeriod || cpamCurrentPeriod();
     const label = CPAM_MODULES.find(m => m.id === moduleId).label;
-    if (confirm(`Supprimer la liste « ${label} » ?`)) {
-      cpamDeleteModule(moduleId);
+    if (confirm(`Supprimer la liste « ${label} » — trimestre ${period} ?`)) {
+      cpamDeleteModule(moduleId, period);
       renderCpamAdmin();
       renderCpamProgress();
       renderCpamPatient();

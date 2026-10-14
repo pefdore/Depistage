@@ -597,3 +597,14 @@ header { padding: 12px 24px; }
 @media (max-width: 640px) { .cpam-prog-row { grid-template-columns: 1fr; } .cpam-prog-num { text-align: left; } }
 @media print { .header-cpam, .cpam-dialog, #cpam-patient-card { display: none !important; } }
 .cpam-prog-fill { height: 100%; background: var(--ok); border-radius: 6px; transition: width .25s; }
+.cpam-period-picker { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: #f8f9fa; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin: 10px 0; }
+.cpam-period-picker label { display: flex; flex-direction: column; gap: 4px; font-size: .78rem; color: #555; font-weight: 600; }
+.cpam-period-picker select { padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: .9rem; }
+.cpam-period-note { font-size: .75rem; color: #78909c; }
+.cpam-admin-periods { font-size: .74rem; color: #555; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.cpam-period-tag { background: #e9ecef; border-radius: 10px; padding: 2px 9px; font-size: .72rem; color: #495057; }
+.cpam-period-tag.active { background: var(--accent); color: #fff; }
+.cpam-prog-period { font-size: .68rem; color: #78909c; font-weight: 400; margin-left: 4px; }
+.cpam-delta { font-size: .72rem; font-weight: 700; margin-left: 4px; }
+.cpam-delta.up { color: #1e7e34; }
+.cpam-delta.down { color: #b02a37; }
