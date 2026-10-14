@@ -95,6 +95,14 @@ function cpamLatestList(store, moduleId) {
   return cpamGetList(store, moduleId, periods[periods.length - 1]);
 }
 function cpamNorm(s) { return String(s || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[\s\-_]/g, ''); }
+function cpamResolveStatut(s) {
+  const n = cpamNorm(s);
+  if (CPAM_STATUTS[n]) return n;
+  if (n.includes('averifier')) return 'averifier';
+  if (n.includes('exclu')) return 'exclu';
+  if (n.includes('fait')) return 'fait';
+  return n;
+}
 function cpamParseXml(text) {
   const rows = [];
   const clean = text.replace(/^\uFEFF/, '').trim();
@@ -126,8 +134,106 @@ function cpamParseXml(text) {
   if (!rows.length) throw new Error('Aucune ligne patient trouv\u00e9e');
   return rows;
 }
+// Extraction de texte d'une cellule <c>...</c> xlsx (inline, sharedStrings ou valeur brute)
+async function cpamInflateRaw(bytes) {
+  //Décompression deflate d'un Uint8Array via DecompressionStream (navigateur)
+  if (typeof DecompressionStream === 'undefined') throw new Error('Navigateur incompatible : ouvrir le fichier xlsx dans Excel et l\u2019enregistrer en CSV pour importer');
+  const ds = new DecompressionStream('deflate-raw');
+  const stream = new Blob([bytes]).stream().pipeThrough(ds);
+  const buf = await new Response(stream).arrayBuffer();
+  return new Uint8Array(buf);
+}
+function cpamXlsxCellText(cEl, shared) {
+  const t = cEl.getAttribute('t');
+  if (t === 'inlineStr') return (cEl.querySelector('is>t')?.textContent || cEl.querySelector('is')?.textContent || '').trim();
+  const v = cEl.querySelector('v')?.textContent || '';
+  if (t === 's') { const i = parseInt(v, 10); return isNaN(i) ? '' : (shared[i] || '').trim(); }
+  return v.trim();
+}
+function cpamXlsxColIndex(ref) {
+  const m = /^([A-Z]+)/.exec(ref || '');
+  if (!m) return 0;
+  return m[1].split('').reduce((a, ch) => a * 26 + (ch.charCodeAt(0) - 64), 0) - 1; // A=0, B=1…
+}
+async function cpamParseXlsx(bytes) {
+  // Lecture minimale d'un zip : central directory -> entrées (nom + données deflate)
+  const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const u16 = o => dv.getUint16(o, true);
+  const u32 = o => dv.getUint32(o, true);
+  let eocd = -1;
+  for (let i = bytes.length - 22; i >= 0; i--) {
+    if (bytes[i] === 0x50 && u32(i) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('Fichier xlsx illisible (zip invalide)');
+  const cdOff = u32(eocd + 16);
+  const entries = {};
+  let p = cdOff;
+  while (u32(p) === 0x02014b50) {
+    const method = u16(p + 10);
+    const compSize = u32(p + 20);
+    const nameLen = u16(p + 28), extraLen = u16(p + 30), commentLen = u16(p + 32);
+    const localOff = u32(p + 42);
+    const name = new TextDecoder().decode(bytes.subarray(p + 46, p + 46 + nameLen));
+    if (method === 0) {
+      entries[name] = bytes.subarray(localOff + 30 + u16(localOff + 26) + u16(localOff + 28), localOff + 30 + u16(localOff + 26) + u16(localOff + 28) + compSize);
+    } else {
+      const dataStart = localOff + 30 + u16(localOff + 26) + u16(localOff + 28);
+      entries[name] = { compressed: bytes.subarray(dataStart, dataStart + compSize) };
+    }
+    p += 46 + nameLen + extraLen + commentLen;
+  }
+  const getEntry = async name => {
+    const e = entries[name];
+    if (!e) return null;
+    if (e instanceof Uint8Array) return new TextDecoder().decode(e);
+    return new TextDecoder().decode(await cpamInflateRaw(e.compressed));
+  };
+  const sharedXml = await getEntry('xl/sharedStrings.xml');
+  const shared = [];
+  if (sharedXml) {
+    const sdoc = new DOMParser().parseFromString(sharedXml, 'application/xml');
+    [...sdoc.querySelectorAll('si')].forEach(si => {
+      const ts = [...si.querySelectorAll('t')];
+      shared.push(ts.length ? ts.map(t => t.textContent).join('') : (si.textContent || ''));
+    });
+  }
+  let sheet = await getEntry('xl/worksheets/sheet1.xml');
+  if (!sheet) {
+    const wb = await getEntry('xl/workbook.xml');
+    const name = Object.keys(entries).find(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n));
+    if (name) sheet = await getEntry(name);
+    else if (!wb) throw new Error('Feuille xlsx introuvable');
+  }
+  if (!sheet) throw new Error('Feuille xlsx introuvable');
+  const doc = new DOMParser().parseFromString(sheet, 'application/xml');
+  if (doc.querySelector('parsererror')) throw new Error('XLSX invalide');
+  const rows = [];
+  const colWanted = { 1: 'nom', 2: 'prenom', 3: 'age', 4: 'nir', 5: 'statut' }; // colonnes B-F
+  [...doc.querySelectorAll('row')].forEach(rowEl => {
+    const cells = {};
+    [...rowEl.querySelectorAll('c')].forEach(c => {
+      const idx = cpamXlsxColIndex(c.getAttribute('r'));
+      if (colWanted[idx] !== undefined) cells[colWanted[idx]] = cpamXlsxCellText(c, shared);
+    });
+    if (!cells.nom && !cells.nir) return;
+    if (cpamNorm(cells.nom).includes('nom')) return; // ligne d'en-tête
+    rows.push({ nom: cells.nom || '', prenom: cells.prenom || '', age: parseInt(cells.age, 10) || null, nir: cells.nir || '', statut: cpamNorm(cells.statut) });
+  });
+  if (!rows.length) throw new Error('Aucune ligne patient trouv\u00e9e dans le xlsx (colonnes B \u00e0 F attendues)');
+  return rows;
+}
+async function cpamParseAny(file) {
+  const buf = await file.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  const isZip = bytes.length > 4 && bytes[0] === 0x50 && bytes[1] === 0x4b;
+  if (isZip) return cpamParseXlsx(bytes);
+  return cpamParseXml(new TextDecoder().decode(bytes));
+}
 function cpamImport(moduleId, period, text) {
-  const rows = cpamParseXml(text);
+  return cpamImportRows(moduleId, period, cpamParseXml(text));
+}
+function cpamImportRows(moduleId, period, rows) {
+  if (!rows.length) throw new Error('Aucune ligne patient trouv\u00e9e');
   const store = cpamStore();
   if (store[moduleId] && store[moduleId].rows) store[moduleId] = {}; // migration ancien format
   if (!store[moduleId] || typeof store[moduleId] !== 'object' || !store[moduleId]) store[moduleId] = {};
@@ -1763,7 +1869,7 @@ function renderCpamPatient() {
     if (r.status === 'no-list') { txt = 'Liste non importée'; cls = 'none'; }
     else if (r.status === 'absent') { txt = 'Non concerné'; cls = 'nc'; }
     else {
-      const st = CPAM_STATUTS[r.status] || { txt: r.status || '?', cls: 'todo' };
+      const st = CPAM_STATUTS[cpamResolveStatut(r.status)] || { txt: r.status || '?', cls: 'todo' };
       txt = st.txt; cls = st.cls;
     }
     const age = r.row && r.row.age ? ` · ${r.row.age} ans` : '';
@@ -1788,7 +1894,7 @@ function renderCpamAdmin() {
   const periodOptions = [
     `${curYear}-T${curQ}`, `${curYear}-T${(curQ + 2) % 4 + 1}`, `${curYear}-T${(curQ + 1) % 4 + 1}`, `${curYear - 1}-T${curQ}`,
   ];
-  panel.innerHTML = `<p class="cpam-admin-hint">Chaque trimestre, téléchargez vos listes ciblées sur <strong>ameli pro</strong> (un XML par dépistage), sélectionnez le trimestre puis importez chaque fichier dans son dépistage. L'historique des trimestres est conservé pour suivre votre progression. Données stockées localement dans ce navigateur.</p>
+  panel.innerHTML = `<p class="cpam-admin-hint">Chaque trimestre, téléchargez vos listes ciblées sur <strong>ameli pro</strong> (un fichier xlsx par dépistage), sélectionnez le trimestre puis importez chaque fichier dans son dépistage. L'historique des trimestres est conservé pour suivre votre progression. Données stockées localement dans ce navigateur.</p>
     <div class="cpam-period-picker">
       <label>Trimestre de mise à jour
         <select id="cpam-period-select">${periodOptions.map(p => `<option value="${p}"${p === cur ? ' selected' : ''}>${p}</option>`).join('')}</select>
@@ -1804,7 +1910,7 @@ function renderCpamAdmin() {
         ${list ? `<div class="cpam-admin-status">✅ ${cur} : ${list.count} patients · importée le ${escapeHtml((list.importedAt || '').slice(0, 10))} · ${cpamCount(list, 'fait')} faits · ${cpamCount(list, 'a verifier')} à vérifier · ${cpamCount(list, 'exclu')} exclus</div>` : `<div class="cpam-admin-status none">— aucune liste importée pour ${cur}</div>`}
         ${periods.length ? `<div class="cpam-admin-periods">Trimestres importés : ${periods.map(p => `<span class="cpam-period-tag${p === cur ? ' active' : ''}">${p}</span>`).join(' ')}</div>` : ''}
         <div class="cpam-admin-actions">
-          <input type="file" id="${importId}" accept=".xml,.csv,.txt" class="cpam-file-input">
+          <input type="file" id="${importId}" accept=".xlsx,.xml,.csv,.txt" class="cpam-file-input">
           <button type="button" class="secondary" data-cpam-import="${m.id}">📥 Importer ${cur}</button>
           ${list ? `<button type="button" class="secondary" data-cpam-delete="${m.id}" data-cpam-period="${cur}">🗑 Supprimer ${cur}</button>` : ''}
         </div>
@@ -1865,9 +1971,10 @@ function cpamHandleFile(input, moduleId) {
   if (!file) { alert('Choisissez d\u2019abord un fichier XML téléchargé depuis ameli pro.'); return; }
   const period = window._cpamPeriod || cpamCurrentPeriod();
   const reader = new FileReader();
-  reader.onload = () => {
+  reader.onload = async () => {
     try {
-      const n = cpamImport(moduleId, period, reader.result);
+      const rows = await cpamParseAny(file);
+      const n = cpamImportRows(moduleId, period, rows);
       const label = CPAM_MODULES.find(m => m.id === moduleId).label;
       alert(`Liste « ${label} » — trimestre ${period} importée : ${n} patients.\nLa liste ${period} remplace la précédente pour ce trimestre.`);
       renderCpamAdmin();
@@ -1877,7 +1984,7 @@ function cpamHandleFile(input, moduleId) {
       alert('Import impossible : ' + err.message);
     }
   };
-  reader.readAsText(file);
+  reader.readAsArrayBuffer(file);
 }
 
 document.addEventListener('click', e => {
