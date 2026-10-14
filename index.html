@@ -112,16 +112,7 @@
         <div id="paste-report" class="hidden"></div>
       </div>
     </div>
-    <div id="paste-modal" class="cpam-dialog hidden">
-      <div class="cpam-dialog-card paste-modal-card">
-        <div class="cpam-dialog-head">
-          <h2>📋 Coller le volet de consultation</h2>
-          <button type="button" id="paste-modal-close" class="cpam-dialog-close">✕</button>
-        </div>
-        <p class="paste-hint">Cliquez dans la zone ci-dessous et collez le volet avec <strong>Ctrl+V</strong> (ou ⌘+V) — l’injection se fait automatiquement dès le collage.</p>
-        <textarea id="paste-modal-input" rows="12" placeholder="Ctrl+V ici…"></textarea>
-      </div>
-    </div>
+
     <div id="patient-warn" class="warn hidden">⚠️ Renseignez l'âge, le sexe et le statut tabagique : les indications « auto » en découlent.</div>
     <div id="reminders" class="reminders hidden"></div>
     </details>
@@ -179,6 +170,16 @@
 
 <div id="print-area" class="hidden"></div>
 
+<div id="paste-modal" class="cpam-dialog hidden">
+      <div class="cpam-dialog-card paste-modal-card">
+        <div class="cpam-dialog-head">
+          <h2>📋 Coller le volet de consultation</h2>
+          <button type="button" id="paste-modal-close" class="cpam-dialog-close">✕</button>
+        </div>
+        <p class="paste-hint">Cliquez dans la zone ci-dessous et collez le volet avec <strong>Ctrl+V</strong> (ou ⌘+V) — l’injection se fait automatiquement dès le collage.</p>
+        <textarea id="paste-modal-input" rows="12" placeholder="Ctrl+V ici…"></textarea>
+      </div>
+    </div>
 <script src="app.js"></script>
 </body>
 </html>
