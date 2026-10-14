@@ -37,7 +37,7 @@
 
   <section id="patient-info" class="card">
     <details class="patient-details">
-      <summary><h2>👤 Patient</h2><span id="patient-summary"></span><span class="patient-toggle">▼ déplier / ▲ replier</span></summary>
+      <summary><h2>👤 Patient</h2><span id="patient-summary"></span><button type="button" id="btn-paste-inject-header" class="paste-btn-header" title="Coller le volet de consultation (copié dans le presse-papiers) et injecter automatiquement">📋 Injecter dans la fiche</button><span class="patient-toggle">▼ déplier / ▲ replier</span></summary>
     <div class="patient-grid">
     <div class="patient-grid">
       <label>NOM <input type="text" id="pat-nom" placeholder="NOM" style="text-transform:uppercase"></label>
@@ -101,7 +101,7 @@
       <label>Date <input type="date" id="pat-date"></label>
     </div>
     <div class="paste-zone">
-      <button type="button" id="btn-paste-toggle" class="secondary">📋 Coller les infos (volet de consultation)</button>
+      <button type="button" id="btn-paste-toggle" class="link-ish secondary">ou coller manuellement le volet</button>
       <div id="paste-panel" class="hidden">
         <p class="paste-hint">Collez ici le volet de consultation (Weda, etc.) : NOM, prénom, « H, xx/xx/xxxx (xx ans) », MT, tabac, poids/taille, constantes et biologie — puis cliquez sur Injecter. Les champs reconnus sont remplis automatiquement et le reste du site se met à jour.</p>
         <textarea id="paste-input" rows="10" placeholder="Monsieur&#10;NOM&#10;Prénom&#10;H, 12/03/1958 (67 ans)&#10;MT :&#10;2&#10;Poids 82 kg&#10;Taille 174 cm&#10;…"></textarea>

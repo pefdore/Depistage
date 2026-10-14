@@ -2730,20 +2730,41 @@ document.getElementById('btn-paste-clear')?.addEventListener('click', () => {
   document.getElementById('paste-input').value = '';
   document.getElementById('paste-report').classList.add('hidden');
 });
-document.getElementById('btn-paste-inject')?.addEventListener('click', () => {
-  const text = document.getElementById('paste-input').value;
-  if (!text.trim()) { alert('Collez d\u2019abord le contenu du volet de consultation dans la zone de texte.'); return; }
+function pasteInjectFromText(text) {
   const res = parsePasteVolet(text);
   const report = document.getElementById('paste-report');
   const filledHtml = res.filled.length
     ? '<div class="paste-ok">✅ Injecté : ' + res.filled.map(f => escapeHtml(f)).join(' · ') + '</div>'
-    : '<div class="paste-ko">❌ Aucun champ reconnu — vérifiez que le volet est collé complet (NOM, prénom, « H, date (âge) », biologie…).</div>';
+    : '<div class="paste-ko">❌ Aucun champ reconnu — vérifiez que le volet est bien copié (NOM, prénom, « H, date (âge) », biologie…).</div>';
   const unknownHtml = res.unknown.length
     ? '<div class="paste-extra">ℹ️ Présents dans le volet mais sans champ dédié (informatif) : ' + res.unknown.map(f => escapeHtml(f)).join(' · ') + '</div>'
     : '';
   report.innerHTML = filledHtml + unknownHtml;
   report.classList.remove('hidden');
   render();
+  return res;
+}
+document.getElementById('btn-paste-inject')?.addEventListener('click', () => {
+  const text = document.getElementById('paste-input').value;
+  if (!text.trim()) { alert('Collez d\u2019abord le contenu du volet de consultation dans la zone de texte.'); return; }
+  pasteInjectFromText(text);
+});
+document.getElementById('btn-paste-inject-header')?.addEventListener('click', async e => {
+  e.preventDefault();
+  e.stopPropagation();
+  try {
+    const text = await navigator.clipboard.readText();
+    if (!text || !text.trim()) {
+      alert('Le presse-papiers est vide — copiez d\u2019abord le volet de consultation (Ctrl+C), puis recliquez.');
+      return;
+    }
+    document.getElementById('paste-panel').classList.remove('hidden');
+    pasteInjectFromText(text);
+  } catch (err) {
+    alert('Lecture du presse-papiers refusée par le navigateur.\nUtilisez « ou coller manuellement le volet » : collez le texte (Ctrl+V) puis « Injecter dans la fiche ».');
+    document.getElementById('paste-panel').classList.remove('hidden');
+    document.getElementById('paste-input').focus();
+  }
 });
 
 // ---------- Utilitaires ----------
