@@ -608,3 +608,15 @@ header { padding: 12px 24px; }
 .cpam-delta { font-size: .72rem; font-weight: 700; margin-left: 4px; }
 .cpam-delta.up { color: #1e7e34; }
 .cpam-delta.down { color: #b02a37; }
+
+/* ---------- Coller les infos ---------- */
+.paste-zone { margin-top: 12px; }
+#paste-panel { margin-top: 8px; border: 1px dashed #90caf9; border-radius: 8px; padding: 10px 12px; background: #f5fbff; }
+.paste-hint { font-size: .78rem; color: #555; margin: 0 0 8px; }
+#paste-input { width: 100%; font-family: inherit; font-size: .82rem; padding: 8px; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; }
+.paste-actions { display: flex; gap: 8px; margin-top: 8px; }
+#paste-report { margin-top: 10px; font-size: .8rem; }
+.paste-ok { background: #e6f4ea; border-left: 4px solid var(--ok); padding: 6px 10px; border-radius: 6px; color: #1e7e34; }
+.paste-ko { background: #fdecea; border-left: 4px solid var(--todo); padding: 6px 10px; border-radius: 6px; color: #b02a37; }
+.paste-extra { margin-top: 6px; background: #fff3cd; border-left: 4px solid #ffc107; padding: 6px 10px; border-radius: 6px; color: #856404; }
+@media print { .paste-zone { display: none !important; } }

@@ -100,6 +100,18 @@
       <label>HbA1c <input type="number" id="pat-hba1c" min="0" max="20" step="0.1" placeholder="%"></label>
       <label>Date <input type="date" id="pat-date"></label>
     </div>
+    <div class="paste-zone">
+      <button type="button" id="btn-paste-toggle" class="secondary">📋 Coller les infos (volet de consultation)</button>
+      <div id="paste-panel" class="hidden">
+        <p class="paste-hint">Collez ici le volet de consultation (Weda, etc.) : NOM, prénom, « H, xx/xx/xxxx (xx ans) », MT, tabac, poids/taille, constantes et biologie — puis cliquez sur Injecter. Les champs reconnus sont remplis automatiquement et le reste du site se met à jour.</p>
+        <textarea id="paste-input" rows="10" placeholder="Monsieur&#10;NOM&#10;Prénom&#10;H, 12/03/1958 (67 ans)&#10;MT :&#10;2&#10;Poids 82 kg&#10;Taille 174 cm&#10;…"></textarea>
+        <div class="paste-actions">
+          <button type="button" id="btn-paste-inject">➡️ Injecter dans la fiche</button>
+          <button type="button" id="btn-paste-clear" class="secondary">Effacer</button>
+        </div>
+        <div id="paste-report" class="hidden"></div>
+      </div>
+    </div>
     <div id="patient-warn" class="warn hidden">⚠️ Renseignez l'âge, le sexe et le statut tabagique : les indications « auto » en découlent.</div>
     <div id="reminders" class="reminders hidden"></div>
     </details>

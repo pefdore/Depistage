@@ -2613,6 +2613,139 @@ document.addEventListener('click', e => {
   if (e.target.closest('#cpam-tab-progress')) { cpamSetTab('progress'); }
 });
 
+// ---------- Coller les infos (volet de consultation) ----------
+const PASTE_LABELS = [
+  { id: 'pat-sbp', re: /pression art[ée]rielle systolique/i, kind: 'num' },
+  { id: 'pat-ldl', re: /cholest[ée]rol ldl|\bldl/i, kind: 'num' },
+  { id: 'pat-hdl', re: /cholest[ée]rol hdl|\bhdl/i, kind: 'num' },
+  { id: 'pat-chol', re: /cholest[ée]rol total|^cholest[ée]rol$/im, kind: 'num' },
+  { id: 'pat-hba1c', re: /h[ée]moglobine a1c|hba1c/i, kind: 'num' },
+  { id: 'pat-dfg', re: /dfg/i, kind: 'num' },
+  { id: 'pat-rac', re: /microalbuminurie\/cr[ée]atinine|prot[ée]ines urinaires\/cr[ée]atinine/i, kind: 'txt' },
+];
+function parsePasteVolet(text) {
+  const lines = String(text || '').split(/\r?\n/).map(l => l.trim());
+  const res = { filled: [], unknown: [] };
+  const set = (id, val, label) => {
+    const el = document.getElementById(id);
+    if (!el || val === undefined || val === null || val === '') return;
+    el.value = val;
+    res.filled.push(label || id);
+  };
+  const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  // Civilité -> sexe
+  const civ = lines.find(l => /^(monsieur|m\.|madame|mme|mlle)/i.test(l));
+  if (civ) {
+    const f = /madame|mme|mlle/i.test(civ);
+    set('pat-sex', f ? 'F' : 'M', f ? 'Sexe : Femme' : 'Sexe : Homme');
+  }
+  // "H, xx/xx/xxxx (xx ans)" ou "F, ..." -> sexe + âge
+  const birth = lines.find(l => /^[HF],[^\n]*\d{2}\//i.test(l));
+  if (birth) {
+    if (!civ) set('pat-sex', /^H/i.test(birth) ? 'M' : 'F', 'Sexe');
+    const ageM = /(\d{1,3})\s*ans/i.exec(birth);
+    if (ageM) set('pat-age', ageM[1], 'Âge : ' + ageM[1] + ' ans');
+  }
+  // NOM : ligne entièrement en majuscules (avec espaces/tirets), pas trop longue
+  const nomCand = lines.find(l => l && l.length <= 40 && /^[A-ZÀ-Ü][A-ZÀ-Ü' -]+$/.test(l) && !/^(NOM|PRENOM|PRÉNOM|MT|ATCD|DCI|FOND|TABAC|POIDS|TAILLE|IMC|PAS|PAD|FC|TSH|ALAT|ASAT|GGT|CRP|DFG|TP|HÉMOGLOBINE|HEMOGLOBINE|PLAQUETTES|CHOLESTÉROL|CHOLESTEROL|FERRITINE|GLYCÉMIE|GLYCEMIE|TRIGLYCÉRIDES|TRIGLYCERIDES|PHOSPHATASES|POTASSIUM|SODIUM|SATURATION|TEMPÉRATURE|TEMPERATURE)$/.test(l));
+  if (nomCand) set('pat-nom', nomCand, 'NOM : ' + nomCand);
+  // Prénom : prochaine ligne non vide après le NOM, casse mixte (avec tirets/espaces)
+  if (nomCand) {
+    const idx = lines.indexOf(nomCand);
+    for (let j = idx + 1; j < Math.min(idx + 4, lines.length); j++) {
+      const preCand = lines[j];
+      if (preCand && preCand.length <= 40 && /^[A-ZÀ-Ü][A-Za-zà-ü' -]+$/.test(preCand) && /[a-zà-ü]/.test(preCand)) {
+        set('pat-prenom', preCand, 'Prénom : ' + preCand);
+        break;
+      }
+      if (preCand) break; // première ligne non vide non conforme => pas un prénom
+    }
+  }
+  // Tabac
+  const tabLine = lines.find(l => /^tabac\b/i.test(l));
+  if (tabLine) {
+    const tail = norm(tabLine.replace(/^tabac\s*:?\s*/i, ''));
+    let val = '', lbl = '';
+    if (tail.startsWith('non')) { val = 'jamais'; lbl = 'Tabac : Non fumeur'; }
+    else if (tail.includes('sevr') || tail.includes('ancien')) { val = 'sevré'; lbl = 'Tabac : Sevré'; }
+    else if (tail.startsWith('oui')) { val = 'actif'; lbl = 'Tabac : Fumeur'; }
+    set('pat-tabac', val, lbl);
+  }
+  // Poids / Taille -> IMC (IMC explicite du volet prioritaire)
+  const imcM = /\(imc\)\s*([0-9]+([.,][0-9]+)?)|[\s:]([0-9]{1,2}[.,][0-9])\s*kg\/m2/i.exec(text);
+  const poidsM = /^poids\s*$/im.exec(text) ? /(?:^poids\s*$[\s\S]*?)([0-9]+([.,][0-9]+)?)/im.exec(text) : /poids[\s:]*([0-9]+([.,][0-9]+)?)/i.exec(text);
+  const tailleM = /taille[\s:]*([0-9]{2,3})(?![0-9])/i.exec(text);
+  if (imcM) {
+    const imcVal = (imcM[1] || imcM[3]).replace(',', '.');
+    set('pat-imc', imcVal, 'IMC : ' + imcVal);
+  } else if (poidsM && tailleM) {
+    const kg = parseFloat(poidsM[1].replace(',', '.'));
+    let cm = parseFloat(tailleM[1]);
+    if (cm > 3) {
+      const imc = Math.round(kg / Math.pow(cm / 100, 2) * 10) / 10;
+      set('pat-imc', imc, 'IMC calculé : ' + imc + ' kg/m² (poids ' + kg + ' kg, taille ' + cm + ' cm)');
+    }
+  }
+  // Labos / constantes : étiquette -> valeur sur la même ligne OU sur la prochaine ligne non vide
+  PASTE_LABELS.forEach(({ id, re, kind }) => {
+    const li = lines.findIndex(l => re.test(l));
+    if (li === -1) return;
+    let val = null;
+    const m = re.exec(lines[li]);
+    if (m) {
+      const after = lines[li].slice(m.index + m[0].length);
+      const vm = /(?<![A-Za-z0-9])([0-9]+([.,][0-9]+)?)(?![A-Za-z0-9])/.exec(after);
+      if (vm) val = vm[1].replace(',', '.');
+    }
+    if (val === null) {
+      for (let j = li + 1; j < Math.min(li + 4, lines.length); j++) {
+        if (!lines[j]) continue;
+        const vm = /^([0-9]+([.,][0-9]+)?)/.exec(lines[j]);
+        if (vm) { val = vm[1].replace(',', '.'); break; }
+        break; // ligne non vide non numérique => pas de valeur
+      }
+    }
+    if (val !== null) {
+      const lbl = document.querySelector('label:has(#' + id + ')')?.childNodes[0]?.textContent?.trim() || id;
+      if (kind === 'num') set(id, val, lbl + ' : ' + val);
+      else set(id, val, lbl + ' : ' + val);
+    }
+  });
+  // Biologie non mappée à un champ : listée pour information
+  const EXTRA_LABELS = [/ALAT/i, /ASAT/i, /GGT|gamma glutamyl/i, /potassium/i, /CRP|prot[ée]ine c r[ée]active/i, /sodium|natr[ée]mie/i, /TP\s*%|TP\b/i, /h[ée]moglobine(?!\s+a1c)/i, /phosphatases alcalines/i, /plaquettes/i, /ferritine/i, /glyc[ée]mie/i, /triglyc[ée]rides/i, /facteur v/i, /saturation de la transferrine/i, /TSH/i, /PAD|diastolique/i, /fr[ée]quence cardiaque|\bFC\b/i, /saturation en o2|oxym/i, /temp[ée]rature/i, /microalbuminurie\/cr[ée]atinine|prot[ée]ines urinaires/i];
+  const knownIds = new Set(res.filled);
+  EXTRA_LABELS.forEach(re => {
+    const li = lines.findIndex(l => re.test(l) && l.length < 80);
+    if (li !== -1) {
+      const val = /([0-9]+([.,][0-9]+)?)/.exec(lines[li + 1] || '') || /([0-9]+([.,][0-9]+)?)/.exec(lines[li]);
+      res.unknown.push(lines[li].replace(/\s+/g, ' ').slice(0, 50) + (val && val[1] ? ' : ' + val[1] : ''));
+    }
+  });
+  return res;
+}
+document.getElementById('btn-paste-toggle')?.addEventListener('click', () => {
+  document.getElementById('paste-panel').classList.toggle('hidden');
+});
+document.getElementById('btn-paste-clear')?.addEventListener('click', () => {
+  document.getElementById('paste-input').value = '';
+  document.getElementById('paste-report').classList.add('hidden');
+});
+document.getElementById('btn-paste-inject')?.addEventListener('click', () => {
+  const text = document.getElementById('paste-input').value;
+  if (!text.trim()) { alert('Collez d\u2019abord le contenu du volet de consultation dans la zone de texte.'); return; }
+  const res = parsePasteVolet(text);
+  const report = document.getElementById('paste-report');
+  const filledHtml = res.filled.length
+    ? '<div class="paste-ok">✅ Injecté : ' + res.filled.map(f => escapeHtml(f)).join(' · ') + '</div>'
+    : '<div class="paste-ko">❌ Aucun champ reconnu — vérifiez que le volet est collé complet (NOM, prénom, « H, date (âge) », biologie…).</div>';
+  const unknownHtml = res.unknown.length
+    ? '<div class="paste-extra">ℹ️ Présents dans le volet mais sans champ dédié (informatif) : ' + res.unknown.map(f => escapeHtml(f)).join(' · ') + '</div>'
+    : '';
+  report.innerHTML = filledHtml + unknownHtml;
+  report.classList.remove('hidden');
+  render();
+});
+
 // ---------- Utilitaires ----------
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 

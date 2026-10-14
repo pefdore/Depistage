@@ -5,6 +5,7 @@ Outil web simple, **100 % local** (aucune donnée envoyée sur le réseau), util
 ## Utilisation
 
 1. Ouvrir `index.html` dans un navigateur (double-clic suffit — aucun serveur requis).
+1b. **📋 Coller les infos** : collez le volet de consultation (Weda, etc.) — NOM, prénom, « H/F, date de naissance (âge ans) », MT, tabac, poids/taille/IMC, PAS et biologie (LDL, HDL, cholestérol, HbA1c, DFG, RAC…) — et cliquez « Injecter » : les champs du dossier patient sont remplis automatiquement et tout le site (dépistages, risque CV, listes CPAM) se met à jour. La biologie sans champ dédié (ALAT, TSH, ferritine…) est listée à titre informatif.
 2. Renseigner **âge** et **sexe** du patient : les items pertinents s'affichent automatiquement avec les critères HAS (drapeaux « ⓘ »).
 3. Pour chaque item : **Fait** (à jour), **À faire** (à programmer) ou **N/A**.
 4. Cliquer sur **🖨️ Fiche patient** : génère et imprime (ou exporte en PDF via « Enregistrer au format PDF ») une fiche de synthèse pour le patient avec les points à jour et les points à programmer.
