@@ -2749,21 +2749,58 @@ document.getElementById('btn-paste-inject')?.addEventListener('click', () => {
   if (!text.trim()) { alert('Collez d\u2019abord le contenu du volet de consultation dans la zone de texte.'); return; }
   pasteInjectFromText(text);
 });
+function pasteOpenModal() {
+  const modal = document.getElementById('paste-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  const ta = document.getElementById('paste-modal-input');
+  if (ta) { ta.value = ''; setTimeout(() => ta.focus(), 50); }
+}
+function pasteCloseModal() {
+  document.getElementById('paste-modal')?.classList.add('hidden');
+}
 document.getElementById('btn-paste-inject-header')?.addEventListener('click', async e => {
   e.preventDefault();
   e.stopPropagation();
-  try {
-    const text = await navigator.clipboard.readText();
-    if (!text || !text.trim()) {
-      alert('Le presse-papiers est vide — copiez d\u2019abord le volet de consultation (Ctrl+C), puis recliquez.');
-      return;
+  // 1) Tenter la lecture directe du presse-papiers (fonctionne en contexte sécurisé)
+  if (navigator.clipboard && navigator.clipboard.readText) {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text && text.trim()) {
+        document.getElementById('paste-panel').classList.remove('hidden');
+        pasteInjectFromText(text);
+        return;
+      }
+    } catch (err) { /* contexte non sécurisé (file://) -> modale de collage */ }
+  }
+  // 2) Repli universel : modale « Ctrl+V ici », injection auto dès le collage
+  pasteOpenModal();
+});
+document.getElementById('paste-modal-close')?.addEventListener('click', pasteCloseModal);
+document.getElementById('paste-modal')?.addEventListener('click', e => {
+  if (e.target.id === 'paste-modal') pasteCloseModal();
+});
+document.getElementById('paste-modal-input')?.addEventListener('paste', () => {
+  setTimeout(() => {
+    const ta = document.getElementById('paste-modal-input');
+    if (ta && ta.value.trim()) {
+      pasteCloseModal();
+      document.getElementById('paste-panel').classList.remove('hidden');
+      pasteInjectFromText(ta.value);
+      ta.value = '';
     }
-    document.getElementById('paste-panel').classList.remove('hidden');
-    pasteInjectFromText(text);
-  } catch (err) {
-    alert('Lecture du presse-papiers refusée par le navigateur.\nUtilisez « ou coller manuellement le volet » : collez le texte (Ctrl+V) puis « Injecter dans la fiche ».');
-    document.getElementById('paste-panel').classList.remove('hidden');
-    document.getElementById('paste-input').focus();
+  }, 60);
+});
+document.getElementById('paste-modal-input')?.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    const ta = e.target;
+    if (ta.value.trim()) {
+      pasteCloseModal();
+      document.getElementById('paste-panel').classList.remove('hidden');
+      pasteInjectFromText(ta.value);
+      ta.value = '';
+    }
   }
 });
 
