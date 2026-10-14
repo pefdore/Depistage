@@ -250,22 +250,20 @@ function cpamDeleteModule(moduleId, period) {
   cpamSave(store);
 }
 function cpamMatchPatient(store) {
-  const nameRaw = (document.getElementById('pat-name').value || '').trim();
-  if (!nameRaw) return {};
-  const nameNorm = cpamNorm(nameRaw);
-  const words = nameNorm.split(',').length > 1
-    ? { nom: cpamNorm(nameNorm.split(',')[0]), prenom: cpamNorm(nameNorm.split(',')[1] || '') }
-    : { nom: nameNorm, prenom: '' };
+  const words = {
+    nom: cpamNorm(document.getElementById('pat-nom')?.value || ''),
+    prenom: cpamNorm(document.getElementById('pat-prenom')?.value || ''),
+  };
+  if (!words.nom && !words.prenom) return {};
   const out = {};
   CPAM_MODULES.forEach(m => {
     const list = cpamLatestList(store, m.id);
     if (!list) { out[m.id] = { status: 'no-list' }; return; }
     const hit = list.rows.find(r => {
       const rn = cpamNorm(r.nom), rp = cpamNorm(r.prenom);
-      if (!rn) return false;
-      if (words.nom && rn.startsWith(words.nom) && (!words.prenom || rp.startsWith(words.prenom))) return true;
-      if (words.prenom && rp.startsWith(words.prenom) && words.nom.length < 2) return true;
-      return false;
+      if (words.nom && words.prenom) return rn.startsWith(words.nom) && rp.startsWith(words.prenom);
+      if (words.nom) return rn.startsWith(words.nom);
+      return words.prenom && rp.startsWith(words.prenom);
     });
     out[m.id] = hit ? { status: hit.statut, row: hit } : { status: 'absent' };
   });
@@ -1857,9 +1855,9 @@ function renderCpamPatient() {
   const box = document.getElementById('cpam-patient');
   if (!box) return;
   const store = cpamStore();
-  const name = (document.getElementById('pat-name').value || '').trim();
+  const name = ((document.getElementById('pat-nom')?.value || '') + ' ' + (document.getElementById('pat-prenom')?.value || '')).trim();
   if (!name) {
-    box.innerHTML = '<div class="cpam-hint">Renseignez le nom du patient (champ « Nom / Initiales ») pour interroger les listes CPAM.</div>';
+    box.innerHTML = '<div class="cpam-hint">Renseignez le NOM et le prénom du patient pour interroger les listes CPAM.</div>';
     return;
   }
   const match = cpamMatchPatient(store);
@@ -2212,7 +2210,7 @@ document.addEventListener('change', e => {
   if (e.target.closest('#diabete-panel input[type=checkbox]')) render();
 });
 
-['pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-ic', 'pat-dfg', 'pat-rac', 'pat-imc', 'pat-ldl', 'pat-sbp', 'pat-chol', 'pat-hdl', 'pat-hba1c', 'pat-age-mois'].forEach(idn =>
+['pat-nom', 'pat-prenom', 'pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-ic', 'pat-dfg', 'pat-rac', 'pat-imc', 'pat-ldl', 'pat-sbp', 'pat-chol', 'pat-hdl', 'pat-hba1c', 'pat-age-mois'].forEach(idn =>
   document.getElementById(idn).addEventListener('change', render));
 
 document.getElementById('pat-date').value = new Date().toISOString().slice(0, 10);
@@ -2232,7 +2230,8 @@ const readDmChecks = () => { DM_CHECK_IDS.forEach(id => { dmChecks[id] = !!docum
 document.getElementById('btn-save').addEventListener('click', () => {
   const data = {
     patient: {
-      name: document.getElementById('pat-name').value,
+      nom: document.getElementById('pat-nom').value,
+      prenom: document.getElementById('pat-prenom').value,
       age: document.getElementById('pat-age').value,
       ageMois: document.getElementById('pat-age-mois').value,
       sex: document.getElementById('pat-sex').value,
@@ -2263,7 +2262,8 @@ document.getElementById('btn-load').addEventListener('click', () => {
   const raw = localStorage.getItem('depistage-last');
   if (!raw) { alert('Aucune sauvegarde trouvée.'); return; }
   const data = JSON.parse(raw);
-  document.getElementById('pat-name').value = data.patient?.name || '';
+  document.getElementById('pat-nom').value = data.patient?.nom || data.patient?.name || '';
+  document.getElementById('pat-prenom').value = data.patient?.prenom || '';
   document.getElementById('pat-age').value = data.patient?.age || '';
   document.getElementById('pat-age-mois').value = data.patient?.ageMois || '';
   document.getElementById('pat-sex').value = data.patient?.sex || '';
@@ -2503,7 +2503,9 @@ document.addEventListener('click', e => {
 // ---------- Fiche patient ----------
 document.getElementById('btn-print').addEventListener('click', () => {
   const p = P();
-  const name = document.getElementById('pat-name').value || '__________';
+  const nomRaw = (document.getElementById('pat-nom').value || '').trim();
+  const prenomRaw = (document.getElementById('pat-prenom').value || '').trim();
+  const name = [nomRaw, prenomRaw].filter(Boolean).join(' ') || '__________';
   const date = document.getElementById('pat-date').value || new Date().toISOString().slice(0, 10);
   const sexTxt = p.sex === 'F' ? 'Femme' : p.sex === 'M' ? 'Homme' : '—';
   const tabacTxt = p.tabac === 'actif' ? `Fumeur${p.pa !== null ? ` (${p.pa} PA)` : ''}`
