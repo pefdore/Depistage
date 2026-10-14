@@ -2759,21 +2759,11 @@ function pasteOpenModal() {
 function pasteCloseModal() {
   document.getElementById('paste-modal')?.classList.add('hidden');
 }
-document.getElementById('btn-paste-inject-header')?.addEventListener('click', async e => {
+document.getElementById('btn-paste-inject-header')?.addEventListener('click', e => {
   e.preventDefault();
   e.stopPropagation();
-  // 1) Tenter la lecture directe du presse-papiers (fonctionne en contexte sécurisé)
-  if (navigator.clipboard && navigator.clipboard.readText) {
-    try {
-      const text = await navigator.clipboard.readText();
-      if (text && text.trim()) {
-        document.getElementById('paste-panel').classList.remove('hidden');
-        pasteInjectFromText(text);
-        return;
-      }
-    } catch (err) { /* contexte non sécurisé (file://) -> modale de collage */ }
-  }
-  // 2) Repli universel : modale « Ctrl+V ici », injection auto dès le collage
+  // Toujours ouvrir la modale de collage — pas de lecture auto du presse-papiers
+  // (bloquée ou imprévisible en file://) : Ctrl+V dans la modale injecte automatiquement.
   pasteOpenModal();
 });
 document.getElementById('paste-modal-close')?.addEventListener('click', pasteCloseModal);

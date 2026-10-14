@@ -625,3 +625,4 @@ header { padding: 12px 24px; }
 .link-ish { background: none; border: none; color: var(--accent); text-decoration: underline; font-size: .75rem; padding: 0; cursor: pointer; }
 .paste-modal-card { max-width: 640px; }
 #paste-modal-input { width: 100%; font-family: inherit; font-size: .85rem; padding: 10px; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; min-height: 220px; }
+.paste-zone-top { margin: 0 0 8px; }

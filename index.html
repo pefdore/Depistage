@@ -36,8 +36,12 @@
 <main id="app">
 
   <section id="patient-info" class="card">
+    <div class="paste-zone paste-zone-top">
+      <button type="button" id="btn-paste-inject-header" class="paste-btn-header" title="Ouvre une fenêtre de collage : Ctrl+V injecte automatiquement le volet de consultation">📋 Injecter dans la fiche (coller le volet)</button>
+    </div>
     <details class="patient-details">
-      <summary><h2>👤 Patient</h2><span id="patient-summary"></span><button type="button" id="btn-paste-inject-header" class="paste-btn-header" title="Coller le volet de consultation (copié dans le presse-papiers) et injecter automatiquement">📋 Injecter dans la fiche</button><span class="patient-toggle">▼ déplier / ▲ replier</span></summary>
+      <summary><h2>👤 Patient</h2><span id="patient-summary"></span><span class="patient-toggle">▼ déplier / ▲ replier</span></summary>
+
     <div class="patient-grid">
     <div class="patient-grid">
       <label>NOM <input type="text" id="pat-nom" placeholder="NOM" style="text-transform:uppercase"></label>
