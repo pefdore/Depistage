@@ -2749,6 +2749,32 @@ document.getElementById('btn-paste-inject')?.addEventListener('click', () => {
   if (!text.trim()) { alert('Collez d\u2019abord le contenu du volet de consultation dans la zone de texte.'); return; }
   pasteInjectFromText(text);
 });
+// Détection « ce texte ressemble à un volet de consultation »
+function pasteLooksLikeVolet(text) {
+  const t = String(text || '');
+  if (t.trim().length < 20) return false;
+  let score = 0;
+  if (/^(monsieur|madame|m\.|mme)/im.test(t)) score += 2;
+  if (/^[HF],[^\n]*\(\s*\d{1,3}\s*ans\s*\)/im.test(t)) score += 2;
+  if (/^(imc|indice de masse corporelle)/im.test(t)) score += 1;
+  if (/pression art[ée]rielle systolique|\bpas\b/im.test(t)) score += 1;
+  if (/cholest[ée]rol|\b(ldl|hdl)\b/im.test(t)) score += 1;
+  if (/\bdfg\b|ckd-epi/im.test(t)) score += 1;
+  if (/h[ée]moglobine a1c|hba1c/im.test(t)) score += 1;
+  if (/^tabac\s*:/im.test(t)) score += 1;
+  if (/^poids/im.test(t) && /^taille/im.test(t)) score += 1;
+  return score >= 3;
+}
+// Mode automatique : Ctrl+V n'importe où sur la page (hors champ de saisie) injecte le volet
+window.addEventListener('paste', e => {
+  if (e.target && e.target.closest && (e.target.closest('input, textarea, select, [contenteditable]') || e.target.closest('#paste-modal'))) return;
+  const text = (e.clipboardData || window.clipboardData)?.getData('text/plain') || '';
+  if (!text.trim()) return;
+  if (!pasteLooksLikeVolet(text)) return; // collage ordinaire : on ne touche à rien
+  e.preventDefault();
+  document.getElementById('paste-panel').classList.remove('hidden');
+  pasteInjectFromText(text);
+});
 function pasteOpenModal() {
   const modal = document.getElementById('paste-modal');
   if (!modal) return;
