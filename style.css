@@ -530,6 +530,16 @@ header { padding: 12px 24px; }
 .etat-status { font-weight: 800; font-size: .84rem; margin: 2px 0 4px; }
 .etat-txt { font-size: .8rem; color: #444; line-height: 1.45; }
 .etat-act { font-size: .76rem; color: #0d5a8c; margin-top: 6px; padding-top: 6px; border-top: 1px dashed #dfe7ee; font-style: italic; }
+.etat-bpco-details { margin-top: 8px; border-top: 1px dashed #dfe7ee; }
+.etat-bpco-details summary { cursor: pointer; font-size: .74rem; font-weight: 700; color: #0d5a8c; padding: 6px 0 2px; user-select: none; list-style: none; }
+.etat-bpco-details summary::-webkit-details-marker { display: none; }
+.etat-bpco-details summary::before { content: '\25B8'; display: inline-block; margin-right: 6px; transition: transform .2s; }
+.etat-bpco-details[open] summary::before { transform: rotate(90deg); }
+.etat-bpco-body { font-size: .76rem; color: #333; line-height: 1.5; padding: 6px 0 2px; }
+.bpco-sub { font-weight: 800; color: #0d5a8c; margin: 10px 0 4px; text-transform: uppercase; letter-spacing: .04em; font-size: .68rem; }
+.bpco-row { padding: 4px 0; border-bottom: 1px solid #f0f4f8; }
+.bpco-row strong { color: #1a2b3c; }
+.bpco-copy { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: .72rem; color: #78909c; font-style: italic; }
 /* ---------- État des lieux : Diabète ---------- */
 .dm-box .cvr-head { background: linear-gradient(135deg, #f6fbf6 0%, #f4f9fd 100%); }
 .cvr-panel-subtitle { font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #8d6e63; margin: 8px 0 4px; }
@@ -629,3 +639,5 @@ header { padding: 12px 24px; }
 .paste-modal-card { max-width: 640px; }
 #paste-modal-input { width: 100%; font-family: inherit; font-size: .85rem; padding: 10px; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; min-height: 220px; }
 .paste-zone-top { margin: 0 0 8px; }
+
+.etat-box-wide { grid-column: 1 / -1; }
