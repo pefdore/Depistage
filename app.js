@@ -718,11 +718,13 @@ function renderDiabete(p) {
       ? 'Diabète simple, dans la cible : suivi annuel du dépistage des complications (fond d’œil, DFG/RAC, pieds, lipides, TA).'
       : 'Priorité : équilibre glycémique (HbA1c), puis dépistage annuel des complications et optimisation du traitement.');
   const dms = dmStrategy(p, cvr);
+  (window._copyTexts = window._copyTexts || {}).dm = 'Diabète — HbA1c ' + (hba1c !== null ? f(hba1c) + ' %' : 'non renseignée') + ' · Cible ' + target + ' · ' + control.label + (comp.any ? ' · Complications : ' + [].concat(comp.micro, comp.macro).join(', ') : ' · Pas de complication déclarée');
   panel.innerHTML = `
   <div class="cvr-box dm-box${window._dmOpen ? ' open' : ''}" style="--sc:${control.color}">
     <div class="cvr-head" role="button" tabindex="0" aria-expanded="${window._dmOpen ? 'true' : 'false'}" data-dm-toggle="1">
       <span class="cvr-title">🍪 État des lieux — Diabète</span>
-      <span class="cvr-verdict" style="color:#1a2b3c; background:${control.color}22; border:1px solid ${control.color}55">${control.label === 'Dans la cible' ? '✓ ' : ''}${escapeHtml(control.label)}${hba1c !== null ? ' · HbA1c ' + f(hba1c) + ' %' : ''}</span>
+      <span class="cvr-verdict" style="color:#1a2b3c; background:${control.color}22; border:1px solid ${control.color}55">${control.label === 'Dans la cible' ? '✓ ' : ''}${escapeHtml(control.label)}${hba1c !== null ? ' · HbA1c ' + f(hba1c) + ' %' : ''}${target ? ' · Cible ' + escapeHtml(target) : ''}</span>
+      <button class="cvr-copy" data-copy-id="dm" title="Copier le résumé diabète (puis Ctrl-V)">⧉</button>
       <span class="cvr-chevron">▸</span>
     </div>
     <div class="cvr-detail"><div class="cvr-detail-inner">
