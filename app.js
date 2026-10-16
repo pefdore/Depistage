@@ -491,66 +491,6 @@ function renderPedia(p) {
     <div class="pedia-foot">Repères moyens — calendrier vaccinal 2025 — adapter au contexte clinique.</div>
   </div>`;
 }
-function buildCvCard(p) {
-  const cvr = cvrCompute(p);
-  const target = ldlTarget(p, cvr);
-  const age = p.age;
-  const hasData = age !== null && (p.sbp !== null || p.chol !== null || p.ldl !== null || p.hba1c !== null || p.tabac === 'actif');
-  if (!hasData && !cvr.hasTerrain && !cvr.extreme) return null;
-  let status, color;
-  if (cvr.extreme) { status = 'RISQUE EXTRÊME'; color = '#6a1b9a'; }
-  else if (cvr.hasTerrain) { status = 'Prévention secondaire'; color = '#c62828'; }
-  else if (cvr.result) { status = cvr.result.cat.label + ' — ' + String(cvr.result.pct).replace('.', ',') + ' % à 10 ans'; color = cvr.result.cat.color; }
-  else { status = 'Risque à calculer (données incomplètes)'; color = '#78909c'; }
-  const f = v => v === null ? '—' : String(v).replace('.', ',');
-  const fold = [
-    target ? `Cible : ${target.label}${p.ldl !== null ? (p.ldl < target.v ? ' ✅ atteinte' : ' ❌ LDL ' + f(p.ldl)) : ''}` : 'Cible LDL : selon niveau de risque',
-    `PAS : ${p.sbp === null ? '—' : p.sbp + ' mmHg'} · LDL : ${p.ldl === null ? '—' : f(p.ldl) + ' g/L'}`,
-    `Tabac : ${p.tabac === 'actif' ? '🚬 actif' : (p.tabac === 'sevré' ? 'sevré' : (p.tabac === 'jamais' ? 'jamais' : '—'))}`,
-  ];
-  const actions = cvr.result || cvr.hasTerrain || cvr.extreme
-    ? 'Déplier la carte : évaluation complète et prise en charge (cibles, traitement)'
-    : 'Compléter les données (PAS, cholestérol total, HDL) pour calculer le SCORE2 — déplier pour les éléments à évaluer';
-  return { icon: '💓', name: 'Risque cardiovasculaire', status, color, data: fold, actions, bpcoDetail: cvDetailHtml(p, cvr, target) };
-}
-function cvDetailHtml(p, cvr, target) {
-  const f = v => v === null ? '—' : String(v).replace('.', ',');
-  const dm = !!p.diabete;
-  const modelName = dm ? 'SCORE2-Diabetes' : (p.age !== null && p.age >= 70 ? 'SCORE2-OP' : 'SCORE2');
-  const riskLevel = cvr.extreme ? 'extrême' : (cvr.hasTerrain ? 'prévention secondaire (très haut risque)' : (cvr.result ? cvr.result.cat.label.toLowerCase() : 'non calculé'));
-  const evalRows = [
-    ['Score de risque', `${modelName} : ${cvr.result ? String(cvr.result.pct).replace('.', ',') + ' % à 10 ans — ' + riskLevel : 'données incomplètes (' + (cvr.missing || []).join(', ') + ')'}`],
-    ['Terrain cardiovasculaire', cvr.hasTerrain || cvr.extreme ? 'Oui — ' + cvr.terrainReasons.join(', ') + (cvr.extreme ? ' + situation extrême' : '') : 'Non renseigné / prévention primaire'],
-    ['Pression artérielle', p.sbp === null ? 'à mesurer (moyenne de 2 mesures, après 5 min de repos)' : String(p.sbp) + ' mmHg' + (p.sbp >= 140 ? ' — ≥ 140 : HTA, confirmer par automesure' : '')],
-    ['Lipides', `LDL : ${p.ldl === null ? 'à doser (jeûne inutile)' : f(p.ldl) + ' g/L'} · Chol. total : ${p.chol === null ? '—' : f(p.chol) + ' g/L'} · HDL : ${p.hdl === null ? '—' : f(p.hdl) + ' g/L'}`],
-    ['Glycémie', dm ? 'Diabète connu — HbA1c : ' + (p.hba1c === null ? 'à doser' : f(p.hba1c) + ' %') : (p.hba1c !== null ? 'HbA1c ' + f(p.hba1c) + ' %' : 'Si facteurs de risque : glycémie à jeû')],
-    ['Tabagisme', p.tabac === 'actif' ? '🚬 actif — risque ×2, arrêt = première action' : (p.tabac === 'sevré' ? 'sevré (bénéfice complet en 2–5 ans, sauf cancer du poumon qui persiste)' : (p.tabac === 'jamais' ? 'jamais' : 'statut à préciser'))],
-    ['IMC / tour de taille', p.imc !== null ? f(p.imc) + ' kg/m²' + (p.imc >= 30 ? ' — obésité : évaluer SAS, steatose' : '') : 'à mesurer (obésité abdominale = facteur de risque)'],
-    ['Fonction rénale', p.dfg !== null ? 'DFG ' + p.dfg + ' mL/min' + (p.dfg < 60 ? ' — MRC : facteur de risque CV majeur' : '') : 'DFG à connaître (MRC = risque CV)'],
-    ['Antécédents familiaux', 'Coronaropathie précoce (< 55 ans H / < 65 ans F) au 1er degré — à rechercher (Dyslipidémie familiale si LDL > 1,9 g/L + ATCD familial : statine déemblée)'],
-  ];
-  const rxRows = [
-    ['Cible LDL (ESC/EAS 2025)', target ? target.label + ' — ' + target.why : 'dépend du niveau de risque'],
-    ['Statine', cvr.extreme || cvr.hasTerrain || (cvr.result && (cvr.result.pct >= 5 || ['Risque élevé', 'Risque très élevé'].includes(cvr.result.cat.label)))
-      ? 'Indiquée — haute intensité (atorvastatine 40–80 mg ou rosuvastatine 20–40 mg) ; viser –50 % du LDL'
-      : (cvr.result && cvr.result.cat.label === 'Risque modéré' ? 'À discuter (SCORE2 modéré) — statine si LDL non à cible après mesures hygiénodiététiques' : 'Pas d’indication formelle si risque faible — réévaluer SCORE2 régulièrement')],
-    ['Si LDL non atteint', 'Ajouter ézétimibe ; si toujours > cible + risque élevé/très élevé : acide bempédoïque ou anti-PCSK9 (évolocumab, alirocumab, inclisiran)'],
-    ['HTA', p.sbp !== null && p.sbp >= 140 ? 'Confirmer (automesure/Map), traiter si confirmée : cible 130/80 si < 65 ans, 140/80 si ≥ 65 ans' : 'Cible : 130/80 si < 65 ans ; 140/80 si ≥ 65 ans'],
-    ['Antiagrégant', cvr.hasTerrain || cvr.extreme ? 'Aspirine 75–100 mg/j indiquée (prévention secondaire)' : 'Pas d’aspirine en prévention primaire (surrisque hémorragique)'],
-    ['Mode de vie', 'Activité physique 150 min/semaine · régime méditerranéen · arrêt du tabac · alcool ≤ 10 verres/semaine · poids'],
-    ['Diabète', dm ? 'Déjà connu — optimiser (voir carte Diabète) ; iSGLT2/aGLP-1 = bénéfice CV propre' : 'Dépister si facteurs de risque (glycémie à jeû, HbA1c)'],
-    ['Réévaluation', 'SCORE2 tous les 5 ans (ou après modification d’un facteur) ; le risque augmentant avec l’âge, un risque aujourd’hui faible peut devenir à traiter'],
-  ];
-  const txt = 'Risque cardiovasculaire : ' + (cvr.extreme ? 'extrême' : (cvr.hasTerrain ? 'prévention secondaire' : (cvr.result ? String(cvr.result.pct).replace('.', ',') + ' % à 10 ans (' + cvr.result.cat.label.toLowerCase() + ')' : 'non calculé'))) + (target ? ' · Cible ' + target.label : '') + (p.ldl !== null ? ' · LDL actuel ' + f(p.ldl) + ' g/L' : '');
-  (window._copyTexts = window._copyTexts || {}).cv = txt;
-  return `<details class="etat-bpco-details"><summary>▸ Évaluer le risque CV & prise en charge (cliquer)</summary><div class="etat-bpco-body">
-    <div class="bpco-sub">① Éléments à évaluer</div>
-    ${evalRows.map(([k, val]) => `<div class="bpco-row"><strong>${escapeHtml(k)} :</strong> ${escapeHtml(val)}</div>`).join('')}
-    <div class="bpco-sub">② Prise en charge — cibles & traitements</div>
-    ${rxRows.map(([k, val]) => `<div class="bpco-row"><strong>${escapeHtml(k)} :</strong> ${escapeHtml(val)}</div>`).join('')}
-    <div class="bpco-copy"><button type="button" class="cvr-copy" data-copy-id="cv" title="Copier le résumé CV (puis Ctrl-V)">⧉</button><span>Résumé CV en un clic</span></div>
-  </div></details>`;
-}
 function bpcoRiskFactors(p) {
   const factors = [];
   if (p.tabac === 'actif') factors.push(`Tabagisme actif${p.pa !== null ? ' (' + p.pa + ' PA)' : ''}`);
@@ -644,9 +584,6 @@ function renderEtat(p) {
   // BPCO : carte dépliable (diagnostiquée ou non diagnostiquée sur facteurs de risque)
   const bpcoCard = buildBpcoCard(p);
   if (bpcoCard) cards.push(bpcoCard);
-  // Risque cardiovasculaire : carte dépliable
-  const cvCard = buildCvCard(p);
-  if (cvCard) cards.push(cvCard);
   // HTA
   if (p.hta) {
     const sbp = p.sbp;
