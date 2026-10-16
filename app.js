@@ -501,78 +501,85 @@ function bpcoRiskFactors(p) {
   ((window._bpcoHints && window._bpcoHints.factors) || []).forEach(h => { if (!factors.some(x => x.startsWith(h.slice(0, 12)))) factors.push(h); });
   return factors;
 }
-function buildBpcoCard(p) {
+function renderBpcoCvr(p) {
+  const panel = document.getElementById('bpco-panel') || (() => { const d = document.createElement('div'); d.id = 'bpco-panel'; const etat = document.getElementById('etat-panel'); etat.parentNode.insertBefore(d, etat); return d; })();
   const hints = (window._bpcoHints && window._bpcoHints.factors) || [];
   const riskAge = p.age !== null && p.age >= 40;
   const riskPa = p.pa !== null && p.pa >= 20;
   const undiagnosed = !p.bpco && ((p.tabac === 'actif' && (riskPa || riskAge)) || hints.length > 0);
-  if (!p.bpco && !undiagnosed) return null;
-  const v = p.vems;
-  const ex = p.exacerb;
-  let status, color;
-  if (!p.bpco) {
-    status = 'Non diagnostiquée — à dépister';
-    color = '#ef6c00';
-  } else if (v === null) {
-    status = 'Diagnostiquée — VEMS non renseigné';
-    color = '#78909c';
-  } else {
-    const gold = v >= 80 ? ['GOLD 1 — léger', '#2e7d32'] : v >= 50 ? ['GOLD 2 — modéré', '#f9a825'] : v >= 30 ? ['GOLD 3 — sévère', '#ef6c00'] : ['GOLD 4 — très sévère', '#c62828'];
-    status = gold[0] + (ex !== null ? (ex >= 2 ? ' — groupe E' : ' — groupe A/B') : '');
-    color = gold[1];
-  }
+  if (!p.bpco && !undiagnosed) { panel.innerHTML = ''; return; }
+  const f = v => v === null ? '—' : String(v).replace('.', ',');
   const factors = bpcoRiskFactors(p);
-  const fold = p.bpco
-    ? [`VEMS : ${v === null ? '—' : String(v).replace('.', ',') + ' % théor.'}`, `Exacerbations/an : ${ex === null ? '—' : ex}`, `Tabac : ${p.tabac === 'actif' ? '🚬 actif' : (p.tabac === 'sevré' ? 'sevré' : '—')}`]
-    : [`Facteurs de risque : ${factors.length || '—'}`, `VEMS : ${v === null ? 'spirométrie à faire' : String(v).replace('.', ',') + ' % théor.'}`];
-  const actions = p.bpco
-    ? (v === null ? 'Spirométrie à jour ? Le VEMS définit le stade GOLD et le traitement' : 'Déplier la carte : traitements GOLD, réhabilitation, vaccinations, sevrage')
-    : 'Spirométrie recommandée — déplier la carte pour les éléments à évaluer et le plan';
-  return { icon: '🧁', name: p.bpco ? 'BPCO' : 'BPCO — non diagnostiquée', status, color, data: fold, actions, bpcoDetail: bpcoDetailHtml(p, factors) };
-}
-function bpcoDetailHtml(p, factors) {
-  const v = p.vems;
-  const ex = p.exacerb;
+  const v = p.vems, ex = p.exacerb;
   const exGroup = ex === null ? null : (ex >= 2 ? 'E' : (ex === 1 ? 'B' : 'A'));
+  let verdict;
+  if (!p.bpco) verdict = { label: 'Non diagnostiquée — à dépister', color: '#e65100', bg: '#fff3e0', gold: null };
+  else if (v === null) verdict = { label: 'Diagnostiquée — VEMS à jour ?', color: '#37474f', bg: '#eceff1', gold: null };
+  else {
+    const g = v >= 80 ? ['GOLD 1 — léger', '#2e7d32', '#e8f5e9'] : v >= 50 ? ['GOLD 2 — modéré', '#f9a825', '#fffde7'] : v >= 30 ? ['GOLD 3 — sévère', '#ef6c00', '#fff3e0'] : ['GOLD 4 — très sévère', '#c62828', '#fdecea'];
+    verdict = { label: g[0] + (exGroup ? ' · groupe ' + exGroup : ''), color: g[1], bg: g[2], gold: parseInt(g[0].match(/\d/)[0], 10) };
+  }
   const symHints = factors.filter(x => !/Tabagisme|Ancien fumeur|Âge|IMC/.test(x));
   const evalRows = [
-    ['Symptômes (toux chronique, expectorations, dyspnée, sifflements)', symHints.length ? 'retrouvés dans le volet : ' + symHints.join(', ') : 'non retrouvés dans le volet — à reprendre à l’interrogatoire'],
-    ['Spirométrie post-bronchodilatateur (VEMS/CVF < 0,70 = diagnostic)', v === null ? 'à faire — confirme le diagnostic et définit le stade GOLD' : String(v).replace('.', ',') + ' % théor.'],
-    ['Exacerbations / an', ex === null ? 'à préciser' : String(ex) + (exGroup ? ' — groupe ' + exGroup : '')],
+    ['Symptômes', symHints.length ? 'retrouvés dans le volet : ' + symHints.join(', ') : 'toux chronique, expectorations, dyspnée, sifflements — à reprendre à l’interrogatoire'],
+    ['Spirométrie', v === null ? 'à faire — VEMS/CVF < 0,70 post-bronchodilatateur = diagnostic ; définit le stade GOLD' : f(v) + ' % théor. · vérifier le rapport VEMS/CVF'],
+    ['Exacerbations / an', ex === null ? 'à préciser (nombre/an, hospitalisée ?)' : String(ex) + (exGroup ? ' — groupe ' + exGroup : '')],
     ['Tabagisme', p.tabac === 'actif' ? '🚬 actif' + (p.pa !== null ? ' (' + p.pa + ' PA)' : '') : (p.tabac === 'sevré' ? 'sevré' + (p.pa !== null ? ' (' + p.pa + ' PA)' : '') : 'non renseigné')],
-    ['Dyspnée — échelle mMRC', '0 : aucune · 1 : effort intense · 2 : marche normale ralentie / plateau · 3 : pause après 100 m · 4 : ne sort pas / dyspnée à l’habillage'],
-    ['Statut vaccinal', 'Grippe annuelle · Pneumocoque · COVID-19 · VRS si ≥ 75 ans — à vérifier'],
-    ['SpO₂ / gaz du sang', 'SpO₂ de repos · OHD si hypoxémie (SpO₂ ≤ 92 % ou PaO₂ < 60 mmHg : oxygène ≥ 16 h/j)'],
-    ['IMC / dénutrition', p.imc !== null ? String(p.imc).replace('.', ',') + ' kg/m²' + (p.imc < 21 ? ' — IMC bas : facteur de mauvais pronostic' : '') : 'à renseigner'],
-    ['Comorbidités', [p.hta ? 'HTA' : null, p.ic ? 'insuffisance cardiaque' : null, p.diabete ? 'diabète' : null, (p.dfg !== null && p.dfg < 60) ? 'MRC' : null].filter(Boolean).join(', ') || 'aucune renseignée'],
-    ['Dépistage cancer du poumon', (p.tabac !== 'jamais' && p.age !== null && p.age >= 50 && p.age <= 74 && p.pa !== null && p.pa >= 25) ? 'À proposer : scanner thoracique faible dose annuel' : 'selon profil : fumeur/sevré ≥ 25 PA, 50–74 ans'],
+    ['Dyspnée (mMRC)', '0 : aucune · 1 : effort intense · 2 : marche ralentie · 3 : pause à 100 m · 4 : ne sort plus'],
+    ['Vaccins', 'Grippe annuelle · Pneumocoque · COVID-19 · VRS ≥ 75 ans — vérifier'],
+    ['SpO₂ / gaz du sang', 'SpO₂ de repos ; OHD si PaO₂ < 60 mmHg (≥ 16 h/j)'],
+    ['IMC / nutrition', p.imc !== null ? f(p.imc) + ' kg/m²' + (p.imc < 21 ? ' — IMC bas : mauvais pronostic, complémentation' : '') : 'à mesurer (dénutrition = facteur de mortalité)'],
+    ['Comorbidités', [p.hta ? 'HTA' : null, p.ic ? 'IC' : null, p.diabete ? 'DT2' : null, (p.dfg !== null && p.dfg < 60) ? 'MRC' : null].filter(Boolean).join(', ') || 'aucune renseignée'],
+    ['Cancer du poumon', (p.tabac !== 'jamais' && p.age !== null && p.age >= 50 && p.age <= 74 && p.pa !== null && p.pa >= 25) ? 'À proposer : scanner faible dose annuel' : '≥ 25 PA et 50–74 ans : scanner faible dose'],
   ];
   const rxRows = p.bpco ? [
-    ['Sevrage tabagique', p.tabac === 'actif' ? '✅ Priorité absolue — seule intervention qui ralentit la progression' : 'maintenir l’abstinence'],
-    ['Groupe A (0–1 exacerbation, mMRC 0–1)', 'Bronchodilatateur court à la demande ; si symptômes persistants : LABA ou LAMA'],
-    ['Groupe B (mMRC ≥ 2)', 'LABA + LAMA d’emblée (bithérapie inhalée)'],
-    ['Groupe E (≥ 2 exacerbations/an ou ≥ 1 hospitalisation)', 'LABA + LAMA d’emblée ; si ≥ 2 exacerbations sous bithérapie ou éosinophiles ≥ 300/µL : associer CSI (triple thérapie)'],
+    ['Sevrage tabagique', p.tabac === 'actif' ? '✅ Priorité absolue — ralentit la progression (seule intervention démontrée)' : 'maintenir l’abstinence'],
+    ['Groupe A', 'BDCA à la demande ; si symptômes : LABA ou LAMA'],
+    ['Groupe B', 'LABA + LAMA d’emblée'],
+    ['Groupe E', 'LABA + LAMA ; si ≥ 2 exacerbations/an sous bithérapie ou éosinophiles ≥ 300/µL : + CSI (triple thérapie)'],
     ['GOLD 3–4', 'Discuter triple thérapie (CSI + LABA + LAMA)'],
-    ['Réhabilitation respiratoire', 'À proposer (GOLD ≥ 2 ou post-exacerbation) — dyspnée et qualité de vie améliorées'],
-    ['Oxygénothérapie domicile', 'Si hypoxémie chronique (PaO₂ < 60 mmHg) : ≥ 15–16 h/jour'],
-    ['Exacerbation aiguë', 'Bronchodilatateur ± corticoïdes oraux 5 j ± antibiotique 5–7 j si purulence — éducation : plan d’action'],
-    ['Suivi', 'Réévaluation à 1–3 mois après toute modification ; technique d’inhalation à vérifier'],
+    ['Réhabilitation', 'À proposer (GOLD ≥ 2 ou post-exacerbation)'],
+    ['Exacerbation aiguë', 'BDCA ± corticoïdes oraux 5 j ± antibiotique 5–7 j si purulence · plan d’action écrit'],
+    ['Suivi', 'Réévaluation 1–3 mois après modification · technique d’inhalation à vérifier'],
   ] : [
-    ['Objectif de la consultation', 'Dépister une BPCO méconnue : spirométrie post-bronchodilatateur (VEMS/CVF < 0,70 = diagnostic)'],
-    ['Spirométrie', v === null ? 'À prescrire avec test de réversibilité (éliminer un asthme)' : 'VEMS ' + String(v).replace('.', ',') + ' % théor. — vérifier le rapport VEMS/CVF'],
-    ['Sevrage tabagique', p.tabac === 'actif' ? '✅ Première action — conseil minimal + aide pharmacologique (substitution, varénicline, cytisine)' : 'maintenir l’abstinence'],
-    ['Si confirmation du diagnostic', 'Traitements GOLD (groupes A/B/E) · vaccinations · réévaluation à 6–12 semaines · réhabilitation'],
-    ['Différentiel asthme', 'Sifflements paroxystiques, variabilité nocturne, atopie → MEFR/réversibilité ; asthme + BPCO peuvent coexister (ACO)'],
+    ['Objectif', 'Dépister une BPCO méconnue : spirométrie post-bronchodilatateur'],
+    ['Spirométrie', v === null ? 'À prescrire avec test de réversibilité (éliminer un asthme)' : 'VEMS ' + f(v) + ' % — vérifier VEMS/CVF'],
+    ['Sevrage tabagique', p.tabac === 'actif' ? '✅ Première action — conseil minimal + TSN/varénicline/cytisine' : 'maintenir l’abstinence'],
+    ['Si confirmation', 'Groupes A/B/E → traitements GOLD · vaccinations · réévaluation 6–12 semaines'],
+    ['Différentiel asthme', 'Paroxystique, nocturne, atopie → MEFR/réversibilité ; coexistence possible (ACO)'],
   ];
-  const txt = (p.bpco ? 'BPCO ' + (p.vems !== null ? 'VEMS ' + String(p.vems).replace('.', ',') + ' % théor. ' : '') : 'BPCO non diagnostiquée — dépistage à faire') + ' · Facteurs : ' + (factors.join(', ') || 'aucun renseigné');
+  const txt = (p.bpco ? 'BPCO ' + verdict.label : 'BPCO non diagnostiquée — dépistage à faire') + ' · Facteurs : ' + (factors.join(', ') || 'aucun renseigné');
   (window._copyTexts = window._copyTexts || {}).bpco = txt;
-  return `<details class="etat-bpco-details"><summary>▸ Évaluer la situation du patient & traitements GOLD (cliquer)</summary><div class="etat-bpco-body">
-    <div class="bpco-sub">① Éléments à évaluer</div>
-    ${evalRows.map(([k, val]) => `<div class="bpco-row"><strong>${escapeHtml(k)} :</strong> ${escapeHtml(val)}</div>`).join('')}
-    <div class="bpco-sub">② Traitements — recommandations GOLD</div>
-    ${rxRows.map(([k, val]) => `<div class="bpco-row"><strong>${escapeHtml(k)} :</strong> ${escapeHtml(val)}</div>`).join('')}
-    <div class="bpco-copy"><button type="button" class="cvr-copy" data-copy-id="bpco" title="Copier le résumé BPCO (puis Ctrl-V)">⧉</button><span>Résumé BPCO en un clic</span></div>
-  </div></details>`;
+  panel.innerHTML = `  <div class="cvr-box bpco-cvr${window._bpcoOpen ? ' open' : ''}" style="--sc:${verdict.color}">
+    <div class="cvr-head" role="button" tabindex="0" aria-expanded="${window._bpcoOpen ? 'true' : 'false'}" data-bpco-toggle="1">
+      <span class="cvr-title">🧁 BPCO</span>
+      <span class="cvr-verdict" style="color:${verdict.color}; background:${verdict.bg}">${verdict.label}</span>
+      <button type="button" class="cvr-copy" data-copy-id="bpco" title="Copier le résumé BPCO (puis Ctrl-V)">⧉</button>
+      <span class="cvr-chevron">▸</span>
+    </div>
+    <div class="cvr-detail"><div class="cvr-detail-inner">
+      <div class="cvr-layout">
+        <div class="cvr-col">
+          <div class="cvr-panel-title">① Éléments à évaluer</div>
+          ${evalRows.map(([k, val]) => `<div class="cvr-row"><strong>${escapeHtml(k)} :</strong> ${escapeHtml(val)}</div>`).join('')}
+          ${!p.bpco ? `<div class="cvr-banner" style="--bc:#ef6c00"><strong>Facteurs de risque présents</strong><p>${factors.map(escapeHtml).join(' · ')}</p></div>` : ''}
+        </div>
+        <div class="cvr-col">
+          <div class="cvr-scorecard" style="--sc:${verdict.color}">
+            <div class="cvr-scorecard-top">
+              <div class="cvr-gauge"><div class="cvr-gauge-fill" style="width:${v === null ? 0 : Math.max(8, 100 - v)}%; background:${verdict.color}"></div></div>
+              <div class="cvr-scorecard-pct">${verdict.gold ?? '—'}<span class="cvr-pct-unit">G</span></div>
+            </div>
+            <div class="cvr-scorecard-cat" style="color:${verdict.color}">${verdict.label}</div>
+            <div class="cvr-scorecard-sub">VEMS ${v === null ? '—' : f(v) + ' % théor.'} · ${ex === null ? 'exacerbations ?' : ex + ' exacerbat./an'}</div>
+            <div class="cvr-scorecard-act">${p.tabac === 'actif' ? 'Sevrage tabagique = priorité absolue.' : 'Vaccinations à jour · réhabilitation à discuter.'}</div>
+          </div>
+          <div class="cvr-panel-title">② Traitements — recommandations GOLD</div>
+          ${rxRows.map(([k, val]) => `<div class="cvr-row"><strong>${escapeHtml(k)} :</strong> ${escapeHtml(val)}</div>`).join('')}
+        </div>
+      </div>
+    </div></div>
+  </div>`;
 }
 function renderEtat(p) {
   const panel = document.getElementById('etat-panel');
@@ -581,9 +588,6 @@ function renderEtat(p) {
   const kd = kdigoStage(p);
   const cards = [];
 
-  // BPCO : carte dépliable (diagnostiquée ou non diagnostiquée sur facteurs de risque)
-  const bpcoCard = buildBpcoCard(p);
-  if (bpcoCard) cards.push(bpcoCard);
   // HTA
   if (p.hta) {
     const sbp = p.sbp;
@@ -635,12 +639,11 @@ function renderEtat(p) {
 
   if (!cards.length) { panel.innerHTML = ''; return; }
   panel.innerHTML = `<div class="etat-grid">${cards.map(c => `
-    <div class="etat-box${c.bpcoDetail ? ' etat-box-wide' : ''}" style="border-left: 5px solid ${c.color}">
+    <div class="etat-box" style="border-left: 5px solid ${c.color}">
       <div class="etat-title">${c.icon} ${escapeHtml(c.name)}</div>
       <div class="etat-status" style="color:${c.color}">${escapeHtml(c.status)}</div>
       ${c.data.filter(Boolean).map(d => `<div class="etat-txt">${escapeHtml(d)}</div>`).join('')}
       <div class="etat-act">${escapeHtml(c.actions)}</div>
-      ${c.bpcoDetail || ''}
     </div>`).join('')}</div>`;
 }
 function renderKdigo(p) {
@@ -1903,6 +1906,7 @@ function render() {
   const reminders = [];
   renderPedia(p);
   renderEtat(p);
+  renderBpcoCvr(p);
   if (!pedia) {
     readDmChecks();
     renderKdigo(p);
@@ -2251,6 +2255,8 @@ document.addEventListener('click', e => {
     });
     return;
   }
+  const bpcoHead = e.target.closest('[data-bpco-toggle]');
+  if (bpcoHead) { window._bpcoOpen = !window._bpcoOpen; render(); return; }
   const kdHead = e.target.closest('[data-kdigo-toggle]');
   if (kdHead) { window._kdigoOpen = !window._kdigoOpen; render(); return; }
   const dmHead = e.target.closest('[data-dm-toggle]');
