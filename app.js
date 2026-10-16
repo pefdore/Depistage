@@ -30,6 +30,7 @@ const P = () => {
     hta: document.getElementById('pat-hta').value === 'oui',
     ic: document.getElementById('pat-ic').value === 'oui',
     bpco: document.getElementById('pat-bpco')?.value === 'oui',
+    mrc: document.getElementById('pat-mrc')?.value === 'oui',
     vems: isNaN(parseFloat(document.getElementById('pat-vems')?.value)) ? null : parseFloat(document.getElementById('pat-vems').value),
     exacerb: isNaN(parseFloat(document.getElementById('pat-exac')?.value)) ? null : parseFloat(document.getElementById('pat-exac').value),
     dfg: isNaN(dfg) ? null : dfg,
@@ -42,6 +43,8 @@ const P = () => {
       return isNaN(v) ? null : v;
     })(),
     imc: isNaN(imc) ? null : imc,
+    poids: isNaN(parseFloat(document.getElementById('pat-poids')?.value)) ? null : parseFloat(document.getElementById('pat-poids').value),
+    taille: isNaN(parseFloat(document.getElementById('pat-taille')?.value)) ? null : parseFloat(document.getElementById('pat-taille').value),
     ldl: isNaN(ldl) ? null : ldl,
     sbp: isNaN(sbp) ? null : sbp,
     chol: isNaN(chol) ? null : chol,
@@ -2248,29 +2251,24 @@ const DM_CHECK_IDS = [...DM_MICRO, ...DM_MACRO, ...DM_SUIVI].map(c => c.id);
 const dmChecks = {};
 const readDmChecks = () => { DM_CHECK_IDS.forEach(id => { dmChecks[id] = !!document.getElementById(id)?.checked; }); };
 
+// Sauvegarde exhaustive : tous les champs pat-* du dossier patient (dynamique)
+function collectPatientFields() {
+  const out = {};
+  document.querySelectorAll('[id^="pat-"]').forEach(el => {
+    if (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA') out[el.id] = el.value;
+  });
+  return out;
+}
+function applyPatientFields(fields) {
+  if (!fields) return;
+  Object.entries(fields).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if (el) el.value = val ?? '';
+  });
+}
 document.getElementById('btn-save').addEventListener('click', () => {
   const data = {
-    patient: {
-      nom: document.getElementById('pat-nom').value,
-      prenom: document.getElementById('pat-prenom').value,
-      age: document.getElementById('pat-age').value,
-      ageMois: document.getElementById('pat-age-mois').value,
-      sex: document.getElementById('pat-sex').value,
-      tabac: document.getElementById('pat-tabac').value,
-      pa: document.getElementById('pat-pa').value,
-      diabete: document.getElementById('pat-diabete').value,
-      hta: document.getElementById('pat-hta').value,
-      ic: document.getElementById('pat-ic').value,
-      dfg: document.getElementById('pat-dfg').value,
-      rac: document.getElementById('pat-rac').value,
-      imc: document.getElementById('pat-imc').value,
-      ldl: document.getElementById('pat-ldl').value,
-      sbp: document.getElementById('pat-sbp').value,
-      chol: document.getElementById('pat-chol').value,
-      hdl: document.getElementById('pat-hdl').value,
-      hba1c: document.getElementById('pat-hba1c').value,
-      date: document.getElementById('pat-date').value,
-    },
+    patient: collectPatientFields(),
     overrides,
     doneExams,
     dmChecks
@@ -2283,25 +2281,17 @@ document.getElementById('btn-load').addEventListener('click', () => {
   const raw = localStorage.getItem('depistage-last');
   if (!raw) { alert('Aucune sauvegarde trouvée.'); return; }
   const data = JSON.parse(raw);
-  document.getElementById('pat-nom').value = data.patient?.nom || data.patient?.name || '';
-  document.getElementById('pat-prenom').value = data.patient?.prenom || '';
-  document.getElementById('pat-age').value = data.patient?.age || '';
-  document.getElementById('pat-age-mois').value = data.patient?.ageMois || '';
-  document.getElementById('pat-sex').value = data.patient?.sex || '';
-  document.getElementById('pat-tabac').value = data.patient?.tabac || '';
-  document.getElementById('pat-pa').value = data.patient?.pa || '';
-  document.getElementById('pat-diabete').value = data.patient?.diabete || '';
-  document.getElementById('pat-hta').value = data.patient?.hta || '';
-  document.getElementById('pat-ic').value = data.patient?.ic || '';
-  document.getElementById('pat-dfg').value = data.patient?.dfg || '';
-  document.getElementById('pat-rac').value = data.patient?.rac || '';
-  document.getElementById('pat-imc').value = data.patient?.imc || '';
-  document.getElementById('pat-ldl').value = data.patient?.ldl || '';
-  document.getElementById('pat-sbp').value = data.patient?.sbp || '';
-  document.getElementById('pat-chol').value = data.patient?.chol || '';
-  document.getElementById('pat-hdl').value = data.patient?.hdl || '';
-  document.getElementById('pat-hba1c').value = data.patient?.hba1c || '';
-  document.getElementById('pat-date').value = data.patient?.date || new Date().toISOString().slice(0, 10);
+  // compat ancien format : { nom: ... } -> { pat-nom: ... }
+  const pf = data.patient || {};
+  if (!('pat-nom' in pf) && ('nom' in pf || 'name' in pf)) {
+    const map = { nom: 'pat-nom', name: 'pat-nom', prenom: 'pat-prenom', age: 'pat-age', ageMois: 'pat-age-mois', sex: 'pat-sex', tabac: 'pat-tabac', pa: 'pat-pa', diabete: 'pat-diabete', hta: 'pat-hta', ic: 'pat-ic', bpco: 'pat-bpco', vems: 'pat-vems', exacerb: 'pat-exac', dfg: 'pat-dfg', rac: 'pat-rac', imc: 'pat-imc', ldl: 'pat-ldl', sbp: 'pat-sbp', chol: 'pat-chol', hdl: 'pat-hdl', hba1c: 'pat-hba1c', date: 'pat-date' };
+    const conv = {};
+    Object.entries(pf).forEach(([k, v]) => { if (map[k]) conv[map[k]] = v; });
+    applyPatientFields(conv);
+  } else {
+    applyPatientFields(pf);
+  }
+  if (!document.getElementById('pat-date').value) document.getElementById('pat-date').value = new Date().toISOString().slice(0, 10);
   Object.keys(overrides).forEach(k => delete overrides[k]);
   Object.assign(overrides, data.overrides || {});
   Object.keys(doneExams).forEach(k => delete doneExams[k]);
@@ -2636,13 +2626,41 @@ document.addEventListener('click', e => {
 
 // ---------- Coller les infos (volet de consultation) ----------
 const PASTE_LABELS = [
-  { id: 'pat-sbp', re: /pression art[ée]rielle systolique/i, kind: 'num' },
+  { id: 'pat-sbp', re: /pression art[ée]rielle systolique|\bPAS\b/i, kind: 'num' },
+  { id: 'pat-pad', re: /pression art[ée]rielle diastolique|\bPAD\b/i, kind: 'num' },
+  { id: 'pat-fc', re: /fr[ée]quence cardiaque|\bFC\b/i, kind: 'num' },
+  { id: 'pat-spo2', re: /saturation en o2|oxym[ée]tre/i, kind: 'num' },
+  { id: 'pat-temp', re: /temp[ée]rature corporelle/i, kind: 'num' },
+  { id: 'pat-poids', re: /^poids$/im, kind: 'num' },
+  { id: 'pat-taille', re: /^taille$/im, kind: 'num' },
   { id: 'pat-ldl', re: /cholest[ée]rol ldl|\bldl/i, kind: 'num' },
   { id: 'pat-hdl', re: /cholest[ée]rol hdl|\bhdl/i, kind: 'num' },
   { id: 'pat-chol', re: /cholest[ée]rol total|^cholest[ée]rol$/im, kind: 'num' },
+  { id: 'pat-tg', re: /triglyc[ée]rides/i, kind: 'num' },
+  { id: 'pat-gly', re: /glyc[ée]mie/i, kind: 'num' },
   { id: 'pat-hba1c', re: /h[ée]moglobine a1c|hba1c/i, kind: 'num' },
-  { id: 'pat-dfg', re: /dfg/i, kind: 'num' },
+  { id: 'pat-hb', re: /^h[ée]moglobine(?!\s*a1c)|\bh[ée]moglobine\s*$/im, kind: 'num' },
+  { id: 'pat-dfg', re: /dfg|ckd-?epi/i, kind: 'num' },
   { id: 'pat-rac', re: /microalbuminurie\/cr[ée]atinine|prot[ée]ines urinaires\/cr[ée]atinine/i, kind: 'txt' },
+  { id: 'pat-tsh', re: /\btsh\b/i, kind: 'num' },
+  { id: 'pat-ferritine', re: /ferritine/i, kind: 'num' },
+  { id: 'pat-plq', re: /plaquettes/i, kind: 'num' },
+  { id: 'pat-alat', re: /\balat\b/i, kind: 'num' },
+  { id: 'pat-asat', re: /\basat\b/i, kind: 'num' },
+  { id: 'pat-ggt', re: /gamma glutamyl|\bggt\b/i, kind: 'num' },
+  { id: 'pat-pal', re: /phosphatases alcalines/i, kind: 'num' },
+  { id: 'pat-crp', re: /prot[ée]ine c r[ée]active|\bcrp\b/i, kind: 'num' },
+  { id: 'pat-k', re: /potassium/i, kind: 'num' },
+  { id: 'pat-na', re: /sodium|natr[ée]mie/i, kind: 'num' },
+  { id: 'pat-tp', re: /\bTP\s*%|\bTP\b/i, kind: 'num' },
+];
+// Synonymes d'antécédents médicaux -> champs à cocher (section Antécédents médicaux du volet)
+const PASTE_ATCD = [
+  { id: 'pat-diabete', patterns: [/diab[ée]te/i, /\bdnid\b/i, /\bdid\b/i, /\bdt2\b/i, /\bdt1\b/i] },
+  { id: 'pat-hta', patterns: [/\bhta\b/i, /hypertension/i] },
+  { id: 'pat-ic', patterns: [/insuffisance cardiaque/i] },
+  { id: 'pat-bpco', patterns: [/\bbpco\b/i, /broncho[- ]?pneumopathie/i, /bronchite chronique obstructive/i] },
+  { id: 'pat-mrc', patterns: [/\bmrc\b/i, /maladie r[ée]nale chronique/i] },
 ];
 function parsePasteVolet(text) {
   const lines = String(text || '').split(/\r?\n/).map(l => l.trim());
@@ -2682,15 +2700,61 @@ function parsePasteVolet(text) {
       if (preCand) break; // première ligne non vide non conforme => pas un prénom
     }
   }
-  // Tabac
-  const tabLine = lines.find(l => /^tabac\b/i.test(l));
-  if (tabLine) {
-    const tail = norm(tabLine.replace(/^tabac\s*:?\s*/i, ''));
+  // Antécédents médicaux : cocher diabète/HTA/IC/BPCO/MRC d'après les synonymes
+  const atcdStart = lines.findIndex(l => /ant[ée]c[ée]dents m[ée]dicaux/i.test(l));
+  const atcdEnd = atcdStart === -1 ? -1 : lines.findIndex((l, i) => i > atcdStart && /ant[ée]c[ée]dents|allergies/i.test(l));
+  if (atcdStart !== -1) {
+    const atcdLines = lines.slice(atcdStart + 1, atcdEnd === -1 ? undefined : atcdEnd).filter(Boolean);
+    const allAtcd = atcdLines.join('\n');
+    PASTE_ATCD.forEach(({ id, patterns }) => {
+      if (patterns.some(re => re.test(allAtcd))) {
+        const el = document.getElementById(id);
+        if (el) { el.value = 'oui'; res.filled.push((el.closest('label')?.childNodes[0]?.textContent?.trim() || id) + ' : Oui (d\u2019apr\u00e8s les ATCD)'); }
+      }
+    });
+  }
+  // Traitements : lignes « DCI … » entre le mode de vie et le poids — capturées telles quelles
+  const medStart = lines.findIndex(l => /mode de vie/i.test(l));
+  const poidsIdx = lines.findIndex(l => /^poids\b/i.test(l));
+  if (medStart !== -1) {
+    const end = poidsIdx > medStart ? poidsIdx : (lines.findIndex((l, i) => i > medStart && /^poids\b/i.test(l)));
+    const medLines = lines.slice(medStart + 1, end === -1 || end <= medStart ? undefined : end).filter(Boolean)
+      .filter(l => !/^(tabac|d[ée]pendance|alcool|activit)/i.test(l))
+      .filter(l => !/^dc\s*\d/i.test(l) || /\d\s*(mg|µg|ug|g\b)/i.test(l))
+      .filter(l => !/^(retraite|sans emploi|employ[ée]|ouvrier|cadre|profession|chauffeur|infirmi)/i.test(l))
+      .filter(l => l !== 'Fond' && !/^Fond$/i.test(l))
+      .filter(l => !/^\+?x?\s*traitements ponctuels$/i.test(l))
+      .filter(l => !/^(d[ée]pendance|mode de vie)/i.test(l));
+    if (medLines.length) {
+      const el = document.getElementById('pat-traitement');
+      if (el) {
+        const trts = medLines
+          .filter(l => l !== ':' && !/^:/.test(l))
+          .filter(l => !/^(non|oui|sevr[ée]|ancien)/i.test(l) || /\d\s*(mg|µg|ug|g\b)/i.test(l))
+          .filter(l => !/^(retraite|profession|sans emploi|employ[ée])/i.test(l));
+        if (trts.length) {
+          el.value = trts.join('\n');
+          res.filled.push('Traitements (' + trts.length + ' ligne' + (trts.length > 1 ? 's' : '') + ')');
+        }
+      }
+    }
+  }
+  // Tabac — valeur sur la même ligne ou la suivante, synonymes « oui/non/sevré/ancien fumeur »
+  const tabIdx = lines.findIndex(l => /^tabac\b/i.test(l));
+  if (tabIdx !== -1) {
+    let tail = norm(lines[tabIdx].replace(/^tabac\s*:?\s*/i, ''));
+    for (let j = tabIdx + 1; !tail && j < Math.min(tabIdx + 3, lines.length); j++) {
+      if (lines[j]) tail = norm(lines[j] === ':' ? '' : lines[j]);
+      if (lines[j] && lines[j] !== ':') { tail = norm(lines[j]); break; }
+    }
     let val = '', lbl = '';
-    if (tail.startsWith('non')) { val = 'jamais'; lbl = 'Tabac : Non fumeur'; }
-    else if (tail.includes('sevr') || tail.includes('ancien')) { val = 'sevré'; lbl = 'Tabac : Sevré'; }
-    else if (tail.startsWith('oui')) { val = 'actif'; lbl = 'Tabac : Fumeur'; }
+    if (tail.startsWith('non') || tail.includes('jamais')) { val = 'jamais'; lbl = 'Tabac : Non fumeur'; }
+    else if (tail.includes('sevr') || tail.includes('ancien') || tail.includes('stoppe')) { val = 'sevré'; lbl = 'Tabac : Sevré'; }
+    else if (tail.startsWith('oui') || tail.includes('actif') || tail.includes('fumeur')) { val = 'actif'; lbl = 'Tabac : Fumeur'; }
     set('pat-tabac', val, lbl);
+    // Paquets-années si présents (ex : « Oui, 30 PA » ou « 30 paquets-années »)
+    const paM = /(\d{1,3})\s*(pa\b|paquets[- ]ann)/i.exec(lines[tabIdx] + ' ' + (lines[tabIdx + 1] || ''));
+    if (paM) set('pat-pa', paM[1], 'Paquets-années : ' + paM[1]);
   }
   // Poids / Taille -> IMC (IMC explicite du volet prioritaire)
   const imcM = /\(imc\)\s*([0-9]+([.,][0-9]+)?)|[\s:]([0-9]{1,2}[.,][0-9])\s*kg\/m2/i.exec(text);
