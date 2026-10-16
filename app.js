@@ -580,11 +580,14 @@ function renderKdigo(p) {
   const color = st.risk ? KDIGO_RISK_COLOR[st.risk] : '#e0e0e0';
   const racTxt = p.rac === 'nc' ? 'non calculable (microalbuminurie sous le seuil : catégorie A1)' : (p.rac !== null && p.rac !== undefined ? String(p.rac).replace('.', ',') + ' mg/mmol' : null);
   const mrc = p.dfg < 60 || (st.a && st.a !== 'A1');
+  const kdigoCopyTxt = 'Stade KDIGO ' + st.g + (st.a ? ' ' + st.a : '') + ' — DFG ' + p.dfg + ' mL/min/1,73 m²' + (racTxt ? ' · RAC ' + racTxt : '');
+  (window._copyTexts = window._copyTexts || {}).kdigo = kdigoCopyTxt;
   panel.innerHTML = `
   <div class="cvr-box kdigo-cvr${window._kdigoOpen ? ' open' : ''}" style="--sc:${color}">
     <div class="cvr-head" role="button" tabindex="0" aria-expanded="${window._kdigoOpen ? 'true' : 'false'}" data-kdigo-toggle="1">
       <span class="cvr-title">🫘 Fonction rénale (KDIGO)</span>
       <span class="cvr-verdict" style="color:${st.risk ? '#1a2b3c' : '#78909c'}; background:${color}">${st.g}${st.a ? ' ' + st.a : ''} · ${riskTxt}</span>
+      <button class="cvr-copy" data-copy-id="kdigo" title="Copier le stade KDIGO (puis Ctrl-V)">⧉</button>
       <span class="cvr-chevron">▸</span>
     </div>
     <div class="cvr-detail"><div class="cvr-detail-inner">
@@ -971,6 +974,9 @@ function renderCvr(p) {
         : { label: 'À calculer', color: '#78909c', bg: '#eceff1' };
 
   const gauge = result ? Math.min(100, Math.round(result.pct * (result.pct > 20 ? 3 : 6))) : 0;
+  const cvrLevelTxt = extreme ? 'Risque extrême' : (hasTerrain ? 'Prévention secondaire (terrain cardiovasculaire connu)' : (result ? result.cat.label : 'À calculer'));
+  const cvrCopyTxt = (extreme ? 'Risque CV extrême' : hasTerrain ? 'Risque CV très élevé — prévention secondaire (terrain cardiovasculaire connu)' : (result ? modelName + ' : ' + result.pct.toFixed(1).replace('.', ',') + ' % à 10 ans — ' + result.cat.label : 'Risque CV : à calculer')) + (target ? ' · Cible ' + target.label : '');
+  (window._copyTexts = window._copyTexts || {}).cvr = cvrCopyTxt;
 
   const terrainChecks = TERRAIN_ITEMS.map(t =>
     `<label class="cvr-terrain-item"><input type="checkbox" id="${t.id}" ${document.getElementById(t.id)?.checked ? 'checked' : ''}><span>${escapeHtml(t.label)}</span></label>`).join('')
@@ -997,8 +1003,9 @@ function renderCvr(p) {
     <div class="cvr-head" role="button" tabindex="0" aria-expanded="${window._cvrOpen ? 'true' : 'false'}">
       <span class="cvr-title">❤️ Risque cardiovasculaire</span>
       <span class="cvr-verdict" style="color:${verdict.color}; background:${verdict.bg}">
-        ${result ? result.pct.toFixed(1).replace('.', ',') + ' % · ' : ''}${verdict.label}
+        ${result ? result.pct.toFixed(1).replace('.', ',') + ' % · ' : ''}${verdict.label}${target ? ' · ' + target.label : ''}
       </span>
+      <span class="cvr-copy" data-copy-id="cvr" title="Copier le résumé du risque CV (puis Ctrl-V)">⧉</span>
       <span class="cvr-chevron">▸</span>
     </div>
     <div class="cvr-detail"><div class="cvr-detail-inner">
@@ -1071,6 +1078,7 @@ function bindCvr(p) {
   const panel = document.getElementById('cvr-panel');
   const head = panel.querySelector('.cvr-head');
   if (head) head.addEventListener('click', e => {
+    if (e.target.closest('[data-copy-id]')) return;
     if (e.target.matches('input, select, button')) return;
     window._cvrOpen = !window._cvrOpen;
     render();
@@ -2159,6 +2167,17 @@ function renderTodoChips(exams, list, muted) {
 
 // ---------- Événements ----------
 document.addEventListener('click', e => {
+  const cp = e.target.closest('[data-copy-id]');
+  if (cp) {
+    e.stopPropagation();
+    const txt = (window._copyTexts || {})[cp.dataset.copyId] || '';
+    if (txt) navigator.clipboard.writeText(txt).then(() => {
+      cp.classList.add('copied');
+      cp.textContent = '✓';
+      setTimeout(() => { cp.classList.remove('copied'); cp.textContent = '⧉'; }, 1500);
+    });
+    return;
+  }
   const kdHead = e.target.closest('[data-kdigo-toggle]');
   if (kdHead) { window._kdigoOpen = !window._kdigoOpen; render(); return; }
   const dmHead = e.target.closest('[data-dm-toggle]');
