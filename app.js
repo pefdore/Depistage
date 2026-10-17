@@ -1466,10 +1466,80 @@ function rxSub(title, lines) {
   if (!lines || !lines.length) return '';
   return `<details class="rx-sub"><summary>${escapeHtml(title)}</summary><div class="rx-sub-body">${lines.map(l => `<div>${escapeHtml(l)}</div>`).join('')}</div></details>`;
 }
-function renderRx(p) {
-  const panel = document.getElementById('rx-panel');
-
-  const makeBox = (open, color, icon, name, verdict, verdictColor, detail) => `
+function bpcoRxAdvice(p) {
+  // Classification complète possible si BPCO connue + VEMS + exacerbations
+  const hints = (window._bpcoHints && window._bpcoHints.factors) || [];
+  const riskAge = p.age !== null && p.age >= 40;
+  const riskPa = p.pa !== null && p.pa >= 20;
+  const atRisk = !p.bpco && ((p.tabac === 'actif' && (riskPa || riskAge)) || hints.length > 0);
+  if (!p.bpco && !atRisk) return null;
+  const v = p.vems, ex = p.exacerb;
+  const exGroup = ex === null ? null : (ex >= 2 ? 'E' : (ex === 1 ? 'B' : 'A'));
+  const fullyClassified = !!p.bpco && v !== null && ex !== null;
+  const goldStage = v === null ? null : (v >= 80 ? 'GOLD 1' : v >= 50 ? 'GOLD 2' : v >= 30 ? 'GOLD 3' : 'GOLD 4');
+  const reasons = [];
+  if (p.bpco) {
+    reasons.push('BPCO connue — traitement de fond à vérifier');
+    if (goldStage) reasons.push('Stade ' + goldStage + ' (VEMS ' + String(v).replace('.', ',') + ' %)');
+    if (exGroup) reasons.push('Groupe ' + exGroup + (exGroup === 'E' ? ' (≥ 2 exacerbations/an)' : exGroup === 'B' ? ' (1 exacerbation/an)' : ' (0 exacerbation/an)'));
+  } else {
+    reasons.push('Patient à risque de BPCO — si spirométrie confirme, voir la stratégie ci-dessous');
+  }
+  const drugExamples = {
+    labaLama: 'LABA + LAMA en inhalateur unique : Utibron® (indacatérol + glycopyrronium), Bevespi® (formotérol + glycopyrronium), Anoro® (vilanterol + uméclidinium), Duaklir® (formotérol + aclidinium)',
+    lama: 'LAMA : Spiriva® (tiotropium), Incruse® (uméclidinium), Eklira® (aclidinium), Onbrez-... (référencer Vidal)',
+    laba: 'LABA : Oxis®/Turbuhaler (formotérol), Onbrez® (indacatérol), Striverdi® (olodatérol)',
+    bdca: 'BDCA de secours : Ventoline® (salbutamol), Airomir® (salbutamol), Bricanyl® (terbutaline)',
+    icsLabaLama: 'Triple thérapie CSI + LABA + LAMA : Trelegy® (furoate de fluticasone + umeclidinium + vilanterol), Trimbow® (dipropionate de béclométasone + formotérol + glycopyrronium)',
+    csiLaba: 'CSI + LABA : Symbicort® (budsonide + formotérol), Seretide® (fluticasone + salmétérol), Fostair® (dipropionate de béclométasone + formotérol)',
+  };
+  let targeted = null;
+  if (fullyClassified) {
+    if (exGroup === 'E') {
+      targeted = {
+        t: 'Groupe E (≥ 2 exacerbations/an) — GOLD ' + goldStage,
+        lines: [
+          'D’emblée : ' + drugExamples.labaLama,
+          'Si ≥ 2 exacerbations/an sous LABA+LAMA ou éosinophiles sanguins ≥ 300/µL : ' + drugExamples.icsLabaLama + ' — ou CSI + LABA (' + drugExamples.csiLaba + ')',
+          'BDCA de secours à la demande : ' + drugExamples.bdca,
+        ],
+      };
+    } else if (exGroup === 'B') {
+      targeted = {
+        t: 'Groupe B (dyspnée mMRC ≥ 2, 0–1 exacerbation/an) — GOLD ' + goldStage,
+        lines: [
+          'D’emblée : ' + drugExamples.labaLama,
+          'BDCA de secours à la demande : ' + drugExamples.bdca,
+        ],
+      };
+    } else {
+      targeted = {
+        t: 'Groupe A (peu symptomatique, 0 exacerbation/an) — GOLD ' + goldStage,
+        lines: [
+          'BDCA à la demande : ' + drugExamples.bdca,
+          'Si symptômes persistants : LABA (ex : ' + 'Onbrez®, Oxis®' + ') ou LAMA (ex : Spiriva®, Incruse®)',
+          'Réévaluer régulièrement : passage groupe B/E possible',
+        ],
+      };
+    }
+    if (goldStage === 'GOLD 3' || goldStage === 'GOLD 4') targeted.lines.push('GOLD 3–4 : discuter triple thérapie d’emblée si exacerbations — ' + drugExamples.icsLabaLama);
+  }
+  const general = {
+    t: 'Stratégie GOLD (groupe A/B/E) — exemples par classe',
+    lines: [
+      'Groupe A (0 exacerbation, mMRC 0–1) : BDCA à la demande — ' + drugExamples.bdca + ' ; si symptômes : LABA (Onbrez®, Oxis®) ou LAMA (Spiriva®, Incruse®, Eklira®)',
+      'Groupe B (mMRC ≥ 2) : LABA + LAMA d’emblée — ' + drugExamples.labaLama,
+      'Groupe E (≥ 2 exacerbations/an ou ≥ 1 hospitalisation) : LABA + LAMA d’emblée — ' + drugExamples.labaLama + ' ; si persiste : + CSI (triple thérapie) — ' + drugExamples.icsLabaLama,
+      'BDCA de secours (tous groupes) : ' + drugExamples.bdca,
+      'Règle : jamais de CSI seul dans la BPCO ; le CSI s’ajoute (LABA+LAMA) si ≥ 2 exacerbations/an ou éosinophiles ≥ 300/µL',
+    ],
+  };
+  const remb = ['BPCO = ALD 100 % (bilan annuel remboursé)', 'La plupart des LABA/LAMA et associations sont remboursés aux conditions habituelles (SMR important)'];
+  const ci = ['Vérifier la technique d’inhalation à chaque renouvellement', 'Pneumocoque + grippe + COVID à jour avant toute escalade', 'CSI : risque de pneumonie — réévaluer la nécessité régulièrement'];
+  return { ok: !!p.bpco, reasons, targeted, general, fullyClassified, goldStage, exGroup, remb, ci, atRisk };
+}
+function rxMakeBox(open, color, icon, name, verdict, verdictColor, detail) {
+  return `
     <div class="rx-box rx-collapse${open ? ' open' : ''}" style="border-left:6px solid ${color}" data-rx-open="${open ? '1' : '0'}">
       <button type="button" class="rx-head" aria-expanded="${open}">
         <span class="rx-name">${icon} ${name}</span>
@@ -1477,6 +1547,12 @@ function renderRx(p) {
       </button>
       <div class="rx-detail"><div class="rx-detail-inner">${detail}</div></div>
     </div>`;
+}
+
+function renderRx(p) {
+  const panel = document.getElementById('rx-panel');
+
+
 
   const ie = iecara2Advice(p);
   const ieStatus = ie.ok ? 'INDIQU\u00c9' : (p.hta || p.rac !== null ? 'Pas d\'indication' : '\u2014');
@@ -1523,23 +1599,39 @@ function renderRx(p) {
     ${dms.profiles.map(x => rxSub(x.n, [x.t])).join('')}
     ${rxSub('Adaptations r\u00e9nales (m\u00e9tformine / iSGLT2)', dms.base)}
     ${rxFlags(['DT2 = ALD 100 % ; insuline, metformine, GLP-1 RA (ob\u00e9sit\u00e9 IMC \u2265 30 ou \u2265 27 + comorbidit\u00e9), iSGLT2 (indications cardio-r\u00e9nales) rembours\u00e9s aux conditions habituelles (SMR important / insuffisant selon mol\u00e9cule)'], dms.base)}`;
-    dmBoxes = makeBox(!!openState.dm, '#1565c0', '\ud83e\udd78', 'Strat\u00e9gie antidiab\u00e9tique (DT2)', dms.profiles.length && dms.profiles[0].n !== 'Aucun crit\u00e8re sp\u00e9cifique d\u00e9tect\u00e9' ? dms.profiles.length + ' profil(s) actif(s)' : 'Base : metformine', '#bbdefb', dmDetail);
+    dmBoxes = rxMakeBox(!!openState.dm, '#1565c0', '\ud83e\udd78', 'Strat\u00e9gie antidiab\u00e9tique (DT2)', dms.profiles.length && dms.profiles[0].n !== 'Aucun crit\u00e8re sp\u00e9cifique d\u00e9tect\u00e9' ? dms.profiles.length + ' profil(s) actif(s)' : 'Base : metformine', '#bbdefb', dmDetail);
   }
   panel.innerHTML =
     dmBoxes +
-    makeBox(!!openState.ie, ie.ok ? '#2e7d32' : '#e53935', '\ud83d\udc8a', 'IEC / ARA2', ieStatus, ieColor, ieDetail) +
-    makeBox(!!openState.gl, gl.ok ? '#2e7d32' : '#e53935', '\ud83e\uddea', 'iSGLT2 (gliflozine)', glStatus, glColor, glDetail) +
-    makeBox(!!openState.gp, gp.ok ? '#2e7d32' : '#e53935', '\ud83e\udd8e', 'GLP-1 / tirz\u00e9patide', gpStatus, gpColor, gpDetail) +
-    makeBox(!!openState.st, stt.ok ? '#2e7d32' : '#e53935', '\ud83d\udc8a', 'Statines', stStatus, stColor, stDetail);
+    rxMakeBox(!!openState.ie, ie.ok ? '#2e7d32' : '#e53935', '\ud83d\udc8a', 'IEC / ARA2', ieStatus, ieColor, ieDetail) +
+    rxMakeBox(!!openState.gl, gl.ok ? '#2e7d32' : '#e53935', '\ud83e\uddea', 'iSGLT2 (gliflozine)', glStatus, glColor, glDetail) +
+    rxMakeBox(!!openState.gp, gp.ok ? '#2e7d32' : '#e53935', '\ud83e\udd8e', 'GLP-1 / tirz\u00e9patide', gpStatus, gpColor, gpDetail) +
+    rxMakeBox(!!openState.st, stt.ok ? '#2e7d32' : '#e53935', '\ud83d\udc8a', 'Statines', stStatus, stColor, stDetail) +
+    bpcoRx();
 }
 
+function bpcoRx() {
+  const p = P();
+  const adv = bpcoRxAdvice(p);
+  if (!adv) return '';
+  const status = adv.ok ? (adv.fullyClassified ? (adv.goldStage + ' \u00b7 groupe ' + adv.exGroup) : 'INDIQU\u00c9 \u2014 \u00e0 stadifier') : '\u00c0 risque \u2014 si confirmation';
+  const color = adv.ok ? (adv.fullyClassified ? '#c8e6c9' : '#fff9c4') : '#ffecb3';
+  const detail = `
+    ${rxChips(adv.reasons)}
+    ${adv.targeted ? rxSub('Traitement recommand\u00e9 pour ce patient (classification compl\u00e8te)', adv.targeted.lines) : ''}
+    ${adv.targeted ? '' : `<div class="rx-muted-line">VEMS et/ou exacerbations non renseign\u00e9s \u2014 grille compl\u00e8te ci-dessous ; stadifier d\u00e8s la spirom\u00e9trie + comptage des exacerbations.</div>`}
+    ${rxSub(adv.general.t, adv.general.lines)}
+    ${rxSub('Non-pharmacologique', ['Sevrage tabagique = priorit\u00e9 absolue (seule intervention qui ralentit la progression)', 'R\u00e9habilitation respiratoire (GOLD \u2265 2 ou post-exacerbation)', 'Vaccinations : grippe annuelle, pneumocoque, COVID-19, VRS \u2265 75 ans', 'OHD si PaO\u2082 < 60 mmHg (\u2265 16 h/j) ; nutrition si IMC < 21'])}
+    ${rxFlags(adv.remb, adv.ci)}`;
+  return rxMakeBox(!!(window._rxOpen && window._rxOpen.bpco), adv.ok ? '#e65100' : '#ffa726', '\ud83e\udec1', 'BPCO \u2014 traitement de fond', status, color, detail);
+}
 document.addEventListener('click', e => {
   const head = e.target.closest('.rx-head');
   if (!head) return;
   const box = head.closest('.rx-collapse');
   const willOpen = box.dataset.rxOpen !== '1';
   const nm = box.querySelector('.rx-name').textContent;
-  const key = nm.includes('IEC') ? 'ie' : nm.includes('iSGLT2') ? 'gl' : nm.includes('Statines') ? 'st' : nm.includes('antidiab') ? 'dm' : 'gp';
+  const key = nm.includes('IEC') ? 'ie' : nm.includes('iSGLT2') ? 'gl' : nm.includes('Statines') ? 'st' : nm.includes('antidiab') ? 'dm' : nm.includes('BPCO') ? 'bpco' : 'gp';
   window._rxTouched = true;
   window._rxOpen = window._rxOpen || {};
   window._rxOpen[key] = willOpen;
