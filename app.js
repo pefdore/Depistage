@@ -513,7 +513,7 @@ function renderBpcoCvr(p) {
   const v = p.vems, ex = p.exacerb;
   const exGroup = ex === null ? null : (ex >= 2 ? 'E' : (ex === 1 ? 'B' : 'A'));
   let verdict;
-  if (!p.bpco) verdict = { label: 'Non diagnostiquée — à dépister', color: '#e65100', bg: '#fff3e0', gold: null };
+  if (!p.bpco) verdict = { label: 'À risque de BPCO — dépistage à faire', color: '#e65100', bg: '#fff3e0', gold: null };
   else if (v === null) verdict = { label: 'Diagnostiquée — VEMS à jour ?', color: '#37474f', bg: '#eceff1', gold: null };
   else {
     const g = v >= 80 ? ['GOLD 1 — léger', '#2e7d32', '#e8f5e9'] : v >= 50 ? ['GOLD 2 — modéré', '#f9a825', '#fffde7'] : v >= 30 ? ['GOLD 3 — sévère', '#ef6c00', '#fff3e0'] : ['GOLD 4 — très sévère', '#c62828', '#fdecea'];
@@ -548,11 +548,11 @@ function renderBpcoCvr(p) {
     ['Si confirmation', 'Groupes A/B/E → traitements GOLD · vaccinations · réévaluation 6–12 semaines'],
     ['Différentiel asthme', 'Paroxystique, nocturne, atopie → MEFR/réversibilité ; coexistence possible (ACO)'],
   ];
-  const txt = (p.bpco ? 'BPCO ' + verdict.label : 'BPCO non diagnostiquée — dépistage à faire') + ' · Facteurs : ' + (factors.join(', ') || 'aucun renseigné');
+  const txt = (p.bpco ? 'BPCO ' + verdict.label : 'BPCO à risque — dépistage à faire (spirométrie)') + ' · Facteurs : ' + (factors.join(', ') || 'aucun renseigné');
   (window._copyTexts = window._copyTexts || {}).bpco = txt;
   panel.innerHTML = `  <div class="cvr-box bpco-cvr${window._bpcoOpen ? ' open' : ''}" style="--sc:${verdict.color}">
     <div class="cvr-head" role="button" tabindex="0" aria-expanded="${window._bpcoOpen ? 'true' : 'false'}" data-bpco-toggle="1">
-      <span class="cvr-title">🧁 BPCO</span>
+      <span class="cvr-title">🧁 ${p.bpco ? 'BPCO' : 'BPCO — dépistage'}</span>
       <span class="cvr-verdict" style="color:${verdict.color}; background:${verdict.bg}">${verdict.label}</span>
       <button type="button" class="cvr-copy" data-copy-id="bpco" title="Copier le résumé BPCO (puis Ctrl-V)">⧉</button>
       <span class="cvr-chevron">▸</span>
@@ -2308,7 +2308,7 @@ document.addEventListener('change', e => {
   if (e.target.closest('#diabete-panel input[type=checkbox]')) render();
 });
 
-['pat-nom', 'pat-prenom', 'pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-ic', 'pat-dfg', 'pat-rac', 'pat-imc', 'pat-ldl', 'pat-sbp', 'pat-chol', 'pat-hdl', 'pat-hba1c', 'pat-age-mois'].forEach(idn =>
+['pat-nom', 'pat-prenom', 'pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-ic', 'pat-bpco', 'pat-vems', 'pat-exac', 'pat-dfg', 'pat-rac', 'pat-imc', 'pat-ldl', 'pat-sbp', 'pat-chol', 'pat-hdl', 'pat-hba1c', 'pat-age-mois'].forEach(idn =>
   document.getElementById(idn).addEventListener('change', render));
 
 document.getElementById('pat-date').value = new Date().toISOString().slice(0, 10);
