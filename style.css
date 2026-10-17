@@ -648,6 +648,12 @@ header { padding: 12px 24px; }
 .osteo-check { display: flex; align-items: flex-start; gap: 8px; font-size: .8rem; color: #333; line-height: 1.4; cursor: pointer; }
 .osteo-check input { margin-top: 3px; }
 .osteo-check strong { color: #1a2b3c; }
+.osteo-est { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: #fffdf5; border: 1px solid #f0e6c8; border-left: 4px solid #c9a227; border-radius: 10px; padding: 8px 14px; font-size: .8rem; color: #4e4a3a; }
+.osteo-est-k { font-weight: 800; color: #8a6d1a; text-transform: uppercase; letter-spacing: .03em; font-size: .72rem; }
+.osteo-est-v strong { color: #1a2b3c; }
+.osteo-est-btn { border: 1px solid #c9a227; background: #fdf6e3; color: #6d5a10; font-weight: 700; font-size: .74rem; padding: 4px 10px; border-radius: 8px; cursor: pointer; }
+.osteo-est-btn:hover { background: #f7ecc8; }
+.osteo-est-note { width: 100%; font-size: .7rem; color: #9a8f6a; }
 
 /* Barre de stadification BPCO (VEMS / exacerbations / mMRC) */
 .bpco-stage-bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; background: #fff; border: 1px solid #e3eef7; border-left: 4px solid #0d5a8c; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; }
