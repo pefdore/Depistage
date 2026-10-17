@@ -1519,54 +1519,53 @@ function bpcoRxAdvice(p) {
   } else {
     reasons.push('Patient à risque de BPCO — si spirométrie confirme, voir la stratégie ci-dessous');
   }
-  const drugExamples = {
-    labaLama: 'LABA + LAMA en inhalateur unique : Utibron® (indacatérol + glycopyrronium), Bevespi® (formotérol + glycopyrronium), Anoro® (vilanterol + uméclidinium), Duaklir® (formotérol + aclidinium)',
-    lama: 'LAMA : Spiriva® (tiotropium), Incruse® (uméclidinium), Eklira® (aclidinium), Onbrez-... (référencer Vidal)',
-    laba: 'LABA : Oxis®/Turbuhaler (formotérol), Onbrez® (indacatérol), Striverdi® (olodatérol)',
-    bdca: 'BDCA de secours : Ventoline® (salbutamol), Airomir® (salbutamol), Bricanyl® (terbutaline)',
-    icsLabaLama: 'Triple thérapie CSI + LABA + LAMA : Trelegy® (furoate de fluticasone + umeclidinium + vilanterol), Trimbow® (dipropionate de béclométasone + formotérol + glycopyrronium)',
-    csiLaba: 'CSI + LABA : Symbicort® (budsonide + formotérol), Seretide® (fluticasone + salmétérol), Fostair® (dipropionate de béclométasone + formotérol)',
+  const drugs = {
+    labaLama: { k: 'LABA + LAMA (inhalateur unique)', s: ['Utibron® (indacatérol + glycopyrronium)', 'Bevespi® (formotérol + glycopyrronium)', 'Anoro® (vilanterol + uméclidinium)', 'Duaklir® (formotérol + aclidinium)'] },
+    lama: { k: 'LAMA', s: ['Spiriva® (tiotropium)', 'Incruse® (uméclidinium)', 'Eklira® (aclidinium)'] },
+    laba: { k: 'LABA', s: ['Oxis® (formotérol)', 'Onbrez® (indacatérol)', 'Striverdi® (olodatérol)'] },
+    bdca: { k: 'BDCA de secours', s: ['Ventoline® (salbutamol)', 'Airomir® (salbutamol)', 'Bricanyl® (terbutaline)'] },
+    triple: { k: 'Triple thérapie CSI + LABA + LAMA', s: ['Trelegy® (fluticasone + uméclidinium + vilanterol)', 'Trimbow® (béclométasone + formotérol + glycopyrronium)'] },
+    csiLaba: { k: 'CSI + LABA', s: ['Symbicort® (budsonide + formotérol)', 'Seretide® (fluticasone + salmétérol)', 'Fostair® (béclométasone + formotérol)'] },
   };
   let targeted = null;
   if (fullyClassified) {
     if (exGroup === 'E') {
       targeted = {
-        t: 'Groupe E (≥ 2 exacerbations/an) — GOLD ' + goldStage,
-        lines: [
-          'D’emblée : ' + drugExamples.labaLama,
-          'Si ≥ 2 exacerbations/an sous LABA+LAMA ou éosinophiles sanguins ≥ 300/µL : ' + drugExamples.icsLabaLama + ' — ou CSI + LABA (' + drugExamples.csiLaba + ')',
-          'BDCA de secours à la demande : ' + drugExamples.bdca,
+        t: 'Groupe E (≥ 2 exacerbations/an) — ' + goldStage,
+        drugs: [
+          { head: 'D’emblée', d: [drugs.labaLama] },
+          { head: 'Si ≥ 2 exacerb. sous LABA+LAMA ou éosinophiles ≥ 300/µL', d: [drugs.triple, drugs.csiLaba] },
+          { head: 'Secours à la demande', d: [drugs.bdca] },
         ],
       };
     } else if (exGroup === 'B') {
       targeted = {
-        t: 'Groupe B (mMRC ≥ 2 et/ou 1 exacerbation/an) — GOLD ' + goldStage,
-        lines: [
-          'D’emblée : ' + drugExamples.labaLama,
-          'BDCA de secours à la demande : ' + drugExamples.bdca,
+        t: 'Groupe B (mMRC ≥ 2 et/ou 1 exacerbation/an) — ' + goldStage,
+        drugs: [
+          { head: 'D’emblée', d: [drugs.labaLama] },
+          { head: 'Secours à la demande', d: [drugs.bdca] },
         ],
       };
     } else {
       targeted = {
-        t: 'Groupe A (peu symptomatique, 0 exacerbation/an) — GOLD ' + goldStage,
-        lines: [
-          'BDCA à la demande : ' + drugExamples.bdca,
-          'Si symptômes persistants : LABA (ex : ' + 'Onbrez®, Oxis®' + ') ou LAMA (ex : Spiriva®, Incruse®)',
-          'Réévaluer régulièrement : passage groupe B/E possible',
+        t: 'Groupe A (peu symptomatique, 0 exacerbation/an) — ' + goldStage,
+        drugs: [
+          { head: 'À la demande', d: [drugs.bdca] },
+          { head: 'Si symptômes persistants', d: [drugs.laba, drugs.lama] },
+          { head: 'Réévaluer régulièrement : passage groupe B/E possible', d: [] },
         ],
       };
     }
-    if (goldStage === 'GOLD 3' || goldStage === 'GOLD 4') targeted.lines.push('GOLD 3–4 : discuter triple thérapie d’emblée si exacerbations — ' + drugExamples.icsLabaLama);
+    if (goldStage === 'GOLD 3' || goldStage === 'GOLD 4') targeted.drugs.push({ head: 'GOLD 3–4 : discuter triple thérapie d’emblée si exacerbations', d: [drugs.triple] });
   }
   const general = {
-    t: 'Stratégie GOLD (groupe A/B/E) — exemples par classe',
-    lines: [
-      'Groupe A (0 exacerbation, mMRC 0–1) : BDCA à la demande — ' + drugExamples.bdca + ' ; si symptômes : LABA (Onbrez®, Oxis®) ou LAMA (Spiriva®, Incruse®, Eklira®)',
-      'Groupe B (mMRC ≥ 2) : LABA + LAMA d’emblée — ' + drugExamples.labaLama,
-      'Groupe E (≥ 2 exacerbations/an ou ≥ 1 hospitalisation) : LABA + LAMA d’emblée — ' + drugExamples.labaLama + ' ; si persiste : + CSI (triple thérapie) — ' + drugExamples.icsLabaLama,
-      'BDCA de secours (tous groupes) : ' + drugExamples.bdca,
-      'Règle : jamais de CSI seul dans la BPCO ; le CSI s’ajoute (LABA+LAMA) si ≥ 2 exacerbations/an ou éosinophiles ≥ 300/µL',
+    t: 'Stratégie GOLD — groupes A / B / E',
+    groups: [
+      { g: 'A', w: '0 exacerbation, mMRC 0–1', drugs: [{ head: 'À la demande puis si symptômes', d: [drugs.bdca, drugs.laba, drugs.lama] }] },
+      { g: 'B', w: 'mMRC ≥ 2', drugs: [{ head: 'D’emblée', d: [drugs.labaLama] }, { head: 'Secours', d: [drugs.bdca] }] },
+      { g: 'E', w: '≥ 2 exacerb./an ou ≥ 1 hospitalisation', drugs: [{ head: 'D’emblée', d: [drugs.labaLama] }, { head: 'Si persiste', d: [drugs.triple] }] },
     ],
+    rules: ['Jamais de CSI seul dans la BPCO', 'Le CSI s’ajoute au LABA+LAMA si ≥ 2 exacerb./an ou éosinophiles ≥ 300/µL', 'Technique d’inhalation à vérifier à chaque renouvellement'],
   };
   const remb = ['BPCO = ALD 100 % (bilan annuel remboursé)', 'La plupart des LABA/LAMA et associations sont remboursés aux conditions habituelles (SMR important)'];
   const ci = ['Vérifier la technique d’inhalation à chaque renouvellement', 'Pneumocoque + grippe + COVID à jour avant toute escalade', 'CSI : risque de pneumonie — réévaluer la nécessité régulièrement'];
@@ -1652,9 +1651,35 @@ function bpcoRx() {
   const color = adv.ok ? (adv.fullyClassified ? '#c8e6c9' : '#fff9c4') : '#ffecb3';
   const detail = `
     ${rxChips(adv.reasons)}
-    ${adv.targeted ? rxSub('Traitement recommand\u00e9 pour ce patient (classification compl\u00e8te)', adv.targeted.lines) : ''}
-    ${adv.targeted ? '' : `<div class="rx-muted-line">VEMS et/ou exacerbations non renseign\u00e9s \u2014 grille compl\u00e8te ci-dessous ; stadifier d\u00e8s la spirom\u00e9trie + comptage des exacerbations.</div>`}
-    ${rxSub(adv.general.t, adv.general.lines)}
+    ${adv.targeted ? `
+      <div class="rx-drug-block">
+        <div class="rx-drug-block-title">\u2461 Traitement recommand\u00e9 pour ce patient \u2014 ${escapeHtml(adv.targeted.t)}</div>
+        ${adv.targeted.drugs.map(bx => `
+          <div class="rx-drug-line">
+            <div class="rx-drug-head">${escapeHtml(bx.head)}</div>
+            ${bx.d.map(cls => `
+              <div class="rx-drug-class">
+                <span class="rx-drug-class-k">${escapeHtml(cls.k)}</span>
+                <div class="rx-drug-chips">${cls.s.map(sp => `<span class="rx-drug-chip">${escapeHtml(sp)}</span>`).join('')}</div>
+              </div>`).join('')}
+          </div>`).join('')}
+      </div>` : ''}
+    ${adv.targeted ? '' : `<div class="rx-muted-line">VEMS et/ou exacerbations non renseign\u00e9s \u2014 grille compl\u00e8te ci-dessous ; stadifier avec la barre de la carte BPCO (\u00c9tat des lieux).</div>`}
+    <div class="rx-drug-block">
+      <div class="rx-drug-block-title">\u2462 ${escapeHtml(adv.general.t)}</div>
+      ${adv.general.groups.map(grp => `
+        <div class="rx-drug-line">
+          <div class="rx-drug-head"><span class="rx-group-badge rx-group-${grp.g}">${grp.g}</span> ${escapeHtml(grp.w)}</div>
+          ${grp.drugs.map(bx => `
+            <div class="rx-drug-subhead">${escapeHtml(bx.head)}</div>
+            ${bx.d.map(cls => `
+              <div class="rx-drug-class">
+                <span class="rx-drug-class-k">${escapeHtml(cls.k)}</span>
+                <div class="rx-drug-chips">${cls.s.map(sp => `<span class="rx-drug-chip">${escapeHtml(sp)}</span>`).join('')}</div>
+              </div>`).join('')}`).join('')}
+        </div>`).join('')}
+      <div class="rx-drug-rules">${adv.general.rules.map(r => `<span>\u2757 ${escapeHtml(r)}</span>`).join('')}</div>
+    </div>
     ${rxSub('Non-pharmacologique', ['Sevrage tabagique = priorit\u00e9 absolue (seule intervention qui ralentit la progression)', 'R\u00e9habilitation respiratoire (GOLD \u2265 2 ou post-exacerbation)', 'Vaccinations : grippe annuelle, pneumocoque, COVID-19, VRS \u2265 75 ans', 'OHD si PaO\u2082 < 60 mmHg (\u2265 16 h/j) ; nutrition si IMC < 21'])}
     ${rxFlags(adv.remb, adv.ci)}`;
   return rxMakeBox(!!(window._rxOpen && window._rxOpen.bpco), adv.ok ? '#e65100' : '#ffa726', '\ud83e\udec1', 'BPCO \u2014 traitement de fond', status, color, detail);
