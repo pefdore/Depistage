@@ -788,15 +788,6 @@ function renderEtat(p) {
     });
   }
 
-  // IC
-  if (p.ic) {
-    cards.push({
-      icon: '💔', name: 'Insuffisance cardiaque', status: 'Connue', color: '#c62828',
-      data: [`Poids à surveiller quotidiennement`, `iSGLT2 à vérifier (voir Traitements)`],
-      actions: 'Quadrithérapie si FEVG réduite ; ionogramme 7–14 j après chaque modification',
-    });
-  }
-
   // Obésité / SAS
   if (p.imc !== null && p.imc >= 30) {
     cards.push({
