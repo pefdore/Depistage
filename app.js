@@ -30,7 +30,8 @@ const P = () => {
     hta: document.getElementById('pat-hta').value === 'oui',
     ic: document.getElementById('pat-ic').value === 'oui',
     bpco: document.getElementById('pat-bpco')?.value === 'oui',
-    mrc: document.getElementById('pat-mrc')?.value === 'oui',
+    thyroide: document.getElementById('pat-thyroide')?.value || null, // 'hypo' | 'hyper' | 'goitre' | 'thyroidite' | 'non' | null
+    tsh: isNaN(parseFloat(document.getElementById('pat-tsh')?.value)) ? null : parseFloat(document.getElementById('pat-tsh')?.value),
     vems: isNaN(parseFloat(document.getElementById('pat-vems')?.value)) ? null : parseFloat(document.getElementById('pat-vems').value),
     exacerb: isNaN(parseFloat(document.getElementById('pat-exac')?.value)) ? null : parseFloat(document.getElementById('pat-exac').value),
     dfg: isNaN(dfg) ? null : dfg,
@@ -612,6 +613,119 @@ function renderBpcoCvr(p) {
   if (inVems) inVems.addEventListener('change', e => { const el = document.getElementById('pat-vems'); el.value = e.target.value; el.dispatchEvent(new Event('change', { bubbles: true })); });
   if (inExac) inExac.addEventListener('change', e => { const el = document.getElementById('pat-exac'); el.value = e.target.value; el.dispatchEvent(new Event('change', { bubbles: true })); });
   if (inMmrc) inMmrc.addEventListener('change', e => { window._bpcoMmrc = e.target.value === '' ? null : +e.target.value; render(); });
+}
+// ---------- Carte Dysthyroïdie ----------
+// Seuils TSH usuels de l'adulte : 0,4–4,0 mUI/L (à confronter aux normes du laboratoire)
+function thyVerdict(p) {
+  const tsh = p.tsh;
+  const atcd = p.thyroide;
+  const known = atcd && atcd !== 'non';
+  const tshHigh = tsh !== null && tsh > 4.0;
+  const tshLow = tsh !== null && tsh < 0.4;
+  if (tshHigh && tsh >= 10) return { label: 'TSH très élevée — hypothyroïdie probable', color: '#c62828', bg: '#fdecea', dir: 'hypo' };
+  if (tshHigh) return { label: 'TSH élevée — hypothyroïdie (franche si T4L basse, sinon infraclinique)', color: '#ef6c00', bg: '#fff3e0', dir: 'hypo' };
+  if (tshLow) return { label: 'TSH basse — hyperthyroïdie à confirmer (T4L/T3L)', color: '#c62828', bg: '#fdecea', dir: 'hyper' };
+  if (known) {
+    if (atcd === 'hypo' || atcd === 'thyroidite') return { label: 'Dysthyroïdie connue — suivi à assurer', color: '#2e7d32', bg: '#e8f5e9', dir: 'hypo' };
+    if (atcd === 'hyper') return { label: 'Dysthyroïdie connue — suivi à assurer', color: '#2e7d32', bg: '#e8f5e9', dir: 'hyper' };
+    if (atcd === 'goitre') return { label: 'Goitre/nodule connu — surveillance échographique', color: '#2e7d32', bg: '#e8f5e9', dir: 'goitre' };
+  }
+  if (tsh !== null) return { label: 'TSH normale', color: '#2e7d32', bg: '#e8f5e9', dir: null };
+  return { label: 'TSH non renseignée', color: '#37474f', bg: '#eceff1', dir: null };
+}
+const THY_TIRADS = [
+  { v: '', label: '—' },
+  { v: '2', label: 'EU-TIRADS 2 — bénin', cat: 'Aucun contrôle spécifique' },
+  { v: '3', label: 'EU-TIRADS 3 — faible risque', cat: 'Écho de surveillance à 2 ans' },
+  { v: '4', label: 'EU-TIRADS 4 — risque intermédiaire', cat: 'Écho de surveillance à 12 mois ou cytoponction si ≥ 15 mm' },
+  { v: '5', label: 'EU-TIRADS 5 — risque élevé', cat: 'Cytoponction si ≥ 10 mm · avis endocrinologue' },
+];
+function renderThyroideCvr(p) {
+  const panel = document.getElementById('thyroide-panel') || (() => { const d = document.createElement('div'); d.id = 'thyroide-panel'; const diab = document.getElementById('diabete-panel'); diab.parentNode.insertBefore(d, diab); return d; })();
+  const tsh = p.tsh;
+  const atcd = p.thyroide;
+  const known = atcd && atcd !== 'non';
+  const tshBad = tsh !== null && (tsh > 4.0 || tsh < 0.4);
+  if (!known && !tshBad) { panel.innerHTML = ''; return; }
+  const verdict = thyVerdict(p);
+  const f = v => v === null ? '—' : String(v).replace('.', ',');
+  const tirads = window._thyTirads === undefined ? '' : window._thyTirads;
+  const tiradsInfo = THY_TIRADS.find(t => t.v === tirads);
+  const evalRows = [
+    ['TSH', tsh === null ? 'à doser (dépistage si facteurs de risque, signes d’appel, grossesse, amiodarone, lithium)' : f(tsh) + ' mUI/L' + (tsh > 4.0 ? ' — élevée' : tsh < 0.4 ? ' — basse' : ' — normale')],
+    ['T4L / T3L', tshBad ? 'à doser pour confirmer : T4L basse + TSH haute = hypothyroïdie franche · T4L normale = infraclinique · T4L/T3L haute + TSH basse = hyperthyroïdie' : 'selon contexte (interpréter TSH + T4L ensemble)'],
+    ['Étiologie', known ? ({ hypo: 'hypothyroïdie connue (Hashimoto, post-chirurgie/iode…)', hyper: 'hyperthyroïdie connue (Basedow, nodule toxique…)', goitre: 'goitre/nodule connu', thyroidite: 'thyroïdite connue (Hashimoto, De Quervain…)' })[atcd] : 'à préciser : anticorps anti-TPO/anti-Tg (Hashimoto), anti-RTSH (Basedow), échographie thyroïdienne'],
+    ['Signes d’appel', 'Hypo : fatigue, frilosité, prise de poids, constipation, bradycardie, peau sèche · Hyper : amaigrissement, palpitations, tremblement, thermophobie, diarrhée, tachycardie (souvent fruste chez le sujet âgé)'],
+  ];
+  const rxRows = verdict.dir === 'hyper' ? [
+    ['Confirmation', 'T4L + T3L · si franchement élevées : bilan étiologique (anticorps anti-RTSH, échographie ± scintigraphie) puis traitement (antithyroïdiens de synthèse ± iode radioactif ± chirurgie)'],
+    ['Urgences', 'Crise thyrotoxique : fièvre, agitation, tachyarythmie — avis urgent · cardiothyréose chez le sujet âgé/cardiaque'],
+    ['Orbitopathie', 'Basedow : rechercher exophtalmie, diplopie, rougeur oculaire — avis ophtalmo si sévère (corricorésistance ++)'],
+    ['Suivi biologique', 'TSH + T4L : 4–6 semaines après initiation, puis tous les 2–3 mois la 1re année, puis tous les 6 mois · NFS + bilan hépatique sous carbinazole'],
+    ['Comorbidités', 'Fibrillation auriculaire (ECG si palpitations) · ostéoporose (voir carte ostéoporose) · dénutrition'],
+  ] : verdict.dir === 'goitre' ? [
+    ['Échographie', 'Caractériser : EU-TIRADS, taille, compression (dysphagie, dysphonie, gêne respiratoire — avis rapide si signes compressifs)'],
+    ['EU-TIRADS', tirads ? (THY_TIRADS.find(t => t.v === tirads).label + ' — ' + THY_TIRADS.find(t => t.v === tirads).cat) : 'classer le nodule (menu déroulant ci-dessus) — 2 : bénin · 3 : écho/2 ans · 4 : écho/12 mois ou cytoponction ≥ 15 mm · 5 : cytoponction ≥ 10 mm'],
+    ['Biologie', 'TSH (nodule toxique si basse) · calcémie · bilan lésionnel seulement si suspicion'],
+    ['Cytoponction', 'Selon EU-TIRADS et taille (cf. ligne du dessus) — cytologie Bethesda pour guider la suite'],
+    ['Surveillance', 'Échographie selon EU-TIRADS · réexaminer si modification récente d’un goitre ancien (cancer anaplasique, lymphome sur Hashimoto)'],
+  ] : verdict.dir === 'hypo' ? [
+    ['Franchise / infraclinique', 'T4L basse = hypothyroïdie franche → lévothyroxine substitutive · T4L normale = infraclinique → traiter si symptômes, TSH ≥ 10, goitre, femme enceinte/désir de grossesse, sujet jeune'],
+    ['Dépistage associé', 'Hashimoto : chercher autres auto-immunités (B12, glycémie, cœliaque selon contexte) · cause centrale rare si TSH basse/normale + T4L basse'],
+    ['Suivi biologique', 'TSH à 6–8 semaines après initiation/changement de posologie, puis annuelle à dose stable · viser TSH 0,4–4,0 mUI/L'],
+    ['Éducation', 'Lévothyroxine à jeun à distance du petit-déjeuner · interactions (fer, calcium, IPP — espacer) · équilibre ancien/dénutrition : reprise à faible dose'],
+    ['Grossesse', 'Femme en âge de procréer : augmenter la dose d’environ 25–30 % dès la grossesse · TSH 1er trimestre < 2,5'],
+  ] : [
+    ['Suivi', 'Dysthyroïdie connue : TSH ± T4L selon traitement, au moins annuelle'],
+    ['Éducation', 'Observance, interactions médicamenteuses, signes de sur/sous-dosage'],
+  ];
+  const txt = 'Dysthyroïdie — ' + verdict.label + ' · TSH : ' + (tsh === null ? 'non renseignée' : f(tsh) + ' mUI/L') + (known ? ' · ATCD : ' + ({ hypo: 'hypothyroïdie', hyper: 'hyperthyroïdie/Basedow', goitre: 'goitre/nodule', thyroidite: 'thyroïdite' })[atcd] : '');
+  (window._copyTexts = window._copyTexts || {}).thyroide = txt;
+  panel.innerHTML = `  <div class="cvr-box thyroide-cvr${window._thyOpen ? ' open' : ''}" style="--sc:${verdict.color}">
+    <div class="cvr-head" role="button" tabindex="0" aria-expanded="${window._thyOpen ? 'true' : 'false'}" data-thy-toggle="1">
+      <span class="cvr-title">🦋 Dysthyroïdie</span>
+      <span class="cvr-verdict" style="color:${verdict.color}; background:${verdict.bg}">${verdict.label}</span>
+      <button type="button" class="cvr-copy" data-copy-id="thyroide" title="Copier le résumé dysthyroïdie (puis Ctrl-V)">⧉</button>
+      <span class="cvr-chevron">▸</span>
+    </div>
+    <div class="cvr-detail"><div class="cvr-detail-inner">
+      <div class="bpco-stage-bar">
+        <span class="bpco-stage-label">⬣ Nodule / écho :</span>
+        <label class="bpco-stage-field">EU-TIRADS <select id="thy-in-tirads">${THY_TIRADS.map(t => `<option value="${t.v}"${tirads === t.v ? ' selected' : ''}>${escapeHtml(t.label)}</option>`).join('')}</select></label>
+        <span class="bpco-stage-hint">${tiradsInfo && tiradsInfo.cat ? tiradsInfo.cat : 'classer si écho disponible'}</span>
+      </div>
+      <details class="bpco-stage-help"><summary>❓ Précisions : seuils TSH et EU-TIRADS</summary><div class="bpco-stage-help-body">
+        <div class="bpco-help-title">TSH (mUI/L, normes du laboratoire)</div>
+        <div><strong>Hypothyroïdie :</strong> TSH > 4 mUI/L. Franche si T4L basse ; infraclinique si T4L normale (traiter si symptômes, TSH ≥ 10, goitre, grossesse/désir, sujet jeune).</div>
+        <div><strong>Hyperthyroïdie :</strong> TSH < 0,4 mUI/L. Confirmer par T4L/T3L ; TSH basse isolée = infraclinique (contrôle à 2–3 mois, explorer si persistante).</div>
+        <div><strong>Chez le sujet âgé :</strong> TSH isolée modérément anormale souvent sans traitement — éviter le sur-traitement.</div>
+        <div class="bpco-help-title" style="margin-top:8px">EU-TIRADS (nodule thyroïdien, échographie)</div>
+        <div><strong>2 (bénin) :</strong> pas de contrôle spécifique · <strong>3 (faible risque) :</strong> écho à 2 ans · <strong>4 (intermédiaire) :</strong> écho à 12 mois ou cytoponction si ≥ 15 mm · <strong>5 (risque élevé) :</strong> cytoponction si ≥ 10 mm, avis endocrinologue.</div>
+        <div><strong>Signes d’alerte :</strong> nodule dur, fixé, adénopathie cervicale, croissance rapide, dysphonie — avis rapide.</div>
+      </div></details>
+      <div class="cvr-layout">
+        <div class="cvr-col">
+          <div class="cvr-panel-title">① Éléments à évaluer</div>
+          ${evalRows.map(([k, val]) => `<div class="cvr-row"><strong>${escapeHtml(k)} :</strong> ${escapeHtml(val)}</div>`).join('')}
+        </div>
+        <div class="cvr-col">
+          <div class="cvr-scorecard" style="--sc:${verdict.color}">
+            <div class="cvr-scorecard-top">
+              <div class="cvr-gauge"><div class="cvr-gauge-fill" style="width:${tsh === null ? 0 : Math.min(100, Math.max(8, tsh <= 4 ? tsh / 4 * 50 : 50 + Math.min(50, (tsh - 4) / 6 * 50)))}%; background:${verdict.color}"></div></div>
+              <div class="cvr-scorecard-pct">${tsh === null ? '—' : f(tsh)}<span class="cvr-pct-unit">mUI/L</span></div>
+            </div>
+            <div class="cvr-scorecard-cat" style="color:${verdict.color}">${verdict.label}</div>
+            <div class="cvr-scorecard-sub">${known ? 'ATCD : ' + ({ hypo: 'hypothyroïdie', hyper: 'hyperthyroïdie/Basedow', goitre: 'goitre/nodule', thyroidite: 'thyroïdite' })[atcd] : 'Pas d’ATCD thyroïdien renseigné'}</div>
+            <div class="cvr-scorecard-act">${verdict.dir === 'hyper' ? 'Confirmer par T4L/T3L · ECG si palpitations.' : verdict.dir === 'hypo' ? 'Confirmer par T4L · substituer si franche.' : verdict.dir === 'goitre' ? 'Surveillance échographique selon EU-TIRADS.' : 'TSH à jour.'}</div>
+          </div>
+          <div class="cvr-panel-title">② Conduite à tenir — ${verdict.dir === 'hyper' ? 'hyperthyroïdie' : verdict.dir === 'goitre' ? 'goitre / nodule' : verdict.dir === 'hypo' ? 'hypothyroïdie' : 'suivi'}</div>
+          ${rxRows.map(([k, val]) => `<div class="cvr-row"><strong>${escapeHtml(k)} :</strong> ${escapeHtml(val)}</div>`).join('')}
+        </div>
+      </div>
+    </div></div>
+  </div>`;
+  const inTirads = panel.querySelector('#thy-in-tirads');
+  if (inTirads) inTirads.addEventListener('change', e => { window._thyTirads = e.target.value; render(); });
 }
 function icVerdict(p, fevg, nyha) {
   if (fevg === null && nyha === null) return { label: p.ic ? 'IC \u2014 \u00e0 stadifier (FEVG, NYHA)' : 'Suspect\u00e9e \u2014 bilan \u00e0 faire', color: '#37474f', bg: '#eceff1' };
@@ -2565,6 +2679,7 @@ function render() {
   const reminders = [];
   renderPedia(p);
   renderBpcoCvr(p);
+  renderThyroideCvr(p);
   renderIcCvr(p);
   renderOsteoCvr(p);
   if (!pedia) {
@@ -2917,6 +3032,8 @@ document.addEventListener('click', e => {
   }
   const bpcoHead = e.target.closest('[data-bpco-toggle]');
   if (bpcoHead) { window._bpcoOpen = !window._bpcoOpen; render(); return; }
+  const thyHead = e.target.closest('[data-thy-toggle]');
+  if (thyHead) { window._thyOpen = !window._thyOpen; render(); return; }
   const icHead = e.target.closest('[data-ic-toggle]');
   if (icHead) { window._icOpen = !window._icOpen; render(); return; }
   const osHead = e.target.closest('[data-osteo-toggle]');
@@ -3412,6 +3529,16 @@ const PASTE_ATCD = [
   { id: 'pat-bpco',
     patterns: [/\bbpco\b/i, /broncho[- ]?pneumopathie(\s+chronique)?\s+(obstructive|obstruante)/i, /bronchite chronique obstructive/i, /\bj44(\.\d)?\b/i, /\br95(\.\d)?\b/i],
     excludes: [] },
+  // Dysthyroïdie (CIM-10 : E02 hypothyroïdie infraclinique, E03 hypothyroïdie dont E03.9, E05.x thyréotoxicose dont E05.0 Basedow, E06.3 Hashimoto, E04.x goitre non toxique ; CISP-2 : T82 goitre, T85 hyperthyroïdie/thyréotoxicose, T86 hypothyroïdie/myxœdème)
+  // Valeur cible du <select> : hypo = E03/E02/T86 · hyper = E05/Basedow/T85 · goitre = E04/T82 · thyroidite = E06.x (Hashimoto E06.3)
+  { id: 'pat-thyroide',
+    kind: 'value',
+    map: [
+      { v: 'hyper', patterns: [/basedow/i, /graves/i, /hyperthyr[oïi]d(ie|isme)/i, /thyr[ée]otoxicose/i, /\be05(\.\d)?\b/i, /\bt85(\.\d)?\b/i], excludes: [] },
+      { v: 'thyroidite', patterns: [/hashimoto/i, /thyro[ïi]dite/i, /\be06(\.\d)?\b/i], excludes: [] },
+      { v: 'goitre', patterns: [/goitre/i, /nodule(s)? thyr[oïi]dien/i, /\be0[014](\.\d)?\b/i, /\bt82(\.\d)?\b/i], excludes: [] },
+      { v: 'hypo', patterns: [/hypothyr[oïi]d(ie|isme)/i, /myx[œoe]d[èe]me/i, /levothyroxine|l-thyroxine/i, /\be0[23](\.\d)?\b/i, /\bt86(\.\d)?\b/i], excludes: [] },
+    ] },
   // Maladie rénale chronique (CIM-10 N18.x, CISP U99.2/U99)
   { id: 'pat-mrc',
     patterns: [/\bmrc\b/i, /maladie r[éeè]nale chronique/i, /insuffisance r[éeè]nale chronique/i, /\bn18(\.\d)?\b/i, /\bu99(\.\d)?\b/i],
@@ -3461,12 +3588,28 @@ function parsePasteVolet(text) {
   if (atcdStart !== -1) {
     const atcdLines = lines.slice(atcdStart + 1, atcdEnd === -1 ? undefined : atcdEnd).filter(Boolean);
     const allAtcd = atcdLines.join('\n');
-    PASTE_ATCD.forEach(({ id, patterns, excludes }) => {
-      const hit = patterns.some(re => re.test(allAtcd));
-      const excluded = excludes && excludes.length > 0 && excludes.some(re => re.test(allAtcd));
-      if (hit && !excluded) {
-        const el = document.getElementById(id);
-        if (el) { el.value = 'oui'; res.filled.push((el.closest('label')?.childNodes[0]?.textContent?.trim() || id) + ' : Oui (d\u2019apr\u00e8s les ATCD)'); }
+    PASTE_ATCD.forEach(({ id, patterns, excludes, map }) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const label = (el.closest('label')?.childNodes[0]?.textContent?.trim() || id);
+      if (map) {
+        for (const { v, patterns: ps, excludes: ex } of map) {
+          const hit = ps.some(re => re.test(allAtcd));
+          const excluded = ex && ex.length > 0 && ex.some(re => re.test(allAtcd));
+          if (hit && !excluded) {
+            el.value = v;
+            const opt = [...el.querySelectorAll('option')].find(o => o.value === v);
+            res.filled.push(label + ' : ' + (opt?.textContent?.trim() || v) + ' (d\u2019apr\u00e8s les ATCD)');
+            return;
+          }
+        }
+      } else {
+        const hit = patterns.some(re => re.test(allAtcd));
+        const excluded = excludes && excludes.length > 0 && excludes.some(re => re.test(allAtcd));
+        if (hit && !excluded) {
+          el.value = 'oui';
+          res.filled.push(label + ' : Oui (d\u2019apr\u00e8s les ATCD)');
+        }
       }
     });
   }
