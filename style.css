@@ -644,3 +644,14 @@ header { padding: 12px 24px; }
 .bpco-stage-field input, .bpco-stage-field select { width: 72px; padding: 5px 8px; border: 1px solid #b3cfe0; border-radius: 7px; font-size: .82rem; font-weight: 700; color: #1a2b3c; background: #fff; }
 .bpco-stage-field select { width: 110px; }
 .bpco-stage-hint { margin-left: auto; font-weight: 800; font-size: .8rem; color: #ef6c00; background: #fff3e0; padding: 4px 12px; border-radius: 999px; }
+
+/* Légende stadification BPCO (mMRC / exacerbation) */
+.bpco-stage-help { margin: -6px 0 12px; }
+.bpco-stage-help summary { cursor: pointer; font-size: .74rem; font-weight: 700; color: #0d5a8c; user-select: none; list-style: none; }
+.bpco-stage-help summary::-webkit-details-marker { display: none; }
+.bpco-stage-help summary::before { content: '\25B8'; display: inline-block; margin-right: 6px; transition: transform .2s; }
+.bpco-stage-help[open] summary::before { transform: rotate(90deg); }
+.bpco-stage-help-body { font-size: .76rem; color: #333; line-height: 1.55; padding: 8px 12px; background: #fbfdfe; border: 1px solid #e3eef7; border-radius: 9px; margin-top: 6px; }
+.bpco-stage-help-body > div { padding: 2px 0; }
+.bpco-stage-help-body strong { color: #1a2b3c; }
+.bpco-help-title { font-weight: 800; color: #0d5a8c; text-transform: uppercase; font-size: .68rem; letter-spacing: .04em; }

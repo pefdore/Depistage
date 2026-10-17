@@ -569,9 +569,21 @@ function renderBpcoCvr(p) {
         <span class="bpco-stage-label">⬣ Stadifier ici :</span>
         <label class="bpco-stage-field">VEMS (% théor.) <input type="number" id="bpco-in-vems" min="5" max="150" step="1" value="${v === null ? '' : v}" placeholder="%"></label>
         <label class="bpco-stage-field">Exacerb. / an <input type="number" id="bpco-in-exac" min="0" max="30" step="1" value="${ex === null ? '' : ex}" placeholder="nb"></label>
-        <label class="bpco-stage-field">mMRC (0–4) <select id="bpco-in-mmrc"><option value=""${mmrc === null ? ' selected' : ''}>—</option>${[0,1,2,3,4].map(m => `<option value="${m}"${mmrc === m ? ' selected' : ''}>${m}${m === 2 ? ' (≥ 2 = groupe B)' : ''}</option>`).join('')}</select></label>
+        <label class="bpco-stage-field">mMRC (0–4) <select id="bpco-in-mmrc"><option value=""${mmrc === null ? ' selected' : ''}>—</option>${[0,1,2,3,4].map(m => `<option value="${m}"${mmrc === m ? ' selected' : ''}>mMRC ${m} — ${['aucune dyspnée', 'dyspnée aux efforts intenses', 'dyspnée : marche ralentie / plateau', 'dyspnée : pause après 100 m', 'dyspnée : ne sort plus'][m]}</option>`).join('')}</select></label>
         <span class="bpco-stage-hint">${exGroup ? 'Groupe ' + exGroup : 'Renseigner pour statuer'}</span>
       </div>
+      <details class="bpco-stage-help"><summary>❓ Précisions : échelle mMRC et exacerbation</summary><div class="bpco-stage-help-body">
+        <div class="bpco-help-title">Échelle mMRC (dyspnée, Modified Medical Research Council)</div>
+        <div><strong>mMRC 0 :</strong> aucune dyspnée, sauf lors d’un exercice physique intense (course, sport).</div>
+        <div><strong>mMRC 1 :</strong> essoufflement lors de la marche rapide en terrain plat ou en côte légère.</div>
+        <div><strong>mMRC 2 :</strong> marche plus lente que les gens de son âge sur terrain plat, ou pause après ~15 min de marche (≈ 500 m / 15 min) — <strong>≥ 2 = groupe B</strong>.</div>
+        <div><strong>mMRC 3 :</strong> pause après ~100 m de marche ou quelques minutes sur terrain plat.</div>
+        <div><strong>mMRC 4 :</strong> trop essoufflé pour sortir de chez soi, ou dyspnée lors de l’habillage — sévère.</div>
+        <div class="bpco-help-title" style="margin-top:8px">Exacerbation de BPCO</div>
+        <div><strong>Définition :</strong> épisode aigu d’aggravation des symptômes respiratoires (<strong>toux, expectorations, dyspnée</strong>) au-delà de la variation quotidienne normale, <strong>brutal et > 48 h</strong>, nécessitant une modification du traitement.</div>
+        <div><strong>À compter :</strong> les exacerbations traitées (antibiotique et/ou corticoïdes, ou qui ont nécessité une consultation). <strong>≥ 2/an ou ≥ 1 hospitalisation = groupe E</strong> (haut risque).</div>
+        <div><strong>Piège :</strong> ne pas compter les simples rhinites/rhumes sans retentissement bronchique ; en revanche une surinfection bronchique avec purulence et majoration de la dyspnée compte bien.</div>
+      </div></details>
       <div class="cvr-layout">
         <div class="cvr-col">
           <div class="cvr-panel-title">① Éléments à évaluer</div>
