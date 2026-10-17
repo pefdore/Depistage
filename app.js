@@ -508,7 +508,7 @@ function bpcoGroup(ex, mmrc) {
   return 'A';
 }
 function renderBpcoCvr(p) {
-  const panel = document.getElementById('bpco-panel') || (() => { const d = document.createElement('div'); d.id = 'bpco-panel'; const etat = document.getElementById('etat-panel'); etat.parentNode.insertBefore(d, etat); return d; })();
+  const panel = document.getElementById('bpco-panel') || (() => { const d = document.createElement('div'); d.id = 'bpco-panel'; const diab = document.getElementById('diabete-panel'); diab.parentNode.insertBefore(d, diab); return d; })();
   const hints = (window._bpcoHints && window._bpcoHints.factors) || [];
   const riskAge = p.age !== null && p.age >= 40;
   const riskPa = p.pa !== null && p.pa >= 20;
@@ -624,7 +624,7 @@ function icVerdict(p, fevg, nyha) {
   return { label: parts.join(' \u00b7 '), color, bg };
 }
 function renderIcCvr(p) {
-  const panel = document.getElementById('ic-panel') || (() => { const d = document.createElement('div'); d.id = 'ic-panel'; const bpco = document.getElementById('bpco-panel'); const etat = document.getElementById('etat-panel'); (bpco || etat).parentNode.insertBefore(d, etat); return d; })();
+  const panel = document.getElementById('ic-panel') || (() => { const d = document.createElement('div'); d.id = 'ic-panel'; const bpco = document.getElementById('bpco-panel'); const diab = document.getElementById('diabete-panel'); (bpco || diab).parentNode.insertBefore(d, bpco || diab); return d; })();
   const num = id => { const v = parseFloat(document.getElementById(id)?.value); return isNaN(v) ? null : v; };
   const riskUndiag = !p.ic && p.age !== null && p.age >= 65 && (p.hta || p.diabete || p.tabac === 'actif' || p.bpco);
   if (!p.ic && !riskUndiag) { panel.innerHTML = ''; return; }
@@ -877,7 +877,7 @@ function osteoVerdict(p, tscore) {
   return null;
 }
 function renderOsteoCvr(p) {
-  const panel = document.getElementById('osteo-panel') || (() => { const d = document.createElement('div'); d.id = 'osteo-panel'; const etat = document.getElementById('etat-panel'); etat.parentNode.insertBefore(d, etat); return d; })();
+  const panel = document.getElementById('osteo-panel') || (() => { const d = document.createElement('div'); d.id = 'osteo-panel'; const diab = document.getElementById('diabete-panel'); diab.parentNode.insertBefore(d, diab); return d; })();
   const f = window._osteoF || {};
   const ctx = osteoContext(p);
   const fr = osteoFrax(p);
@@ -1055,62 +1055,6 @@ function renderOsteoCvr(p) {
     const el = panel.querySelector(sel);
     if (el) el.addEventListener('change', e => { const v = parseFloat(String(e.target.value).replace(',', '.')); window._osteoVals = window._osteoVals || {}; if (isNaN(v)) delete window._osteoVals[key]; else window._osteoVals[key] = v; render(); });
   });
-}
-function renderEtat(p) {
-  const panel = document.getElementById('etat-panel');
-  if (!panel) return;
-  const f = v => v === null ? '—' : String(v).replace('.', ',');
-  const kd = kdigoStage(p);
-  const cards = [];
-
-  // HTA
-  if (p.hta) {
-    const sbp = p.sbp;
-    const status = sbp === null ? { t: 'TA à jour ?', c: '#78909c' } : sbp < 140 ? { t: 'Contrôlée', c: '#2e7d32' } : sbp < 160 ? { t: 'Non contrôlée (niveau 1)', c: '#ef6c00' } : { t: 'Non contrôlée (niveau 2+)', c: '#c62828' };
-    cards.push({
-      icon: '🩺', name: 'Hypertension artérielle', status: status.t, color: status.c,
-      data: [`PAS : ${sbp === null ? '—' : sbp + ' mmHg'}`, `DFG : ${p.dfg === null ? '—' : p.dfg}`, `LDL : ${p.ldl === null ? '—' : f(p.ldl) + ' g/L'}`],
-      actions: 'Automesure TA à domicile ; réévaluation du traitement si non contrôlée (voir Traitements → Antihypertenseurs)',
-    });
-  }
-
-  // MRC
-  if (p.dfg !== null && p.dfg < 60) {
-    const risk = kd && kd.risk ? KDIGO_RISK_LABEL[kd.risk] : 'RAC manquant';
-    const color = kd && kd.risk ? KDIGO_RISK_COLOR[kd.risk] : '#9e9e9e';
-    cards.push({
-      icon: '🫘', name: 'Maladie rénale chronique', status: `KDIGO ${kd ? kd.g + (kd.a ? ' ' + kd.a : '') : '—'} · ${risk}`, color,
-      data: [`DFG : ${p.dfg} mL/min`, `RAC : ${p.rac !== null && p.rac !== undefined ? (p.rac === 'nc' ? 'NC (A1)' : f(p.rac) + ' mg/mmol') : 'à doser'}`],
-      actions: 'Détail dans le bloc Fonction rénale ci-dessous',
-    });
-  }
-
-  // Obésité / SAS
-  if (p.imc !== null && p.imc >= 30) {
-    cards.push({
-      icon: '⚖️', name: 'Obésité', status: `IMC ${f(p.imc)}`, color: p.imc >= 40 ? '#c62828' : '#ef6c00',
-      data: [`IMC : ${f(p.imc)} kg/m²`, `Tour de taille non renseigné`],
-      actions: 'Dépister SAS (STOP-Bang dans À faire) ; GLP-1/tirzépatide si DT2 (voir Stratégie antidiabétique)',
-    });
-  }
-
-  // Tabagisme actif
-  if (p.tabac === 'actif' && !p.bpco) {
-    cards.push({
-      icon: '🚬', name: 'Tabagisme actif', status: p.pa !== null ? `${p.pa} PA` : 'PA à préciser', color: '#c62828',
-      data: [p.pa !== null ? `${p.pa} paquets-années` : 'Paquets-années non renseignés', p.age !== null ? `${p.age} ans` : ''],
-      actions: 'Aide au sevrage à chaque consultation — fiche info patient « Arrêter de fumer » disponible',
-    });
-  }
-
-  if (!cards.length) { panel.innerHTML = ''; return; }
-  panel.innerHTML = `<div class="etat-grid">${cards.map(c => `
-    <div class="etat-box" style="border-left: 5px solid ${c.color}">
-      <div class="etat-title">${c.icon} ${escapeHtml(c.name)}</div>
-      <div class="etat-status" style="color:${c.color}">${escapeHtml(c.status)}</div>
-      ${c.data.filter(Boolean).map(d => `<div class="etat-txt">${escapeHtml(d)}</div>`).join('')}
-      <div class="etat-act">${escapeHtml(c.actions)}</div>
-    </div>`).join('')}</div>`;
 }
 function renderKdigo(p) {
   const panel = document.getElementById('kdigo-panel');
@@ -2620,7 +2564,6 @@ function render() {
 
   const reminders = [];
   renderPedia(p);
-  renderEtat(p);
   renderBpcoCvr(p);
   renderIcCvr(p);
   renderOsteoCvr(p);
