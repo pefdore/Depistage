@@ -3153,11 +3153,26 @@ const PASTE_LABELS = [
 ];
 // Synonymes d'antécédents médicaux -> champs à cocher (section Antécédents médicaux du volet)
 const PASTE_ATCD = [
-  { id: 'pat-diabete', patterns: [/diab[ée]te/i, /\bdnid\b/i, /\bdid\b/i, /\bdt2\b/i, /\bdt1\b/i] },
-  { id: 'pat-hta', patterns: [/\bhta\b/i, /hypertension/i] },
-  { id: 'pat-ic', patterns: [/insuffisance cardiaque/i] },
-  { id: 'pat-bpco', patterns: [/\bbpco\b/i, /broncho[- ]?pneumopathie/i, /bronchite chronique obstructive/i] },
-  { id: 'pat-mrc', patterns: [/\bmrc\b/i, /maladie r[ée]nale chronique/i] },
+  // Diabète de type 2 (CIM-10 E11.x, CISP T90) — le DT1 (E10) n'est PAS coché : module orienté DT2
+  { id: 'pat-diabete',
+    patterns: [/diab[éeè]te(?!\s*(de\s+)?type\s*1)(?!\s*insulino)/i, /diab[éeè]te sucr[éeè] de type\s*2/i, /\bdt2\b/i, /\bdnid\b/i, /\be11(\.\d)?\b/i, /\bt90\b/i],
+    excludes: [/diab[éeè]te(\s+de)?\s*type\s*1/i, /\bdt1\b/i, /\be10(\.\d)?\b/i, /insulino[- ]?d[éeè]pendant/i, /\bdid\b/i] },
+  // HTA (CIM-10 I10.x, CISP K86)
+  { id: 'pat-hta',
+    patterns: [/\bhta\b/i, /hypertension(\s+art[éeè]rielle)?(\s+essentielle|\s+primaire)?/i, /\bi1[0-5](\.\d)?\b/i, /\bk86\b/i],
+    excludes: [/hypertension(\s+art[éeè]rielle)?\s+(pulmonaire|portale|intracr[éeè]nienne|posturale)/i] },
+  // Insuffisance cardiaque (CIM-10 I50.x, CISP K01)
+  { id: 'pat-ic',
+    patterns: [/insuffisance cardiaque/i, /\bi50(\.\d)?\b/i, /\bk01(\.\d)?\b/i],
+    excludes: [] },
+  // BPCO (CIM-10 J44.x, J41-J42 si obstructive, CISP R95)
+  { id: 'pat-bpco',
+    patterns: [/\bbpco\b/i, /broncho[- ]?pneumopathie(\s+chronique)?\s+(obstructive|obstruante)/i, /bronchite chronique obstructive/i, /\bj44(\.\d)?\b/i, /\br95(\.\d)?\b/i],
+    excludes: [] },
+  // Maladie rénale chronique (CIM-10 N18.x, CISP U99.2/U99)
+  { id: 'pat-mrc',
+    patterns: [/\bmrc\b/i, /maladie r[éeè]nale chronique/i, /insuffisance r[éeè]nale chronique/i, /\bn18(\.\d)?\b/i, /\bu99(\.\d)?\b/i],
+    excludes: [] },
 ];
 function parsePasteVolet(text) {
   const lines = String(text || '').split(/\r?\n/).map(l => l.trim());
@@ -3203,8 +3218,10 @@ function parsePasteVolet(text) {
   if (atcdStart !== -1) {
     const atcdLines = lines.slice(atcdStart + 1, atcdEnd === -1 ? undefined : atcdEnd).filter(Boolean);
     const allAtcd = atcdLines.join('\n');
-    PASTE_ATCD.forEach(({ id, patterns }) => {
-      if (patterns.some(re => re.test(allAtcd))) {
+    PASTE_ATCD.forEach(({ id, patterns, excludes }) => {
+      const hit = patterns.some(re => re.test(allAtcd));
+      const excluded = excludes && excludes.length > 0 && excludes.some(re => re.test(allAtcd));
+      if (hit && !excluded) {
         const el = document.getElementById(id);
         if (el) { el.value = 'oui'; res.filled.push((el.closest('label')?.childNodes[0]?.textContent?.trim() || id) + ' : Oui (d\u2019apr\u00e8s les ATCD)'); }
       }
