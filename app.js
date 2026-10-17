@@ -804,14 +804,34 @@ function osteoHasReimbursable(p) {
   const f = window._osteoF || {};
   return !!(f.fractureFaibleEnergie || f.cortico || f.menopPrecoce || f.hyperthyroidie || f.hypogonad || f.malabsorption || f.polyarthrite || f.immobilisation || (isF(p) && f.menop && (f.atcdParent || (p.imc !== null && p.imc < 19) || f.menopPrecoce)));
 }
+function osteoNum(key) {
+  const v = (window._osteoVals || {})[key];
+  return (v === undefined || v === null || v === '') ? null : v;
+}
+function osteoTbsLabel(tbs) {
+  if (tbs === null) return null;
+  if (tbs > 1.350) return { label: 'TBS normal (> 1,350)', color: '#2e7d32' };
+  if (tbs >= 1.200) return { label: 'TBS intermédiaire (1,200–1,350)', color: '#f9a825' };
+  return { label: 'TBS abaissé (< 1,200) — microarchitecture altérée', color: '#c62828' };
+}
+function osteoFraxHigh(p) {
+  const fm = osteoNum('fraxMajeure'), fh = osteoNum('fraxHanche');
+  if (fm !== null && fm >= 20) return { high: true, why: 'FRAX fracture majeure ≥ 20 % à 10 ans' };
+  if (fh !== null && fh >= 3) return { high: true, why: 'FRAX hanche ≥ 3 % à 10 ans' };
+  if (fm !== null || fh !== null) return { high: false, why: null };
+  return { high: null, why: null };
+}
 function osteoVerdict(p, tscore) {
   const fr = osteoFrax(p);
   const has = osteoHasReimbursable(p);
+  const frax = osteoFraxHigh(p);
+  const tbsL = osteoTbsLabel(osteoNum('tbs'));
   if (tscore !== null) {
     if (tscore <= -2.5) return { label: 'Ostéoporose (T ≤ −2,5) — traitement à instaurer', color: '#c62828', bg: '#fdecea' };
     if (tscore <= -1) return { label: 'Ostéopénie (T entre −1 et −2,5)' + ((window._osteoF || {}).fractureFaibleEnergie ? ' — fracture de fragilité = traiter' : ''), color: fr.pts >= 5 ? '#ef6c00' : '#f9a825', bg: '#fffde7' };
     return { label: 'Densité osseuse normale (T > −1)', color: '#2e7d32', bg: '#e8f5e9' };
   }
+  if (frax.high) return { label: 'Risque FRAX élevé — traitement indiqué', color: '#c62828', bg: '#fdecea' };
   if (has) return { label: 'Indication de densitométrie (critères HAS, remboursée)', color: '#ef6c00', bg: '#fff3e0' };
   if (fr.pts >= 3) return { label: 'Risque à évaluer — calculer le FRAX®', color: '#f9a825', bg: '#fffde7' };
   return null;
@@ -828,6 +848,9 @@ function renderOsteoCvr(p) {
   if (!femmeMenop && !hommeTerrain && !verdict && fr.pts < 2) { panel.innerHTML = ''; return; }
   const fNum = v => v === null ? '—' : String(v).replace('.', ',');
   const toggle = (key, label, hint) => `<label class="osteo-check"><input type="checkbox" data-osteo-f="${key}"${f[key] ? ' checked' : ''}><span><strong>${escapeHtml(label)}</strong>${hint ? ' — ' + escapeHtml(hint) : ''}</span></label>`;
+  const frax = osteoFraxHigh(p);
+  const tbs = osteoNum('tbs');
+  const tbsL = osteoTbsLabel(tbs);
   const evalRows = [
     ['Terrain', isF(p) ? (femmeMenop ? 'Femme ménopausée' : 'Femme — ménopause non renseignée') : (hommeTerrain ? 'Homme avec facteur de risque osseux' : 'Homme — pas de dépistage systématique')],
     ['Facteurs', ctx.length ? ctx.join(' · ') : 'aucun renseigné'],
@@ -835,7 +858,8 @@ function renderOsteoCvr(p) {
     ['Tassements vertébraux', f.tassements ? 'retrouvés — radiographies du rachis (ou VFA) : fracture vertébrale = ostéoporose' : 'mesurer la taille (comparaison jeune adulte), recherche de tassements'],
     ['Calcium / vitamine D', 'Apports calciques 1–1,2 g/j (complément si insuffisant) · 25(OH)D à doser si terrain à risque · supplémentation vitamine D si carence'],
     ['T-score', tscore === null ? 'non renseigné' + (osteoHasReimbursable(p) ? ' — densitométrie indiquée et remboursée (HAS)' : ' — indication à évaluer (critères HAS)') : fNum(tscore) + (tscore <= -2.5 ? ' — ostéoporose' : tscore <= -1 ? ' — ostéopénie' : ' — normal')],
-    ['FRAX', fr.pts >= 5 ? 'risque de fracture vraisemblablement élevé — FRAX® formalisé à calculer' : (fr.pts >= 3 ? 'risque intermédiaire — calculer le FRAX® (seuil d\'intervention ≥ 20 % fracture majeure)' : 'risque a priori faible — FRAX® utile si ≥ 2 facteurs')],
+    ['FRAX', (osteoNum('fraxMajeure') !== null || osteoNum('fraxHanche') !== null) ? 'fracture majeure ' + (osteoNum('fraxMajeure') !== null ? fNum(osteoNum('fraxMajeure')) + ' %' : '—') + ' · hanche ' + (osteoNum('fraxHanche') !== null ? fNum(osteoNum('fraxHanche')) + ' %' : '—') + (frax.high ? ' → seuil d\'intervention atteint : traiter' : frax.high === false ? ' → sous les seuils (majeure < 20 %, hanche < 3 %)' : '') : (fr.pts >= 5 ? 'risque vraisemblablement élevé — FRAX® à calculer' : (fr.pts >= 3 ? 'risque intermédiaire — calculer le FRAX® (intervention si ≥ 20 % / ≥ 3 %)' : 'risque a priori faible — FRAX® utile si ≥ 2 facteurs'))],
+    ['TBS', tbs === null ? 'non renseigné — figure sur les comptes-rendus récents de densitométrie ; < 1,200 = microarchitecture altérée (risque accru même à T-score égal)' : fNum(tbs) + ' — ' + tbsL.label],
     ['Chutes', f.chutes ? 'chutes récentes — dépister les causes (vision, iatrogénie, hypotension orthostatique) et prévenir' : 'interroger sur les chutes de l\'année écoulée ; vérifier vision, psychotropes, orthostatisme'],
   ];
   const rxRows = (tscore !== null && tscore <= -2.5) || f.fractureFaibleEnergie || f.tassements ? [
@@ -884,9 +908,30 @@ function renderOsteoCvr(p) {
         <div class="bpco-stage-bar" style="margin-bottom:0">
           <span class="bpco-stage-label">⬩ Stadifier ici :</span>
           <label class="bpco-stage-field">T-score (site le plus bas) <input type="number" id="osteo-in-t" min="-10" max="1" step="0.1" value="${tscore === null ? '' : tscore}" placeholder="ex : -2,7"></label>
-          <span class="bpco-stage-hint">${tscore === null ? 'Si densitométrie faite' : (tscore <= -2.5 ? 'Ostéoporose' : tscore <= -1 ? 'Ostéopénie' : 'Normal')}</span>
+          <label class="bpco-stage-field">FRAX® fract. majeure 10 ans (%) <input type="number" id="osteo-in-fraxm" min="0" max="100" step="0.1" value="${osteoNum('fraxMajeure') ?? ''}" placeholder="%"></label>
+          <label class="bpco-stage-field">FRAX® hanche 10 ans (%) <input type="number" id="osteo-in-fraxh" min="0" max="100" step="0.1" value="${osteoNum('fraxHanche') ?? ''}" placeholder="%"></label>
+          <label class="bpco-stage-field">TBS <input type="number" id="osteo-in-tbs" min="0" max="2" step="0.001" value="${osteoNum('tbs') ?? ''}" placeholder="ex : 1,150"></label>
+          <span class="bpco-stage-hint">${tscore === null && osteoNum('fraxMajeure') === null && osteoNum('tbs') === null ? 'Si densitométrie faite' : (tscore !== null ? (tscore <= -2.5 ? 'Ostéoporose' : tscore <= -1 ? 'Ostéopénie' : 'T normal') : '')}</span>
         </div>
       </div>
+      <details class="bpco-stage-help"><summary>🧮 FRAX® et TBS — comment les interpréter en consultation</summary><div class="bpco-stage-help-body">
+        <div class="bpco-help-title">FRAX® — de quoi s'agit-il ?</div>
+        <div>Le FRAX® estime la <strong>probabilité de fracture à 10 ans</strong> (fracture « majeure » : avant-bras, humérus, poignet, hanche ; et fracture de hanche isolément), à partir de : âge, sexe, IMC, fracture préalable, fracture de hanche chez un parent, tabac, alcool, corticoïdes, PR, ostéoporose secondaire. Il est <strong>calculable sans densitométrie</strong> — mais le T-score du col fémoral améliore la prédiction si disponible. Outil gratuit en ligne (shef.ac.uk/FRAX) ou intégré aux densitomètres.</div>
+        <div class="bpco-help-title" style="margin-top:8px">Seuils d'intervention (référence internationale NOF / BHOF)</div>
+        <div><strong>Fracture majeure ≥ 20 % à 10 ans</strong> — OU <strong>fracture de hanche ≥ 3 %</strong> → <strong>traitement anti-ostéoporotique indiqué</strong> (en plus du calcium/vitamine D et de la prévention des chutes).</div>
+        <div><strong>En dessous</strong> → corriger les facteurs de risque, réévaluer (nouveau FRAX® si changement : arrêt tabac, nouvelle fracture, corticoïdes…).</div>
+        <div><strong>France :</strong> la HAS ne rembourse pas les traitements sur le seul FRAX® — le critère d'entrée reste le T-score et/ou une fracture de fragilité ; le FRAX® aide à <strong>décider</strong> chez l'ostéopénique (T entre −1 et −2,5) : si FRAX élevé → traiter malgré l'ostéopénie.</div>
+        <div class="bpco-help-title" style="margin-top:8px">TBS (Trabecular Bone Score) — le « bonus » du densitomètre</div>
+        <div>Le TBS est un indice logiciel calculé sur l'image de densitométrie du rachis lombaire : il reflète la <strong>microarchitecture trabéculaire osseuse</strong>, indépendant de la densité elle-même. Il apparaît sur les comptes-rendus récents à côté du T-score — souvent non utilisé.</div>
+        <div><strong>Interprétation :</strong> TBS &gt; 1,350 = normal · 1,200–1,350 = partiellement dégradé · &lt; 1,200 = microarchitecture altérée, associé à un risque de fracture accru même à T-score égal.</div>
+        <div><strong>À quoi il sert :</strong> affiner l'estimation du risque chez l'ostéopénique (TBS bas + ostéopénie → se comporter comme une ostéoporose), dépister les faux « os denses » (obésité, diabète : T-score flatté mais TBS bas), et suivre la réponse au traitement.</div>
+        <div><strong>Limite :</strong> non remboursé en France en dehors des comptes-rendus de densitométrie, validé sur rachis lombaire uniquement, non interprétable en cas d'obésité majeure.</div>
+        <div class="bpco-help-title" style="margin-top:8px">Comment combiner le tout — mini-arbre de décision</div>
+        <div><strong>①</strong> Fracture de fragilité ou T ≤ −2,5 → traiter (le FRAX n'est plus nécessaire).</div>
+        <div><strong>②</strong> Ostéopénie → regarder le FRAX® : ≥ 20 % (majeure) ou ≥ 3 % (hanche) → traiter ; sinon hygiène + réévaluer. Le TBS abaissé renforce la décision de traiter.</div>
+        <div><strong>③</strong> T normal mais TBS abaissé (obésité, DT2, corticoïdes) → considérer le risque comme accru : prévention renforcée, discuter le traitement si autres facteurs.</div>
+        <div><strong>④</strong> Toute fracture vertébrale radiologique → ostéoporose, quel que soit le T-score.</div>
+      </div></details>
       <details class="bpco-stage-help"><summary>❓ Précisions : critères HAS de remboursement et interprétation du T-score</summary><div class="bpco-stage-help-body">
         <div class="bpco-help-title">Ostéodensitométrie remboursée (70 %) — critères HAS / Assurance Maladie</div>
         <div><strong>Tout âge, tout sexe :</strong> pathologie ou traitement inducteur d\'ostéoporose (corticothérapie ≥ 3 mois, hyperthyroïdie non traitée, hypogonadisme, ménopause précoce < 40 ans, malabsorption, polyarthrite, immobilisation prolongée…).</div>
@@ -933,8 +978,8 @@ function renderOsteoCvr(p) {
               <div class="cvr-scorecard-pct">${tscore === null ? '—' : fNum(tscore)}<span class="cvr-pct-unit">T</span></div>
             </div>
             <div class="cvr-scorecard-cat" style="color:${verdict ? verdict.color : '#78909c'}">${verdict ? verdict.label : 'Aucun facteur majeur'}</div>
-            <div class="cvr-scorecard-sub">${femmeMenop ? 'Femme ménopausée' : isM(p) ? 'Homme' : '—'} · ${ctx.length} facteur${ctx.length > 1 ? 's' : ''} · risque ${fr.pts} pts</div>
-            <div class="cvr-scorecard-act">${(tscore !== null && tscore <= -2.5) || f.fractureFaibleEnergie ? 'Anti-ostéoporotique + calcium/vitamine D + prévention des chutes.' : osteoHasReimbursable(p) ? 'Densitométrie indiquée (remboursée) à prescrire.' : 'Prévention primaire : calcium, vitamine D, activité physique.'}</div>
+            <div class="cvr-scorecard-sub">${femmeMenop ? 'Femme ménopausée' : isM(p) ? 'Homme' : '—'} · ${ctx.length} facteur${ctx.length > 1 ? 's' : ''} · risque ${fr.pts} pts${osteoNum('fraxMajeure') !== null ? ' · FRAX ' + fNum(osteoNum('fraxMajeure')) + ' %' : ''}${tbs !== null ? ' · TBS ' + fNum(tbs) : ''}</div>
+            <div class="cvr-scorecard-act">${(tscore !== null && tscore <= -2.5) || f.fractureFaibleEnergie ? 'Anti-ostéoporotique + calcium/vitamine D + prévention des chutes.' : frax.high ? 'FRAX au-dessus du seuil — traitement anti-ostéoporotique à instaurer.' : (tscore !== null && tscore > -2.5 && tscore <= -1 && tbs !== null && tbs < 1.2) ? 'Ostéopénie + TBS abaissé — discuter un traitement (risque majoré).' : osteoHasReimbursable(p) ? 'Densitométrie indiquée (remboursée) à prescrire.' : 'Prévention primaire : calcium, vitamine D, activité physique.'}</div>
           </div>
           <div class="cvr-panel-title">② Conduite à tenir</div>
           ${rxRows.map(([k2, val]) => `<div class="cvr-row"><strong>${escapeHtml(k2)} :</strong> ${escapeHtml(val)}</div>`).join('')}
@@ -945,6 +990,10 @@ function renderOsteoCvr(p) {
   panel.querySelectorAll('[data-osteo-f]').forEach(cb => cb.addEventListener('change', e => { window._osteoF = window._osteoF || {}; if (e.target.checked) window._osteoF[e.target.dataset.osteoF] = true; else delete window._osteoF[e.target.dataset.osteoF]; render(); }));
   const inT = panel.querySelector('#osteo-in-t');
   if (inT) inT.addEventListener('change', e => { const v = parseFloat(String(e.target.value).replace(',', '.')); window._osteoT = isNaN(v) ? null : v; render(); });
+  [['#osteo-in-fraxm', 'fraxMajeure'], ['#osteo-in-fraxh', 'fraxHanche'], ['#osteo-in-tbs', 'tbs']].forEach(([sel, key]) => {
+    const el = panel.querySelector(sel);
+    if (el) el.addEventListener('change', e => { const v = parseFloat(String(e.target.value).replace(',', '.')); window._osteoVals = window._osteoVals || {}; if (isNaN(v)) delete window._osteoVals[key]; else window._osteoVals[key] = v; render(); });
+  });
 }
 function renderEtat(p) {
   const panel = document.getElementById('etat-panel');
