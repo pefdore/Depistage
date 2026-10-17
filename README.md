@@ -11,6 +11,13 @@ Outil web simple, **100 % local** (aucune donnée envoyée sur le réseau), util
 4. Cliquer sur **🖨️ Fiche patient** : génère et imprime (ou exporte en PDF via « Enregistrer au format PDF ») une fiche de synthèse pour le patient avec les points à jour et les points à programmer.
 5. **💾 Sauvegarder / 📂 Charger** : stockage local du navigateur (une seule check-list à la fois).
 
+## Traitements à ne pas oublier — adaptation intelligente
+
+Le champ **Traitements** du dossier patient est analysé automatiquement (DCI et noms de marque) :
+
+- **Statines** : si une statine est déjà présente et que la cible LDL n'est pas atteinte, l'outil propose l'action adaptée — augmenter la dose (ex. atorvastatine 20 → 80 mg), changer pour une statine haute intensité (ex. simvastatine → atorvastatine/rosuvastatine), ajouter l'ézétimibe si dose maximale, puis PCSK9/inclisiran. Si la cible est atteinte : poursuivre inchangé. LDL projeté calculé pour chaque option (−6 % par doublement de dose, −15-20 % pour l'ézétimibe).
+- **BPCO** : le traitement inhalé en cours (LAMA/LABA/CSI, associations, triple) est détecté et comparé au groupe GOLD A/B/E du patient — alerte CSI seul (jamais indiqué), passage LABA+LAMA si monothérapie insuffisante, escalade vers triple thérapie si ≥ 2 exacerbations sous association, ou au contraire absence d'escalade inutile (technique/observance à vérifier d'abord).
+
 ## Domaines couverts
 
 - 🚬 Tabac / addictions (dont AUDIT-C alcool)

@@ -1567,6 +1567,61 @@ function glp1Advice(p) {
   return { ok: amm, reasons, remb, ci };
 }
 
+function readCurrentMeds() {
+  const raw = (document.getElementById('pat-traitement')?.value || '');
+  const txt = raw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const STAT_MOLS = [
+    ['atorvastatine', /atorvastatine|tahor/],
+    ['rosuvastatine', /rosuvastatine|crestor/],
+    ['simvastatine', /simvastatine|zocor/],
+    ['pravastatine', /pravastatine|elisor/],
+    ['fluvastatine', /fluvastatine|lescol|fractal/],
+    ['pitavastatine', /pitavastatine|vasten/],
+  ];
+  const STAT_INFO = {
+    atorvastatine: { max: 80, tier: d => (d >= 40 ? 'haute' : 'mod\u00e9r\u00e9e') },
+    rosuvastatine: { max: 40, tier: d => (d >= 20 ? 'haute' : 'mod\u00e9r\u00e9e') },
+    simvastatine: { max: 40, tier: () => 'faible' },
+    pravastatine: { max: 40, tier: () => 'faible' },
+    fluvastatine: { max: 80, tier: () => 'faible' },
+    pitavastatine: { max: 4, tier: () => 'mod\u00e9r\u00e9e' },
+  };
+  let statine = null;
+  for (const [mol, re] of STAT_MOLS) {
+    if (re.test(txt)) {
+      let dose = null;
+      const dm = txt.match(new RegExp('(?:' + re.source + ')[\\s\\S]{0,30}?(\\d+)\\s*mg'));
+      if (dm) dose = parseInt(dm[1], 10);
+      const info = STAT_INFO[mol];
+      const cap = mol.charAt(0).toUpperCase() + mol.slice(1);
+      statine = {
+        mol, dose, maxDose: info.max,
+        tier: dose !== null ? info.tier(dose) : 'intensit\u00e9 ind\u00e9termin\u00e9e',
+        atMaxDose: dose !== null && dose >= info.max,
+        label: cap + (dose ? ' ' + dose + ' mg' : ''),
+      };
+      break;
+    }
+  }
+  const bpco = {
+    triple: /trelegy|trimbow/.test(txt),
+    labaLama: /ultibro|anoro|duaklir|bevespi|spiolto|utibron/.test(txt),
+    csiLaba: /symbicort|seretide|fostair|relvar|sirdupla/.test(txt) || (/budesonide|fluticasone|beclometasone/.test(txt) && /formoterol|salmeterol|vilanterol/.test(txt)),
+    lama: /spiriva|tiotropium|incruse|umeclidinium|eklira|aclidinium|seebri|glycopyrronium/.test(txt),
+    laba: /formoterol|oxis|foradil|indacaterol|onbrez|olodaterol|striverdi|salmeterol|serevent/.test(txt),
+    csiSeul: (/budesonide|pulmicort|fluticasone|flixotide|beclometasone|qvar/.test(txt)) && !(/formoterol|salmeterol|vilanterol|glycopyrronium|tiotropium|umeclidinium|aclidinium|indacaterol|olodaterol/.test(txt)),
+    bdca: /salbutamol|ventoline|airomir|terbutaline|bricanyl/.test(txt),
+  };
+  return {
+    statine,
+    ezetimibe: /ezetimibe|ezetrol|inegy/.test(txt),
+    pcsk9: /evolocumab|repatha|alirocumab|praluent/.test(txt),
+    inclisiran: /inclisiran|leqvio/.test(txt),
+    bempedoique: /bempedo/.test(txt),
+    bpco,
+    any: txt.trim().length > 0,
+  };
+}
 function statinAdvice(p, cvr, tg) {
   const STATINS = [
     { name: 'Pravastatine 20\u201340 mg (faible)', red: 0.30 },
@@ -1615,13 +1670,47 @@ function statinAdvice(p, cvr, tg) {
     drug = cvr.extreme ? 'Rosuvastatine 20\u201340 mg + \u00e9z\u00e9timibe, puis PCSK9 (ou inclisran) si LDL \u2265 0,40 g/L (ESC/EAS 2025)' : 'Atorvastatine 40\u201380 mg ou Rosuvastatine 20\u201340 mg (haute intensit\u00e9 \u2014 ESC)';
     table = STATINS.map(s => `${s.name} : \u2212${Math.round(s.red * 100)} %`);
   }
-  remb.push('Statines : s\u00e9curit\u00e9 sociale \u2014 remboursement 65 % / 15 % selon les mol\u00e9cules et dosages (g\u00e9n\u00e9riques \u00e0 65 % ; certaines pr\u00e9sentations SMR insuffisant 15 %)');
+    const cur = readCurrentMeds();
+  let adapt = [];
+  if (cur.statine) {
+    const atTarget = tg && p.ldl !== null && p.ldl < tg.v;
+    if (!ok) {
+      adapt.push(`Traitement actuel : ${cur.statine.label} (intensit\u00e9 ${cur.statine.tier}).`);
+    } else if (atTarget) {
+      adapt.push(`Cible ${tg.label} ATTEINTE sous ${cur.statine.label} \u2014 poursuivre le traitement inchang\u00e9, contr\u00f4le lipidique annuel.`);
+      drug = `${cur.statine.label} \u2014 poursuivre (cible atteinte)`;
+      reduction = null;
+    } else if (cur.pcsk9 || cur.inclisiran) {
+      adapt.push(`D\u00e9j\u00e0 statine + ${cur.ezetimibe ? '\u00e9z\u00e9timibe + ' : ''}PCSK9/inclisiran hors cible : v\u00e9rifier l'observance, discuter bemp\u00e9do\u00efque d'acide \u00b1 avis sp\u00e9cialis\u00e9 lipidologique.`);
+      drug = 'Bemp\u00e9do\u00efque d\u2019acide \u00b1 avis lipidologue';
+    } else if (cur.ezetimibe) {
+      adapt.push(`D\u00e9j\u00e0 ${cur.statine.label} + \u00e9z\u00e9timibe hors cible : statine \u00e0 dose maximale si ce n'est pas d\u00e9j\u00e0 le cas, puis ajouter PCSK9 (\u00e9volocumab/alirocumab) ou inclisiran si haut/tr\u00e8s haut risque.`);
+      drug = `${cur.statine.atMaxDose ? cur.statine.label : capMol(cur.statine.mol) + ' ' + cur.statine.maxDose + ' mg'} + \u00e9z\u00e9timibe \u2192 PCSK9/inclisiran`;
+    } else if (cur.statine.atMaxDose && (cur.statine.mol === 'atorvastatine' || cur.statine.mol === 'rosuvastatine')) {
+      const proj = p.ldl !== null ? p.ldl * (1 - 0.18) : null;
+      adapt.push(`${cur.statine.label} \u00e0 dose MAXIMALE hors cible : ajouter \u00e9z\u00e9timibe 10 mg (\u2212 15 \u00e0 20 % de LDL suppl\u00e9mentaires${proj !== null && tg ? `, LDL projet\u00e9 \u2248 ${Math.round(proj * 100) / 100} g/L (cible ${tg.label})` : ''}), puis PCSK9/inclisiran si la cible reste non atteinte.`);
+      drug = `${cur.statine.label} + \u00e9z\u00e9timibe 10 mg \u2192 PCSK9 si besoin`;
+    } else if (cur.statine.mol === 'atorvastatine' || cur.statine.mol === 'rosuvastatine') {
+      const next = cur.statine.mol === 'atorvastatine' ? 'Atorvastatine 80 mg' : 'Rosuvastatine 20 mg (puis 40 mg si besoin)';
+      const proj = p.ldl !== null ? p.ldl * (1 - 0.06) : null;
+      adapt.push(`${cur.statine.label} hors cible mais dose non maximale : AUGMENTER la dose \u2014 ${next} (le doublement de dose \u2248 \u2212 6 % de LDL suppl\u00e9mentaires${proj !== null && tg ? `, LDL projet\u00e9 \u2248 ${Math.round(proj * 100) / 100} g/L \u2014 si cible ${tg.label} toujours d\u00e9pass\u00e9e, associer d'embl\u00e9e \u00e9z\u00e9timibe` : ''}).`);
+      drug = next;
+    } else {
+      const proj = p.ldl !== null ? p.ldl * (1 - 0.50) : null;
+      adapt.push(`${cur.statine.label} (intensit\u00e9 ${cur.statine.tier}) hors cible : CHANGER pour une statine haute intensit\u00e9 \u2014 atorvastatine 40 mg (\u2192 80 mg si besoin) ou rosuvastatine 20 mg${proj !== null && tg ? ` (LDL projet\u00e9 \u2248 ${Math.round(proj * 100) / 100} g/L vs cible ${tg.label})` : ''}${proj !== null && tg && proj >= tg.v ? ' \u2014 cible probablement non atteignable avec la statine seule : pr\u00e9voir \u00e9z\u00e9timibe d\u2019embl\u00e9e' : ''}.`);
+      drug = 'Atorvastatine 40\u201380 mg ou Rosuvastatine 20\u201340 mg (switch haute intensit\u00e9)';
+    }
+  } else if (ok && cur.ezetimibe) {
+    adapt.push('\u00c9z\u00e9timibe d\u00e9j\u00e0 pr\u00e9sent sans statine : la statine reste la base \u2014 l\u2019introduire/la r\u00e9introduire si tol\u00e9r\u00e9e.');
+  }
+remb.push('Statines : s\u00e9curit\u00e9 sociale \u2014 remboursement 65 % / 15 % selon les mol\u00e9cules et dosages (g\u00e9n\u00e9riques \u00e0 65 % ; certaines pr\u00e9sentations SMR insuffisant 15 %)');
   remb.push('Pr\u00e9vention CV (primaire haut risque / secondaire) : prise en charge ALD 100 % selon la pathologie (post-IDM, AVC isch\u00e9mique, art\u00e9riopathie)');
   ci.push('Contre-indications : h\u00e9patopathie active, myopathie sous statine, grossesse/allaitement/projet de grossesse (arr\u00eat) ; prudence \u2265 75 ans, insuffisance r\u00e9nale s\u00e9v\u00e8re, interactions (macrolides, antifongiques azol\u00e9s, ciclosporine, jus de pamplemousse \u2014 simvastatine)');
   ci.push('Surveillance : CPK si sympt\u00f4mes musculaires, bilan h\u00e9patique \u00e0 3 mois, glyc\u00e9mie (l\u00e9g\u00e8re hausse du risque diab\u00e8te sous statine \u2014 ne remet pas en cause le b\u00e9n\u00e9fice CV)');
-  return { ok, reasons, drug, reduction, table, remb, ci };
+  return { ok, reasons, drug, reduction, table, remb, ci, statine: cur.statine, adapt };
 }
 
+function capMol(m) { return m.charAt(0).toUpperCase() + m.slice(1); }
 function rxChips(reasons) {
   return `<div class="rx-chips">${reasons.map(r => `<span class="rx-chip">\u2713 ${escapeHtml(r)}</span>`).join('')}</div>`;
 }
@@ -1704,9 +1793,43 @@ function bpcoRxAdvice(p) {
     ],
     rules: ['Jamais de CSI seul dans la BPCO', 'Le CSI s’ajoute au LABA+LAMA si ≥ 2 exacerb./an ou éosinophiles ≥ 300/µL', 'Technique d’inhalation à vérifier à chaque renouvellement'],
   };
+  const cur = readCurrentMeds();
+  const current = [];
+  if (cur.bpco.triple) current.push('Triple CSI+LABA+LAMA');
+  else if (cur.bpco.labaLama) current.push('LABA+LAMA (inhalateur unique)');
+  else if (cur.bpco.csiLaba) current.push('CSI+LABA');
+  else {
+    if (cur.bpco.lama) current.push('LAMA seul');
+    if (cur.bpco.laba) current.push('LABA seul');
+    if (cur.bpco.csiSeul) current.push('CSI seul \u26a0');
+  }
+  if (cur.bpco.bdca) current.push('BDCA de secours');
+  const steps = [];
+  let needsChange = false;
+  if (p.bpco && current.length && exGroup) {
+    const hasCombo = cur.bpco.triple || cur.bpco.labaLama;
+    if (cur.bpco.csiSeul) { steps.push('\u26a0 CSI SEUL en monoth\u00e9rapie : jamais indiqu\u00e9 dans la BPCO \u2014 remplacer par LABA+LAMA (CSI+LABA seulement si composante asthmatique associ\u00e9e)'); needsChange = true; }
+    if (exGroup === 'A') {
+      if (hasCombo) steps.push('Groupe A sous association : au-del\u00e0 du strict n\u00e9cessaire \u2014 poursuivre si bien tol\u00e9r\u00e9, sinon discuter la simplification');
+      else if (cur.bpco.csiLaba) { steps.push('Groupe A sous CSI+LABA : dans la BPCO pure, pr\u00e9f\u00e9rer LABA+LAMA \u2014 discuter le switch'); needsChange = true; }
+      else steps.push('Groupe A : traitement actuel adapt\u00e9 \u2014 r\u00e9\u00e9valuer le passage en groupe B/E \u00e0 chaque consultation');
+    } else if (exGroup === 'B') {
+      if (hasCombo) steps.push('Groupe B : LABA+LAMA conforme \u2014 v\u00e9rifier technique d\u2019inhalation et observance avant toute escalade');
+      else if (cur.bpco.laba || cur.bpco.lama) { steps.push('Groupe B sous MONOTH\u00c9RAPIE : insuffisant \u2014 passer \u00e0 LABA+LAMA en inhalateur unique (Anoro\u00ae, Ultibro\u00ae, Duaklir\u00ae, Spiolto\u00ae)'); needsChange = true; }
+      else if (cur.bpco.csiLaba) { steps.push('Groupe B sous CSI+LABA : le CSI n\u2019a pas d\u2019indication sans exacerbations \u2014 switch vers LABA+LAMA \u00e0 discuter'); needsChange = true; }
+      else { steps.push('Groupe B : initier LABA+LAMA d\u2019embl\u00e9e (inhalateur unique) + BDCA de secours'); needsChange = true; }
+    } else if (exGroup === 'E') {
+      if (cur.bpco.triple) steps.push('Sous TRIPLE avec \u2265 2 exacerbations/an persistantes : v\u00e9rifier technique/observance/sevrage tabagique ; discuter roflumilast (VEMS < 50 % + bronchite chronique), azithromycine au long cours (balance b\u00e9n\u00e9fice/risque), r\u00e9habilitation, OHD si hypox\u00e9mie');
+      else if (cur.bpco.labaLama) { steps.push('Groupe E sous LABA+LAMA avec \u2265 2 exacerbations/an : AJOUTER un CSI \u2192 triple th\u00e9rapie (Trelegy\u00ae, Trimbow\u00ae) \u2014 indiqu\u00e9 si \u2265 2 exacerbations sous association ou \u00e9osinophiles \u2265 300/\u00b5L'); needsChange = true; }
+      else { steps.push('Groupe E : LABA+LAMA d\u2019embl\u00e9e, puis ajout d\u2019un CSI si exacerbations persistent (triple th\u00e9rapie)'); needsChange = true; }
+    }
+  } else if (p.bpco && current.length) {
+    steps.push('VEMS et/ou exacerbations non renseign\u00e9s : stadifier (carte BPCO) pour trancher entre poursuite, switch ou escalade');
+    if (cur.bpco.csiSeul) { steps.push('\u26a0 CSI seul : \u00e0 corriger quelle que soit la stadification'); needsChange = true; }
+  }
   const remb = ['BPCO = ALD 100 % (bilan annuel remboursé)', 'La plupart des LABA/LAMA et associations sont remboursés aux conditions habituelles (SMR important)'];
   const ci = ['Vérifier la technique d’inhalation à chaque renouvellement', 'Pneumocoque + grippe + COVID à jour avant toute escalade', 'CSI : risque de pneumonie — réévaluer la nécessité régulièrement'];
-  return { ok: !!p.bpco, reasons, targeted, general, fullyClassified, goldStage, exGroup, remb, ci, atRisk };
+  return { ok: !!p.bpco, reasons, targeted, general, fullyClassified, goldStage, exGroup, remb, ci, atRisk, current, steps, needsChange };
 }
 function rxMakeBox(open, color, icon, name, verdict, verdictColor, detail) {
   return `
@@ -1749,11 +1872,12 @@ function renderRx(p) {
   const cvr = cvrCompute(p);
   const tg = ldlTarget(p, cvr);
   const stt = statinAdvice(p, cvr, tg);
-  const stStatus = stt.ok ? 'INDIQU\u00c9' : (tg ? 'Pas d\'indication' : '\u2014');
+  const stStatus = stt.ok ? (stt.statine ? 'SOUS STATINE \u2014 ADAPTER' : 'INDIQU\u00c9') : (stt.statine ? 'SOUS STATINE \u2014 v\u00e9rifier' : (tg ? 'Pas d\'indication' : '\u2014'));
   const stColor = stt.ok ? '#c8e6c9' : '#ffcdd2';
   const stDetail = `
     ${stt.ok ? rxChips(stt.reasons) : (stt.reasons.length ? rxChips(stt.reasons) : '<div class="rx-muted-line">Aucune indication : risque CV faible/mod\u00e9r\u00e9 sans cible d\u00e9pass\u00e9e, pas de terrain, LDL conforme. Hygi\u00e8ne de vie et r\u00e9\u00e9valuation.</div>')}
-    ${stt.drug ? `<div class="rx-drug">\u2192 Sugg\u00e9r\u00e9 : <strong>${escapeHtml(stt.drug)}</strong></div>` : ''}
+    ${stt.adapt && stt.adapt.length ? `<div class="rx-drug-block"><div class="rx-drug-block-title">\u2460 Statine en cours \u2014 adaptation</div>${stt.adapt.map(a => `<div class="rx-goal">${escapeHtml(a)}</div>`).join('')}</div>` : ''}
+    ${stt.drug ? `<div class="rx-drug">\u2192 ${stt.statine ? 'Adapter : ' : 'Sugg\u00e9r\u00e9 : '}<strong>${escapeHtml(stt.drug)}</strong></div>` : ''}
     ${stt.reduction ? `<div class="rx-goal">${escapeHtml(stt.reduction)}</div>` : ''}
     ${rxSub('Puissance des statines (baisse moyenne de LDL)', stt.table)}
     ${rxFlags(stt.remb, stt.ci)}`;
@@ -1784,10 +1908,16 @@ function bpcoRx() {
   const p = P();
   const adv = bpcoRxAdvice(p);
   if (!adv) return '';
-  const status = adv.ok ? (adv.fullyClassified ? (adv.goldStage + ' \u00b7 groupe ' + adv.exGroup) : 'INDIQU\u00c9 \u2014 \u00e0 stadifier') : '\u00c0 risque \u2014 si confirmation';
+  const status = adv.ok ? (adv.fullyClassified ? (adv.goldStage + ' \u00b7 groupe ' + adv.exGroup + (adv.needsChange ? ' \u00b7 \u00c0 ADAPTER' : '')) : 'INDIQU\u00c9 \u2014 \u00e0 stadifier') : '\u00c0 risque \u2014 si confirmation';
   const color = adv.ok ? (adv.fullyClassified ? '#c8e6c9' : '#fff9c4') : '#ffecb3';
   const detail = `
     ${rxChips(adv.reasons)}
+    ${adv.current && adv.current.length ? `
+      <div class="rx-drug-block">
+        <div class="rx-drug-block-title">\u2460 Traitement inhal\u00e9 actuel d\u00e9tect\u00e9 (champ Traitements)</div>
+        <div class="rx-drug-chips">${adv.current.map(c => `<span class="rx-drug-chip">${escapeHtml(c)}</span>`).join('')}</div>
+        ${adv.steps && adv.steps.length ? `<div class="rx-drug-head" style="margin-top:8px">Adaptation recommand\u00e9e pour ce patient</div>${adv.steps.map(s => `<div class="rx-goal">${escapeHtml(s)}</div>`).join('')}` : ''}
+      </div>` : ''}
     ${adv.targeted ? `
       <div class="rx-drug-block">
         <div class="rx-drug-block-title">\u2461 Traitement recommand\u00e9 pour ce patient \u2014 ${escapeHtml(adv.targeted.t)}</div>
@@ -2599,7 +2729,7 @@ document.addEventListener('change', e => {
   if (e.target.closest('#diabete-panel input[type=checkbox]')) render();
 });
 
-['pat-nom', 'pat-prenom', 'pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-ic', 'pat-bpco', 'pat-vems', 'pat-exac', 'pat-dfg', 'pat-rac', 'pat-imc', 'pat-ldl', 'pat-sbp', 'pat-chol', 'pat-hdl', 'pat-hba1c', 'pat-age-mois'].forEach(idn =>
+['pat-nom', 'pat-prenom', 'pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-ic', 'pat-bpco', 'pat-vems', 'pat-exac', 'pat-dfg', 'pat-rac', 'pat-imc', 'pat-ldl', 'pat-sbp', 'pat-chol', 'pat-hdl', 'pat-hba1c', 'pat-age-mois', 'pat-traitement'].forEach(idn =>
   document.getElementById(idn).addEventListener('change', render));
 
 document.getElementById('pat-date').value = new Date().toISOString().slice(0, 10);
