@@ -759,6 +759,193 @@ function renderIcCvr(p) {
   if (inFevg) inFevg.addEventListener('change', e => { const v = parseFloat(e.target.value); window._icFevg = isNaN(v) ? null : v; render(); });
   if (inNyha) inNyha.addEventListener('change', e => { window._icNyha = e.target.value === '' ? null : +e.target.value; render(); });
 }
+// ---------- Carte Ostéoporose (style CVR) ----------
+function osteoContext(p) {
+  const f = window._osteoF || {};
+  const ctx = [];
+  if (isF(p) && f.menop) ctx.push('Femme ménopausée');
+  if (isM(p) && f.hypogonad) ctx.push('Hypogonadisme');
+  if (f.cortico) ctx.push('Corticothérapie ≥ 3 mois');
+  if (f.fractureFaibleEnergie) ctx.push('Fracture de faible énergie');
+  if (f.atcdParent) ctx.push('ATCD fracture col fémur parent 1er degré');
+  if (p.imc !== null && p.imc < 19) ctx.push('IMC < 19 kg/m²');
+  if (f.menopPrecoce) ctx.push('Ménopause précoce (< 40 ans)');
+  if (f.hyperthyroidie) ctx.push('Hyperthyroïdie');
+  if (f.malabsorption) ctx.push('Malabsorption / maladie cœliaque');
+  if (f.polyarthrite) ctx.push('Polyarthrite rhumatoïde');
+  if (f.immobilisation) ctx.push('Immobilisation prolongée');
+  if (f.alcool) ctx.push('Alcool ≥ 3 verres/j');
+  if (p.tabac === 'actif' || f.tabacActifOsteo) ctx.push('Tabac');
+  return ctx;
+}
+function osteoFrax(p) {
+  const f = window._osteoF || {};
+  let pts = 0;
+  const items = [];
+  const add = (ok, label, ptsIf) => { if (ok) { pts += ptsIf; items.push(label); } };
+  add(!!f.menop && isF(p), 'Femme ménopausée', 2);
+  add(p.age !== null && p.age >= 70, 'Âge ≥ 70 ans', 2);
+  add(p.age !== null && p.age >= 60 && p.age < 70, 'Âge 60–69 ans', 1);
+  add(p.imc !== null && p.imc < 19, 'IMC < 19 kg/m²', 2);
+  add(!!f.fractureFaibleEnergie, 'Fracture de faible énergie après 50 ans', 4);
+  add(!!f.atcdParent, 'Fracture du col du fémur chez un parent au 1er degré', 2);
+  add(!!f.cortico, 'Corticothérapie ≥ 3 mois consécutifs', 3);
+  add(!!f.menopPrecoce, 'Ménopause précoce (< 40 ans)', 2);
+  add(!!f.hyperthyroidie, 'Hyperthyroïdie non traitée', 2);
+  add(!!f.hypogonad && isM(p), 'Hypogonadisme', 2);
+  add(!!f.malabsorption, 'Malabsorption / maladie cœliaque', 2);
+  add(!!f.polyarthrite, 'Polyarthrite rhumatoïde', 2);
+  add(!!f.immobilisation, 'Immobilisation prolongée', 2);
+  add(p.tabac === 'actif' || !!f.tabacActifOsteo, 'Tabac', 1);
+  add(!!f.alcool, 'Alcool ≥ 3 verres/jour', 1);
+  return { pts, items };
+}
+function osteoHasReimbursable(p) {
+  const f = window._osteoF || {};
+  return !!(f.fractureFaibleEnergie || f.cortico || f.menopPrecoce || f.hyperthyroidie || f.hypogonad || f.malabsorption || f.polyarthrite || f.immobilisation || (isF(p) && f.menop && (f.atcdParent || (p.imc !== null && p.imc < 19) || f.menopPrecoce)));
+}
+function osteoVerdict(p, tscore) {
+  const fr = osteoFrax(p);
+  const has = osteoHasReimbursable(p);
+  if (tscore !== null) {
+    if (tscore <= -2.5) return { label: 'Ostéoporose (T ≤ −2,5) — traitement à instaurer', color: '#c62828', bg: '#fdecea' };
+    if (tscore <= -1) return { label: 'Ostéopénie (T entre −1 et −2,5)' + ((window._osteoF || {}).fractureFaibleEnergie ? ' — fracture de fragilité = traiter' : ''), color: fr.pts >= 5 ? '#ef6c00' : '#f9a825', bg: '#fffde7' };
+    return { label: 'Densité osseuse normale (T > −1)', color: '#2e7d32', bg: '#e8f5e9' };
+  }
+  if (has) return { label: 'Indication de densitométrie (critères HAS, remboursée)', color: '#ef6c00', bg: '#fff3e0' };
+  if (fr.pts >= 3) return { label: 'Risque à évaluer — calculer le FRAX®', color: '#f9a825', bg: '#fffde7' };
+  return null;
+}
+function renderOsteoCvr(p) {
+  const panel = document.getElementById('osteo-panel') || (() => { const d = document.createElement('div'); d.id = 'osteo-panel'; const etat = document.getElementById('etat-panel'); etat.parentNode.insertBefore(d, etat); return d; })();
+  const f = window._osteoF || {};
+  const ctx = osteoContext(p);
+  const fr = osteoFrax(p);
+  const tscore = (window._osteoT === undefined || window._osteoT === null || window._osteoT === '') ? null : window._osteoT;
+  const verdict = osteoVerdict(p, tscore);
+  const femmeMenop = isF(p) && (f.menop || (p.age !== null && p.age >= 55));
+  const hommeTerrain = isM(p) && (f.cortico || f.hypogonad || f.fractureFaibleEnergie || f.hyperthyroidie || f.malabsorption || f.polyarthrite || f.immobilisation);
+  if (!femmeMenop && !hommeTerrain && !verdict && fr.pts < 2) { panel.innerHTML = ''; return; }
+  const fNum = v => v === null ? '—' : String(v).replace('.', ',');
+  const toggle = (key, label, hint) => `<label class="osteo-check"><input type="checkbox" data-osteo-f="${key}"${f[key] ? ' checked' : ''}><span><strong>${escapeHtml(label)}</strong>${hint ? ' — ' + escapeHtml(hint) : ''}</span></label>`;
+  const evalRows = [
+    ['Terrain', isF(p) ? (femmeMenop ? 'Femme ménopausée' : 'Femme — ménopause non renseignée') : (hommeTerrain ? 'Homme avec facteur de risque osseux' : 'Homme — pas de dépistage systématique')],
+    ['Facteurs', ctx.length ? ctx.join(' · ') : 'aucun renseigné'],
+    ['Fracture de faible énergie', f.fractureFaibleEnergie ? 'présente — ostéoporose à considérer même si T-score > −2,5 (fracture par fragilité)' : 'poignet, vertèbre (perte de taille, tassement), côte, fémur après 50 ans sans traumatisme majeur — à rechercher'],
+    ['Tassements vertébraux', f.tassements ? 'retrouvés — radiographies du rachis (ou VFA) : fracture vertébrale = ostéoporose' : 'mesurer la taille (comparaison jeune adulte), recherche de tassements'],
+    ['Calcium / vitamine D', 'Apports calciques 1–1,2 g/j (complément si insuffisant) · 25(OH)D à doser si terrain à risque · supplémentation vitamine D si carence'],
+    ['T-score', tscore === null ? 'non renseigné' + (osteoHasReimbursable(p) ? ' — densitométrie indiquée et remboursée (HAS)' : ' — indication à évaluer (critères HAS)') : fNum(tscore) + (tscore <= -2.5 ? ' — ostéoporose' : tscore <= -1 ? ' — ostéopénie' : ' — normal')],
+    ['FRAX', fr.pts >= 5 ? 'risque de fracture vraisemblablement élevé — FRAX® formalisé à calculer' : (fr.pts >= 3 ? 'risque intermédiaire — calculer le FRAX® (seuil d\'intervention ≥ 20 % fracture majeure)' : 'risque a priori faible — FRAX® utile si ≥ 2 facteurs')],
+    ['Chutes', f.chutes ? 'chutes récentes — dépister les causes (vision, iatrogénie, hypotension orthostatique) et prévenir' : 'interroger sur les chutes de l\'année écoulée ; vérifier vision, psychotropes, orthostatisme'],
+  ];
+  const rxRows = (tscore !== null && tscore <= -2.5) || f.fractureFaibleEnergie || f.tassements ? [
+    ['Bisphosphonates', 'Acide alendronique 70 mg/semaine (ou risédronate) au long cours · calcium + vitamine D en accompagnement'],
+    ['Alternatives', 'Dénosumab s.c. tous les 6 mois (ne jamais retarder l\'injection) · tériparatide/romosozumab si ostéoporose sévère ou échec · raloxifène (femme ménopausée)'],
+    ['Durée / surveillance', 'Réévaluer à ~5 ans · vérifier observance (prise à jeun, rester debout 30 min) et 25(OH)D'],
+    ['Prévention chutes', 'Exercice en charge et équilibre · kinésithérapie · adaptations du domicile · revoir psychotropes et lunettes'],
+    ['Traitements à revoir', 'Corticoïdes, IPP au long cours, antiandrogènes… limiter au maximum les facteurs iatrogènes'],
+    ['Suivi densitométrique', 'Contrôle du T-score 1–2 ans après initiation selon contexte'],
+  ] : (tscore !== null && tscore <= -1 ? [
+    ['Conduite', 'Ostéopénie : corriger carences et facteurs de risque · pas de bisphosphonate d\'emblée'],
+    ['Densitométrie', 'À refaire 3–5 ans si nouveaux facteurs · traiter si FRAX ≥ 20 % ou fracture de fragilité'],
+  ] : [
+    ['Objectif', 'Évaluer l\'indication d\'une densitométrie : HAS — pas de dépistage par l\'âge seul'],
+    ['Densitométrie', osteoHasReimbursable(p) ? 'remboursable 70 % · deux sites (rachis lombaire + fémur)' : 'non remboursée hors critères HAS'],
+    ['Prévention', 'Activité physique en charge, calcium 1–1,2 g/j, vitamine D si carence, arrêt du tabac, limitation de l\'alcool, prévention des chutes'],
+  ]);
+  const txt = 'Ostéoporose — ' + (verdict ? verdict.label : 'évaluation du risque') + (ctx.length ? ' · Facteurs : ' + ctx.join(', ') : '') + (tscore !== null ? ' · T-score ' + fNum(tscore) : '');
+  (window._copyTexts = window._copyTexts || {}).osteo = txt;
+  panel.innerHTML = `  <div class="cvr-box osteo-cvr${window._osteoOpen ? ' open' : ''}" style="--sc:${verdict ? verdict.color : '#78909c'}">
+    <div class="cvr-head" role="button" tabindex="0" aria-expanded="${window._osteoOpen ? 'true' : 'false'}" data-osteo-toggle="1">
+      <span class="cvr-title">🦴 Ostéoporose${femmeMenop ? '' : ' — à dépister / évaluer'}</span>
+      <span class="cvr-verdict" style="color:${verdict ? verdict.color : '#78909c'}; background:${verdict ? verdict.bg : '#eceff1'}">${verdict ? verdict.label : 'Pas d\'indication identifiée'}</span>
+      <button type="button" class="cvr-copy" data-copy-id="osteo" title="Copier le résumé ostéoporose (puis Ctrl-V)">⭉</button>
+      <span class="cvr-chevron">▸</span>
+    </div>
+    <div class="cvr-detail"><div class="cvr-detail-inner">
+      <div class="osteo-checks">
+        <div class="osteo-checks-title">⬩ Cocher les facteurs présents :</div>
+        <div class="osteo-checks-grid">
+          ${toggle('menop', 'Ménopause')}
+          ${toggle('fractureFaibleEnergie', 'Fracture de faible énergie', 'poignet, vertèbre, côte, fémur après 50 ans')}
+          ${toggle('atcdParent', 'Fracture col fémur parent 1er degré')}
+          ${toggle('cortico', 'Corticothérapie ≥ 3 mois')}
+          ${toggle('menopPrecoce', 'Ménopause précoce < 40 ans')}
+          ${toggle('hyperthyroidie', 'Hyperthyroïdie non traitée')}
+          ${toggle('hypogonad', 'Hypogonadisme (homme)')}
+          ${toggle('malabsorption', 'Malabsorption / cœliaque')}
+          ${toggle('polyarthrite', 'Polyarthrite rhumatoïde')}
+          ${toggle('immobilisation', 'Immobilisation prolongée')}
+          ${toggle('tassements', 'Tassements vertébraux / perte de taille')}
+          ${toggle('chutes', 'Chutes répétées')}
+          ${toggle('alcool', 'Alcool ≥ 3 verres/j')}
+          ${toggle('tabacActifOsteo', 'Tabac actif')}
+        </div>
+        <div class="bpco-stage-bar" style="margin-bottom:0">
+          <span class="bpco-stage-label">⬩ Stadifier ici :</span>
+          <label class="bpco-stage-field">T-score (site le plus bas) <input type="number" id="osteo-in-t" min="-10" max="1" step="0.1" value="${tscore === null ? '' : tscore}" placeholder="ex : -2,7"></label>
+          <span class="bpco-stage-hint">${tscore === null ? 'Si densitométrie faite' : (tscore <= -2.5 ? 'Ostéoporose' : tscore <= -1 ? 'Ostéopénie' : 'Normal')}</span>
+        </div>
+      </div>
+      <details class="bpco-stage-help"><summary>❓ Précisions : critères HAS de remboursement et interprétation du T-score</summary><div class="bpco-stage-help-body">
+        <div class="bpco-help-title">Ostéodensitométrie remboursée (70 %) — critères HAS / Assurance Maladie</div>
+        <div><strong>Tout âge, tout sexe :</strong> pathologie ou traitement inducteur d\'ostéoporose (corticothérapie ≥ 3 mois, hyperthyroïdie non traitée, hypogonadisme, ménopause précoce < 40 ans, malabsorption, polyarthrite, immobilisation prolongée…).</div>
+        <div><strong>Fracture de faible énergie</strong> (poignet, vertèbre, fémur, côtes…) après 50 ans sans traumatisme majeur.</div>
+        <div><strong>Femme ménopausée avec facteur de risque :</strong> ATCD de fracture du col du fémur chez un parent au 1er degré, IMC < 19 kg/m², ménopause précoce (< 40 ans).</div>
+        <div><strong>Contrôles :</strong> 2e examen 3–5 ans après un 1er normal/ostéopénie si nouveaux facteurs de risque · à l\'arrêt d\'un traitement anti-ostéoporotique.</div>
+        <div class="bpco-help-title" style="margin-top:8px">Interprétation du T-score (OMS)</div>
+        <div><strong>T ≤ −2,5 :</strong> ostéoporose — traiter + calcium/vitamine D + prévention des chutes.</div>
+        <div><strong>−2,5 < T ≤ −1 :</strong> ostéopénie — corriger les facteurs, réévaluer ; traiter si FRAX élevé ou fracture de fragilité.</div>
+        <div><strong>T > −1 :</strong> densité normale.</div>
+        <div class="bpco-help-title" style="margin-top:8px">Ce que la HAS ne recommande PAS</div>
+        <div>Pas de dépistage systématique par l\'âge seul (les seuils « femme 65 ans / homme 70 ans » sont américains, USPSTF) — sans facteur de risque, l\'examen n\'est pas remboursé.</div>
+      </div></details>
+      <details class="bpco-stage-help"><summary>🔎 Démarche : quand suspecter, quoi prescrire</summary><div class="bpco-stage-help-body">
+        <div class="bpco-help-title">Quand y penser ?</div>
+        <div>Après 50 ans : fracture sans traumatisme majeur · perte de taille > 4 cm vs jeune adulte (tassements vertébraux) · cyphose dorsale nouvelle · corticothérapie · ménopause précoce · IMC < 19 · chutes répétées.</div>
+        <div class="bpco-help-title" style="margin-top:8px">Bilan initial devant une ostéoporose</div>
+        <div>Calcium, phosphore, 25(OH)D, PTH · NFS, VS/CRP · créatinine, ALAT/ASAT, TSH · électrophorèse des protéines (myélome si T très bas) · testostérone chez l\'homme · cause secondaire (hyperthyroïdie, hypercortisolisme, cœliaque).</div>
+        <div><strong>Radiographies du rachis</strong> (ou VFA) si perte de taille ou douleur dorsale : tassement vertébral = ostéoporose même si T-score > −2,5.</div>
+        <div class="bpco-help-title" style="margin-top:8px">FRAX® et décision de traiter</div>
+        <div>FRAX® = risque de fracture à 10 ans, calculable sans T-score (utilisable en ville) : intervention habituelle si risque de fracture majeure ≥ 20 % ou fracture de hanche ≥ 3 %. Toute fracture de fragilité = indication de traiter.</div>
+      </div></details>
+      <details class="bpco-stage-help"><summary>💊 Traitements et surveillance</summary><div class="bpco-stage-help-body">
+        <div class="bpco-help-title">Règles hygiéno-diététiques (toujours)</div>
+        <div>Calcium alimentaire 1–1,2 g/j · vitamine D (800–1200 UI/j, corriger une carence) · activité physique en charge et équilibre · arrêt du tabac · limiter l\'alcool · prévention des chutes (vision, chaussage, domicile, psychotropes).</div>
+        <div class="bpco-help-title" style="margin-top:8px">Anti-ostéoporotiques</div>
+        <div><strong>Bisphosphonates (1re intention) :</strong> alendronate 70 mg/sem ou risédronate · posologie stricte à jeun, grand verre d\'eau, rester debout 30 min · durée usuelle ~5 ans puis réévaluation.</div>
+        <div><strong>Dénosumab :</strong> s.c. tous les 6 mois — ne jamais retarder l\'injection (rebond fracturaire à l\'arrêt).</div>
+        <div><strong>Tériparatide / romosozumab :</strong> ostéoporose sévère (fractures vertébrales multiples, T très bas), échec, ou cortico-induite sévère · relais ensuite par antirésorbeur.</div>
+        <div><strong>Ostéoporose cortico-induite :</strong> prévention dès 2,5–7,5 mg/j de prednisone si facteur de risque — bisphosphonate + calcium/vitamine D.</div>
+        <div class="bpco-help-title" style="margin-top:8px">Surveillance</div>
+        <div>Observance et tolérance (œsophagite des bisphosphonates) · 25(OH)D à distance · densitométrie de contrôle 1–2 ans selon contexte · soins dentaires avant bisphosphonates IV (ostéonécrose mandibulaire, rare per os).</div>
+      </div></details>
+      <div class="cvr-layout">
+        <div class="cvr-col">
+          <div class="cvr-panel-title">① Éléments à évaluer</div>
+          ${evalRows.map(([k2, val]) => `<div class="cvr-row"><strong>${escapeHtml(k2)} :</strong> ${escapeHtml(val)}</div>`).join('')}
+          ${fr.items.length ? `<div class="cvr-banner" style="--bc:#ef6c00"><strong>Facteurs de risque osseux cumulés (${fr.pts} pts)</strong><p>${fr.items.map(escapeHtml).join(' · ')}</p></div>` : ''}
+        </div>
+        <div class="cvr-col">
+          <div class="cvr-scorecard" style="--sc:${verdict ? verdict.color : '#78909c'}">
+            <div class="cvr-scorecard-top">
+              <div class="cvr-gauge"><div class="cvr-gauge-fill" style="width:${Math.min(100, fr.pts * 10)}%; background:${verdict ? verdict.color : '#78909c'}"></div></div>
+              <div class="cvr-scorecard-pct">${tscore === null ? '—' : fNum(tscore)}<span class="cvr-pct-unit">T</span></div>
+            </div>
+            <div class="cvr-scorecard-cat" style="color:${verdict ? verdict.color : '#78909c'}">${verdict ? verdict.label : 'Aucun facteur majeur'}</div>
+            <div class="cvr-scorecard-sub">${femmeMenop ? 'Femme ménopausée' : isM(p) ? 'Homme' : '—'} · ${ctx.length} facteur${ctx.length > 1 ? 's' : ''} · risque ${fr.pts} pts</div>
+            <div class="cvr-scorecard-act">${(tscore !== null && tscore <= -2.5) || f.fractureFaibleEnergie ? 'Anti-ostéoporotique + calcium/vitamine D + prévention des chutes.' : osteoHasReimbursable(p) ? 'Densitométrie indiquée (remboursée) à prescrire.' : 'Prévention primaire : calcium, vitamine D, activité physique.'}</div>
+          </div>
+          <div class="cvr-panel-title">② Conduite à tenir</div>
+          ${rxRows.map(([k2, val]) => `<div class="cvr-row"><strong>${escapeHtml(k2)} :</strong> ${escapeHtml(val)}</div>`).join('')}
+        </div>
+      </div>
+    </div></div>
+  </div>`;
+  panel.querySelectorAll('[data-osteo-f]').forEach(cb => cb.addEventListener('change', e => { window._osteoF = window._osteoF || {}; if (e.target.checked) window._osteoF[e.target.dataset.osteoF] = true; else delete window._osteoF[e.target.dataset.osteoF]; render(); }));
+  const inT = panel.querySelector('#osteo-in-t');
+  if (inT) inT.addEventListener('change', e => { const v = parseFloat(String(e.target.value).replace(',', '.')); window._osteoT = isNaN(v) ? null : v; render(); });
+}
 function renderEtat(p) {
   const panel = document.getElementById('etat-panel');
   if (!panel) return;
@@ -2326,6 +2513,7 @@ function render() {
   renderEtat(p);
   renderBpcoCvr(p);
   renderIcCvr(p);
+  renderOsteoCvr(p);
   if (!pedia) {
     readDmChecks();
     renderKdigo(p);
@@ -2678,6 +2866,8 @@ document.addEventListener('click', e => {
   if (bpcoHead) { window._bpcoOpen = !window._bpcoOpen; render(); return; }
   const icHead = e.target.closest('[data-ic-toggle]');
   if (icHead) { window._icOpen = !window._icOpen; render(); return; }
+  const osHead = e.target.closest('[data-osteo-toggle]');
+  if (osHead) { window._osteoOpen = !window._osteoOpen; render(); return; }
   const kdHead = e.target.closest('[data-kdigo-toggle]');
   if (kdHead) { window._kdigoOpen = !window._kdigoOpen; render(); return; }
   const dmHead = e.target.closest('[data-dm-toggle]');
