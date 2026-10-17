@@ -655,3 +655,21 @@ header { padding: 12px 24px; }
 .bpco-stage-help-body > div { padding: 2px 0; }
 .bpco-stage-help-body strong { color: #1a2b3c; }
 .bpco-help-title { font-weight: 800; color: #0d5a8c; text-transform: uppercase; font-size: .68rem; letter-spacing: .04em; }
+
+/* Blocs traitements BPCO : classes + chips de spécialités */
+.rx-drug-block { border: 1px solid #cfe3f0; border-radius: 12px; padding: 14px 16px; margin: 12px 0; background: #fbfdfe; box-shadow: 0 1px 5px rgba(13,90,140,.05); }
+.rx-drug-block-title { font-weight: 800; font-size: .86rem; color: #0d5a8c; text-transform: uppercase; letter-spacing: .03em; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 2px solid #dceaf5; }
+.rx-drug-line { padding: 10px 0; border-bottom: 1px dashed #d8e4ee; }
+.rx-drug-line:last-child { border-bottom: none; }
+.rx-drug-head { font-weight: 800; font-size: .88rem; color: #1a2b3c; margin-bottom: 8px; }
+.rx-drug-subhead { font-weight: 700; font-size: .8rem; color: #456; margin: 8px 0 4px; }
+.rx-drug-class { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 10px; padding: 6px 0 6px 12px; border-left: 3px solid #eef4f9; }
+.rx-drug-class-k { font-weight: 800; font-size: .78rem; color: #ef6c00; margin-bottom: 2px; }
+.rx-drug-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.rx-drug-chip { font-size: .78rem; background: #fff; border: 1px solid #b3d9f2; border-radius: 999px; padding: 4px 12px; color: #1a2b3c; font-weight: 600; box-shadow: 0 1px 3px rgba(13,90,140,.08); }
+.rx-group-badge { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; font-weight: 800; font-size: .84rem; color: #fff; margin-right: 6px; vertical-align: middle; }
+.rx-group-A { background: #2e7d32; }
+.rx-group-B { background: #f9a825; }
+.rx-group-E { background: #c62828; }
+.rx-drug-rules { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.rx-drug-rules span { font-size: .76rem; color: #6d4c41; background: #fff3e0; border: 1px solid #ffe0b2; border-radius: 8px; padding: 5px 11px; font-weight: 600; }
