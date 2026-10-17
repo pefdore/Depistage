@@ -640,6 +640,15 @@ header { padding: 12px 24px; }
 .bpco-cvr .cvr-row strong { color: #1a2b3c; }
 .bpco-cvr .cvr-detail-inner .cvr-panel-title { margin-top: 8px; }
 
+/* Carte Ostéoporose (style CVR) */
+.osteo-cvr .cvr-head { background: linear-gradient(135deg, #f7f4f0 0%, #faf7f3 100%); }
+.osteo-checks { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.osteo-checks-title { font-weight: 800; font-size: .78rem; color: #8d6e63; text-transform: uppercase; letter-spacing: .03em; }
+.osteo-checks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 6px 14px; background: #fff; border: 1px solid #efe8e1; border-left: 4px solid #a1887f; border-radius: 10px; padding: 10px 14px; }
+.osteo-check { display: flex; align-items: flex-start; gap: 8px; font-size: .8rem; color: #333; line-height: 1.4; cursor: pointer; }
+.osteo-check input { margin-top: 3px; }
+.osteo-check strong { color: #1a2b3c; }
+
 /* Barre de stadification BPCO (VEMS / exacerbations / mMRC) */
 .bpco-stage-bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; background: #fff; border: 1px solid #e3eef7; border-left: 4px solid #0d5a8c; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; }
 .bpco-stage-label { font-weight: 800; font-size: .78rem; color: #0d5a8c; text-transform: uppercase; letter-spacing: .03em; }
