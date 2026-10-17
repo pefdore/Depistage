@@ -613,6 +613,97 @@ function renderBpcoCvr(p) {
   if (inExac) inExac.addEventListener('change', e => { const el = document.getElementById('pat-exac'); el.value = e.target.value; el.dispatchEvent(new Event('change', { bubbles: true })); });
   if (inMmrc) inMmrc.addEventListener('change', e => { window._bpcoMmrc = e.target.value === '' ? null : +e.target.value; render(); });
 }
+function icVerdict(p, fevg, nyha) {
+  if (fevg === null && nyha === null) return { label: p.ic ? 'IC \u2014 \u00e0 stadifier (FEVG, NYHA)' : 'Suspect\u00e9e \u2014 bilan \u00e0 faire', color: '#37474f', bg: '#eceff1' };
+  const phen = fevg === null ? null : fevg >= 50 ? 'HFpEF (FEVG \u2265 50 %)' : fevg >= 40 ? 'HFmrEF (FEVG 40\u201349 %)' : 'HFrEF (FEVG < 40 %)';
+  const color = (nyha !== null && nyha >= 4) || (fevg !== null && fevg < 30) ? '#c62828' : (nyha !== null && nyha >= 3) || (fevg !== null && fevg < 40) ? '#ef6c00' : (nyha !== null && nyha >= 2) ? '#f9a825' : '#2e7d32';
+  const bg = { '#c62828': '#fdecea', '#ef6c00': '#fff3e0', '#f9a825': '#fffde7', '#2e7d32': '#e8f5e9' }[color];
+  const parts = [];
+  if (phen) parts.push(phen);
+  if (nyha !== null) parts.push('NYHA ' + nyha);
+  return { label: parts.join(' \u00b7 '), color, bg };
+}
+function renderIcCvr(p) {
+  const panel = document.getElementById('ic-panel') || (() => { const d = document.createElement('div'); d.id = 'ic-panel'; const bpco = document.getElementById('bpco-panel'); const etat = document.getElementById('etat-panel'); (bpco || etat).parentNode.insertBefore(d, etat); return d; })();
+  const num = id => { const v = parseFloat(document.getElementById(id)?.value); return isNaN(v) ? null : v; };
+  const riskUndiag = !p.ic && p.age !== null && p.age >= 65 && (p.hta || p.diabete || p.tabac === 'actif' || p.bpco);
+  if (!p.ic && !riskUndiag) { panel.innerHTML = ''; return; }
+  const f = v => v === null ? '\u2014' : String(v).replace('.', ',');
+  const fevg = (window._icFevg === undefined || window._icFevg === null || window._icFevg === '') ? null : window._icFevg;
+  const nyha = (window._icNyha === undefined || window._icNyha === null || window._icNyha === '') ? null : window._icNyha;
+  const verdict = icVerdict(p, fevg, nyha);
+  const k = num('pat-k'), hb = num('pat-hb'), ferr = num('pat-ferritine'), tsh = num('pat-tsh'), fc = num('pat-fc');
+  const evalRows = [
+    ['\u00c9tiologie', 'Isch\u00e9mique (coronarographie ?), HTA, valvulaire, toxique (alcool, anthracyclines), rythmique (FA), myocardite, cong\u00e9nitale \u2014 \u00e0 pr\u00e9ciser'],
+    ['NT-proBNP', 'Si doute diagnostique : valeur basse = exclut l\u2019IC (~125 pg/mL en ambulatoire)'],
+    ['ECG', 'FA ? BBD ? BBG ? HVG ? ondes Q ? microvoltage ?'],
+    ['ETT / FEVG', fevg === null ? '\u00c0 faire / actualiser : FEVG, cin\u00e9tique segmentaire, PAPs, valves' : f(fevg) + ' % \u2014 ' + (fevg >= 50 ? 'HFpEF : strain, PAPs, remplissage' : 'r\u00e9\u00e9valuer sous traitement optimis\u00e9')],
+    ['Ionogramme / rein', 'K+ ' + (k === null ? '\u00e0 v\u00e9rifier' : f(k) + ' mmol/L' + (k >= 5.5 ? ' \u2014 hyperkali\u00e9mie : revoir IEC/ARA2, ARM' : '')) + ' \u00b7 DFG ' + (p.dfg === null ? '\u00e0 jour ?' : f(p.dfg) + ' mL/min' + (p.dfg < 30 ? ' \u2014 adapter les doses' : ''))],
+    ['Hb / ferritine', (hb !== null && hb < 13 ? 'an\u00e9mie (Hb ' + f(hb) + ' g/dL) : chercher une cause, corriger \u00b7 ' : '') + 'ferritine ' + (ferr === null ? '\u00e0 doser : carence fr\u00e9quente, carboxymaltose IV si < 100 \u00b5g/L' : f(ferr) + ' \u00b5g/L' + (ferr < 100 ? ' \u2014 carence : carboxymaltose IV' : ''))],
+    ['Thyro\u00efde / SAS', 'TSH ' + (tsh === null ? '\u00e0 v\u00e9rifier' : f(tsh) + ' mUI/L') + ' \u00b7 d\u00e9pister un SAS (STOP-Bang, polygraphie) \u2014 fr\u00e9quent et traitable'],
+    ['Rythme', 'Recherche FA : pouls, ECG, HOLTER si suspicion \u00b7 FC ' + (fc === null ? '\u2014' : f(fc) + ' bpm' + (fc >= 70 && fevg !== null && fevg <= 35 ? ' \u2014 ivabradine \u00e0 discuter' : ''))],
+    ['Vaccins', 'Grippe annuelle \u00b7 Pneumocoque \u00b7 COVID-19 \u00b7 VRS \u2265 75 ans \u2014 v\u00e9rifier'],
+    ['Comorbidit\u00e9s', [p.hta ? 'HTA' : null, p.diabete ? 'DT2' : null, p.bpco ? 'BPCO' : null, (p.dfg !== null && p.dfg < 60) ? 'MRC' : null].filter(Boolean).join(', ') || 'aucune renseign\u00e9e'],
+  ];
+  const rxRows = p.ic ? [
+    ['Quadrith\u00e9rapie IFEr', '\u2460 IEC/ARA2 (ou sacubitril-valsartan) \u00b7 \u2461 b\u00eatabloquant (bisoprolol, carv\u00e9dilol, m\u00e9toprolol LP) \u00b7 \u2462 iSGLT2 (dapagliflozine/empagliflozine) \u00b7 \u2463 ARM (spironolactone/\u00e9pl\u00e9rone) \u2014 titrer jusqu\u2019\u00e0 dose maximale tol\u00e9r\u00e9e'],
+    ['Diur\u00e9tiques', 'Diur\u00e9tique de l\u2019anse si congestion (furos\u00e9mide), ajuster au poids \u2014 pas de b\u00e9n\u00e9fice pronostique'],
+    ['Ivabradine', 'Si rythme sinusal, FC \u2265 70, FEVG \u2264 35 % sous b\u00eatabloquant'],
+    ['FA', 'Anticoagulation selon CHA\u2082DS\u2082-VASc ; contr\u00f4le de la fr\u00e9quence \u00b1 ablation'],
+    ['Ferr', 'Carboxymaltose IV si carence (ferritine < 100 \u00b5g/L ou < 300 avec TSAT < 20 %)'],
+    ['Pr\u00e9cautions', 'K+ et DFG avant chaque titration (cr\u00e9atinine : hausse attendue \u2264 30 %) \u00b7 \u00e9viter AINS \u00b7 attention fluoroquinolones/macrolides'],
+    ['\u00c9ducation / PSL', 'Poids quotidien, signes d\u2019alerte (prise > 2 kg / 3 j), restriction hydrosod\u00e9e si congestion, activit\u00e9 physique, entourage proche \u2014 infirmier de coordination (contactoin)'],
+    ['R\u00e9adaptation', 'Programme de r\u00e9adaptation cardiovasculaire \u00e0 proposer syst\u00e9matiquement'],
+  ] : [
+    ['Objectif', 'D\u00e9pister une IC m\u00e9connue : NT-proBNP + ECG, puis ETT si anormal'],
+    ['Conduite', 'NT-proBNP bas = IC exclue \u00b7 \u00e9lev\u00e9 \u2192 ETT (FEVG, valves, PAPs)'],
+    ['Terrain', riskUndiag ? '\u00c2ge \u2265 65 ans + ' + [p.hta && 'HTA', p.diabete && 'DT2', p.tabac === 'actif' && 'tabac', p.bpco && 'BPCO'].filter(Boolean).join(', ') : '\u2014'],
+    ['Si confirmation', 'Quadrith\u00e9rapie IFEr d\u2019embl\u00e9e \u00b7 chercher l\u2019\u00e9tiologie \u00b7 PSL \u00b7 r\u00e9f\u00e9rent IC'],
+  ];
+  const txt = (p.ic ? 'Insuffisance cardiaque \u2014 ' + verdict.label : 'IC suspect\u00e9e \u2014 bilan : NT-proBNP, ECG, ETT') + (fevg !== null ? ' \u00b7 FEVG ' + f(fevg) + ' %' : '');
+  (window._copyTexts = window._copyTexts || {}).ic = txt;
+  const nyhaLabels = ['I \u2014 aucun sympt\u00f4me', 'II \u2014 limitation aux efforts habituels', 'III \u2014 limitation marqu\u00e9e, repos confortable', 'IV \u2014 sympt\u00f4mes au repos'];
+  panel.innerHTML = `  <div class="cvr-box ic-cvr${window._icOpen ? ' open' : ''}" style="--sc:${verdict.color}">
+    <div class="cvr-head" role="button" tabindex="0" aria-expanded="${window._icOpen ? 'true' : 'false'}" data-ic-toggle="1">
+      <span class="cvr-title">\ud83d\udc9a ${p.ic ? 'Insuffisance cardiaque' : 'IC \u2014 \u00e0 d\u00e9pister'}</span>
+      <span class="cvr-verdict" style="color:${verdict.color}; background:${verdict.bg}">${verdict.label}</span>
+      <button type="button" class="cvr-copy" data-copy-id="ic" title="Copier le r\u00e9sum\u00e9 IC (puis Ctrl-V)">\u29c9</button>
+      <span class="cvr-chevron">\u25b8</span>
+    </div>
+    <div class="cvr-detail"><div class="cvr-detail-inner">
+      <div class="bpco-stage-bar">
+        <span class="bpco-stage-label">\u2b23 Stadifier ici :</span>
+        <label class="bpco-stage-field">FEVG (%) <input type="number" id="ic-in-fevg" min="5" max="80" step="1" value="${fevg === null ? '' : fevg}" placeholder="%"></label>
+        <label class="bpco-stage-field">NYHA <select id="ic-in-nyha"><option value=""${nyha === null ? ' selected' : ''}>\u2014</option>${[1, 2, 3, 4].map(n => `<option value="${n}"${nyha === n ? ' selected' : ''}>NYHA ${nyhaLabels[n - 1]}</option>`).join('')}</select></label>
+        <span class="bpco-stage-hint">${fevg === null && nyha === null ? 'Renseigner pour statuer' : verdict.label}</span>
+      </div>
+      <div class="cvr-layout">
+        <div class="cvr-col">
+          <div class="cvr-panel-title">\u2460 \u00c9l\u00e9ments \u00e0 \u00e9valuer</div>
+          ${evalRows.map(([k2, val]) => `<div class="cvr-row"><strong>${escapeHtml(k2)} :</strong> ${escapeHtml(val)}</div>`).join('')}
+          ${!p.ic ? `<div class="cvr-banner" style="--bc:#ef6c00"><strong>Facteurs de risque pr\u00e9sents</strong><p>\u00c2ge \u2265 65 ans + comorbidit\u00e9s \u2014 penser \u00e0 l\u2019IC devant dyspn\u00e9e, orthopn\u00e9e, \u0153d\u00e8mes, prise de poids inexpliqu\u00e9e</p></div>` : ''}
+        </div>
+        <div class="cvr-col">
+          <div class="cvr-scorecard" style="--sc:${verdict.color}">
+            <div class="cvr-scorecard-top">
+              <div class="cvr-gauge"><div class="cvr-gauge-fill" style="width:${nyha === null ? 0 : nyha * 25}%; background:${verdict.color}"></div></div>
+              <div class="cvr-scorecard-pct">${nyha === null ? '\u2014' : 'NYHA ' + nyha}</div>
+            </div>
+            <div class="cvr-scorecard-cat" style="color:${verdict.color}">${verdict.label}</div>
+            <div class="cvr-scorecard-sub">FEVG ${fevg === null ? '\u2014' : f(fevg) + ' %'} \u00b7 ${p.ic ? 'IC connue' : '\u00e0 confirmer'}</div>
+            <div class="cvr-scorecard-act">${p.ic ? 'Quadrith\u00e9rapie \u00e0 optimiser \u00b7 \u00e9ducation, poids quotidien, r\u00e9adaptation.' : 'NT-proBNP + ECG, puis ETT.'}</div>
+          </div>
+          <div class="cvr-panel-title">\u2461 Traitements \u2014 recommandations ESC 2021</div>
+          ${rxRows.map(([k2, val]) => `<div class="cvr-row"><strong>${escapeHtml(k2)} :</strong> ${escapeHtml(val)}</div>`).join('')}
+        </div>
+      </div>
+    </div></div>
+  </div>`;
+  const inFevg = panel.querySelector('#ic-in-fevg');
+  const inNyha = panel.querySelector('#ic-in-nyha');
+  if (inFevg) inFevg.addEventListener('change', e => { const v = parseFloat(e.target.value); window._icFevg = isNaN(v) ? null : v; render(); });
+  if (inNyha) inNyha.addEventListener('change', e => { window._icNyha = e.target.value === '' ? null : +e.target.value; render(); });
+}
 function renderEtat(p) {
   const panel = document.getElementById('etat-panel');
   if (!panel) return;
@@ -2058,6 +2149,7 @@ function render() {
   renderPedia(p);
   renderEtat(p);
   renderBpcoCvr(p);
+  renderIcCvr(p);
   if (!pedia) {
     readDmChecks();
     renderKdigo(p);
@@ -2066,7 +2158,7 @@ function render() {
     renderRx(p);
     renderSuivi(p);
   } else {
-    ['kdigo-panel', 'cvr-panel', 'diabete-panel', 'rx-panel', 'suivi-panel'].forEach(id => {
+    ['ic-panel', 'kdigo-panel', 'cvr-panel', 'diabete-panel', 'rx-panel', 'suivi-panel'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.innerHTML = '';
     });
@@ -2408,6 +2500,8 @@ document.addEventListener('click', e => {
   }
   const bpcoHead = e.target.closest('[data-bpco-toggle]');
   if (bpcoHead) { window._bpcoOpen = !window._bpcoOpen; render(); return; }
+  const icHead = e.target.closest('[data-ic-toggle]');
+  if (icHead) { window._icOpen = !window._icOpen; render(); return; }
   const kdHead = e.target.closest('[data-kdigo-toggle]');
   if (kdHead) { window._kdigoOpen = !window._kdigoOpen; render(); return; }
   const dmHead = e.target.closest('[data-dm-toggle]');
