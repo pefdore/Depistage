@@ -501,6 +501,12 @@ function bpcoRiskFactors(p) {
   ((window._bpcoHints && window._bpcoHints.factors) || []).forEach(h => { if (!factors.some(x => x.startsWith(h.slice(0, 12)))) factors.push(h); });
   return factors;
 }
+function bpcoGroup(ex, mmrc) {
+  if (ex !== null && ex >= 2) return 'E';
+  if ((mmrc !== null && mmrc !== undefined && mmrc >= 2) || (ex !== null && ex >= 1)) return 'B';
+  if (ex === null && (mmrc === null || mmrc === undefined)) return null;
+  return 'A';
+}
 function renderBpcoCvr(p) {
   const panel = document.getElementById('bpco-panel') || (() => { const d = document.createElement('div'); d.id = 'bpco-panel'; const etat = document.getElementById('etat-panel'); etat.parentNode.insertBefore(d, etat); return d; })();
   const hints = (window._bpcoHints && window._bpcoHints.factors) || [];
@@ -511,7 +517,8 @@ function renderBpcoCvr(p) {
   const f = v => v === null ? '—' : String(v).replace('.', ',');
   const factors = bpcoRiskFactors(p);
   const v = p.vems, ex = p.exacerb;
-  const exGroup = ex === null ? null : (ex >= 2 ? 'E' : (ex === 1 ? 'B' : 'A'));
+  const mmrc = window._bpcoMmrc === undefined ? null : window._bpcoMmrc;
+  const exGroup = bpcoGroup(ex, mmrc);
   let verdict;
   if (!p.bpco) verdict = { label: 'À risque de BPCO — dépistage à faire', color: '#e65100', bg: '#fff3e0', gold: null };
   else if (v === null) verdict = { label: 'Diagnostiquée — VEMS à jour ?', color: '#37474f', bg: '#eceff1', gold: null };
@@ -558,6 +565,13 @@ function renderBpcoCvr(p) {
       <span class="cvr-chevron">▸</span>
     </div>
     <div class="cvr-detail"><div class="cvr-detail-inner">
+      <div class="bpco-stage-bar">
+        <span class="bpco-stage-label">⬣ Stadifier ici :</span>
+        <label class="bpco-stage-field">VEMS (% théor.) <input type="number" id="bpco-in-vems" min="5" max="150" step="1" value="${v === null ? '' : v}" placeholder="%"></label>
+        <label class="bpco-stage-field">Exacerb. / an <input type="number" id="bpco-in-exac" min="0" max="30" step="1" value="${ex === null ? '' : ex}" placeholder="nb"></label>
+        <label class="bpco-stage-field">mMRC (0–4) <select id="bpco-in-mmrc"><option value=""${mmrc === null ? ' selected' : ''}>—</option>${[0,1,2,3,4].map(m => `<option value="${m}"${mmrc === m ? ' selected' : ''}>${m}${m === 2 ? ' (≥ 2 = groupe B)' : ''}</option>`).join('')}</select></label>
+        <span class="bpco-stage-hint">${exGroup ? 'Groupe ' + exGroup : 'Renseigner pour statuer'}</span>
+      </div>
       <div class="cvr-layout">
         <div class="cvr-col">
           <div class="cvr-panel-title">① Éléments à évaluer</div>
@@ -580,6 +594,12 @@ function renderBpcoCvr(p) {
       </div>
     </div></div>
   </div>`;
+  const inVems = panel.querySelector('#bpco-in-vems');
+  const inExac = panel.querySelector('#bpco-in-exac');
+  const inMmrc = panel.querySelector('#bpco-in-mmrc');
+  if (inVems) inVems.addEventListener('change', e => { const el = document.getElementById('pat-vems'); el.value = e.target.value; el.dispatchEvent(new Event('change', { bubbles: true })); });
+  if (inExac) inExac.addEventListener('change', e => { const el = document.getElementById('pat-exac'); el.value = e.target.value; el.dispatchEvent(new Event('change', { bubbles: true })); });
+  if (inMmrc) inMmrc.addEventListener('change', e => { window._bpcoMmrc = e.target.value === '' ? null : +e.target.value; render(); });
 }
 function renderEtat(p) {
   const panel = document.getElementById('etat-panel');
@@ -1474,14 +1494,16 @@ function bpcoRxAdvice(p) {
   const atRisk = !p.bpco && ((p.tabac === 'actif' && (riskPa || riskAge)) || hints.length > 0);
   if (!p.bpco && !atRisk) return null;
   const v = p.vems, ex = p.exacerb;
-  const exGroup = ex === null ? null : (ex >= 2 ? 'E' : (ex === 1 ? 'B' : 'A'));
+  const mmrc = window._bpcoMmrc === undefined ? null : window._bpcoMmrc;
+  const exGroup = bpcoGroup(ex, mmrc);
   const fullyClassified = !!p.bpco && v !== null && ex !== null;
   const goldStage = v === null ? null : (v >= 80 ? 'GOLD 1' : v >= 50 ? 'GOLD 2' : v >= 30 ? 'GOLD 3' : 'GOLD 4');
   const reasons = [];
   if (p.bpco) {
     reasons.push('BPCO connue — traitement de fond à vérifier');
     if (goldStage) reasons.push('Stade ' + goldStage + ' (VEMS ' + String(v).replace('.', ',') + ' %)');
-    if (exGroup) reasons.push('Groupe ' + exGroup + (exGroup === 'E' ? ' (≥ 2 exacerbations/an)' : exGroup === 'B' ? ' (1 exacerbation/an)' : ' (0 exacerbation/an)'));
+    if (exGroup) reasons.push('Groupe ' + exGroup + (exGroup === 'E' ? ' (≥ 2 exacerbations/an)' : exGroup === 'B' ? ' (mMRC ≥ 2 ou 1 exacerbation/an)' : ' (0 exacerbation, mMRC < 2)'));
+  if (mmrc !== null) reasons.push('mMRC ' + mmrc + '/4');
   } else {
     reasons.push('Patient à risque de BPCO — si spirométrie confirme, voir la stratégie ci-dessous');
   }
@@ -1506,7 +1528,7 @@ function bpcoRxAdvice(p) {
       };
     } else if (exGroup === 'B') {
       targeted = {
-        t: 'Groupe B (dyspnée mMRC ≥ 2, 0–1 exacerbation/an) — GOLD ' + goldStage,
+        t: 'Groupe B (mMRC ≥ 2 et/ou 1 exacerbation/an) — GOLD ' + goldStage,
         lines: [
           'D’emblée : ' + drugExamples.labaLama,
           'BDCA de secours à la demande : ' + drugExamples.bdca,

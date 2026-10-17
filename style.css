@@ -636,3 +636,11 @@ header { padding: 12px 24px; }
 .bpco-cvr .cvr-row { font-size: .8rem; color: #333; line-height: 1.5; padding: 4px 0; border-bottom: 1px solid #f0f4f8; }
 .bpco-cvr .cvr-row strong { color: #1a2b3c; }
 .bpco-cvr .cvr-detail-inner .cvr-panel-title { margin-top: 8px; }
+
+/* Barre de stadification BPCO (VEMS / exacerbations / mMRC) */
+.bpco-stage-bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; background: #fff; border: 1px solid #e3eef7; border-left: 4px solid #0d5a8c; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; }
+.bpco-stage-label { font-weight: 800; font-size: .78rem; color: #0d5a8c; text-transform: uppercase; letter-spacing: .03em; }
+.bpco-stage-field { display: flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 600; color: #333; }
+.bpco-stage-field input, .bpco-stage-field select { width: 72px; padding: 5px 8px; border: 1px solid #b3cfe0; border-radius: 7px; font-size: .82rem; font-weight: 700; color: #1a2b3c; background: #fff; }
+.bpco-stage-field select { width: 110px; }
+.bpco-stage-hint { margin-left: auto; font-weight: 800; font-size: .8rem; color: #ef6c00; background: #fff3e0; padding: 4px 12px; border-radius: 999px; }
