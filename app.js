@@ -677,6 +677,61 @@ function renderIcCvr(p) {
         <label class="bpco-stage-field">NYHA <select id="ic-in-nyha"><option value=""${nyha === null ? ' selected' : ''}>\u2014</option>${[1, 2, 3, 4].map(n => `<option value="${n}"${nyha === n ? ' selected' : ''}>NYHA ${nyhaLabels[n - 1]}</option>`).join('')}</select></label>
         <span class="bpco-stage-hint">${fevg === null && nyha === null ? 'Renseigner pour statuer' : verdict.label}</span>
       </div>
+      <details class="bpco-stage-help ic-detail"><summary>\u2753 Pr\u00e9cisions : NYHA I\u2013IV et ph\u00e9notypes ESC</summary><div class="bpco-stage-help-body">
+        <div class="bpco-help-title">Classification NYHA (s\u00e9v\u00e9rit\u00e9 fonctionnelle)</div>
+        <div><strong>NYHA I :</strong> aucune limitation \u2014 activit\u00e9 physique ordinaire sans sympt\u00f4me.</div>
+        <div><strong>NYHA II :</strong> limitation l\u00e9g\u00e8re \u2014 confortable au repos, sympt\u00f4mes aux activit\u00e9s ordinaires (marche rapide, escalier).</div>
+        <div><strong>NYHA III :</strong> limitation marqu\u00e9e \u2014 confortable au repos, sympt\u00f4mes d\u00e8s les activit\u00e9s de la vie quotidienne (toilette, habillage).</div>
+        <div><strong>NYHA IV :</strong> sympt\u00f4mes au repos \u2014 toute activit\u00e9 est mal tol\u00e9r\u00e9e.</div>
+        <div class="bpco-help-title" style="margin-top:8px">Ph\u00e9notypes ESC 2021</div>
+        <div><strong>HFrEF :</strong> FEVG \u2264 40 % \u2014 quadrith\u00e9rapie IFEr d\u2019embl\u00e9e, b\u00e9n\u00e9fice pronostique d\u00e9montr\u00e9.</div>
+        <div><strong>HFmrEF :</strong> FEVG 41\u201349 % \u2014 traitements de l\u2019HFrEF raisonnablement propos\u00e9s (iSGLT2 recommand\u00e9).</div>
+        <div><strong>HFpEF :</strong> FEVG \u2265 50 % \u2014 diur\u00e9tiques pour la congestion ; iSGLT2 recommand\u00e9 (EMPULSE, DELIVER) ; ARM et sacubitril-valsartan \u00e0 discuter ; contr\u00f4ler HTA, FA, diab\u00e8te, ob\u00e9sit\u00e9, SAS.</div>
+        <div class="bpco-help-title" style="margin-top:8px">IC aigu\u00eb vs chronique</div>
+        <div><strong>D\u00e9compensation :</strong> aggravation rapide (jours) des signes de congestion \u2014 voir bloc \u00ab D\u00e9compensation \u00bb.</div>
+        <div><strong>Pi\u00e8ge :</strong> dyspn\u00e9e + BPCO coexistants fr\u00e9quents \u2014 le NT-proBNP aide \u00e0 faire la part des choses (IC et BPCO s\u2019aggravent mutuellement).</div>
+      </div></details>
+      <details class="bpco-stage-help ic-detail"><summary>\ud83d\udd0d D\u00e9marche diagnostique \u2014 valeurs seuils du NT-proBNP</summary><div class="bpco-stage-help-body">
+        <div class="bpco-help-title">Chez qui chercher une IC ?</div>
+        <div>Dyspn\u00e9e d\u2019effort, orthopn\u00e9e, \u0153d\u00e8mes des membres inf\u00e9rieurs, prise de poids rapide, fatigue, \u0153d\u00e8me pulmonaire \u2014 surtout si FdR : \u2265 65 ans, HTA, DT2, tabac, BPCO, valvulopathie, ant\u00e9c\u00e9dent d\u2019IDM.</div>
+        <div class="bpco-help-title" style="margin-top:8px">NT-proBNP (pg/mL) \u2014 interpr\u00e9tation selon le contexte</div>
+        <div><strong>Ambulatoire :</strong> &lt; 125 pg/mL \u2192 IC peu probable (valeur pr\u00e9dictive n\u00e9gative \u00e9lev\u00e9e) \u00b7 \u2265 125 \u2192 poursuivre (ECG + ETT).</div>
+        <div><strong>Urgences (dyspn\u00e9e aigu\u00eb) :</strong> &lt; 300 pg/mL \u2192 IC aigu\u00eb tr\u00e8s improbable.</div>
+        <div><strong>R\u00e8gles d\u2019\u00e2ge (suspicion d\u2019IC aigu\u00eb) :</strong> &lt; 50 ans : seuil 450 \u00b7 50\u201375 ans : 900 \u00b7 &gt; 75 ans : 1800.</div>
+        <div><strong>Pi\u00e8ges :</strong> \u00e9l\u00e9vation attendue avec l\u2019\u00e2ge, l\u2019insuffisance r\u00e9nale, FA, sepsis, embolie pulmonaire \u00b7 BNP &lt; 35 pg/mL (ambulatoire) ou &lt; 100 (aigu) exclut aussi.</div>
+        <div class="bpco-help-title" style="margin-top:8px">\u00c9tape suivante : ETT obligatoire si NT-proBNP \u00e9lev\u00e9</div>
+        <div>FEVG, cin\u00e9tique segmentaire, valves, PAPs, VCI, strain longitudinal, \u00e9panchement p\u00e9ricardique, hypertrophie, aspect de cardiomyopathie infiltrante (amylose si HVG + insuffisance right, think ATTR : scintigraphie osseuse si doute).</div>
+        <div><strong>Bilan \u00e9tiologique minimal :</strong> ECG, ionogramme + cr\u00e9atinine, NFS, ferritine, TSH, glyc\u00e9mie/HbA1c, bilan h\u00e9patique \u00b7 \u00e0 discuter : coronarographie (isch\u00e9mie), IRM cardiaque (\u00e9tiologie ind\u00e9termin\u00e9e, myocardite, sarco\u00efdose, amylose), Holter.</div>
+        <div><strong>Examens \u00e0 vis\u00e9e pronostique :</strong> VO\u2082 max, test de marche de 6 min, NT-proBNP de contr\u00f4le sous traitement.</div>
+      </div></details>
+      <details class="bpco-stage-help ic-detail"><summary>\ud83d\udc8a Titration de la quadrith\u00e9rapie \u2014 doses initiales \u2192 cibles</summary><div class="bpco-stage-help-body">
+        <div class="bpco-help-title">Principe ESC 2021 : 4 classes d\u00e8s que possible, titrer \u00e0 2 semaines d\u2019intervalle, avant d\u2019attendre l\u2019effet de chaque classe</div>
+        <div><strong>\u2460 IEC :</strong> ramipril 1,25 \u2192 <strong>10 mg/j</strong> (ou p\u00e9rindopril 2,5 \u2192 10 mg) \u00b7 surveillance K+ et cr\u00e9atinine \u00e0 1\u20132 semaines.</div>
+        <div><strong>\u2460-bis (alternative) :</strong> sacubitril-valsartan 49/51 \u00d7 2/j \u2192 <strong>97/103 \u00d7 2/j</strong> \u2014 si PCT \u2264 36 h depuis l\u2019arr\u00eat d\u2019un IEC ; r\u00e9duction des hospitalisations (PARADIGM-HF).</div>
+        <div><strong>\u2461 B\u00eatabloquant :</strong> bisoprolol 1,25 \u2192 <strong>10 mg/j</strong> \u00b7 carv\u00e9dilol 3,125 \u00d7 2 \u2192 <strong>25 mg \u00d7 2</strong> (50 \u00d7 2 si &gt; 85 kg) \u00b7 m\u00e9toprolol LP 12,5\u201325 \u2192 <strong>200 mg/j</strong> \u00b7 n\u00e9bivolol 1,25 \u2192 10 (si \u2265 70 ans, HFmrEF/HFpEF).</div>
+        <div><strong>\u2462 iSGLT2 :</strong> dapagliflozine <strong>10 mg/j</strong> ou empagliflozine <strong>10 mg/j</strong> \u2014 dose unique d\u2019embl\u00e9e, sans titration, b\u00e9n\u00e9fice rapide (DAPA-HF, EMPEROR-Reduced) ; pas de correction du DFG \u2018a \u00e0 l\u2019instauration attendue.</div>
+        <div><strong>\u2463 ARM :</strong> spironolactone 12,5\u201325 \u2192 <strong>25\u201350 mg/j</strong> (effet anti-androg\u00e9nique) ou \u00e9pl\u00e9rone 25 \u2192 <strong>50 mg/j</strong> (s\u00e9lectif, si intol\u00e9rance) \u2014 K+ obligatoire \u00e0 1 semaine, contre-indiqu\u00e9 si K+ &gt; 5 mmol/L.</div>
+        <div class="bpco-help-title" style="margin-top:8px">R\u00e8gles de titration</div>
+        <div>Double la dose toutes les 2 semaines si constantes stables \u00b7 objectif : dose maximale tol\u00e9r\u00e9e, ou dose atteignant le plateau de b\u00e9n\u00e9fice \u00b7 ne jamais arr\u00eater une classe pour bradycardie/PA basse sans v\u00e9rifier les autres \u00b7 une baisse de la cr\u00e9atinine \u2264 30 % (ou DFG \u2265 25 %) est acceptable \u00b7 si hyperkali\u00e9mie 5,5\u20135,9 : r\u00e9duire ARM, ajouter r\u00e9sine, r\u00e9\u00e9valuer avant d\u2019arr\u00eater.</div>
+      </div></details>
+      <details class="bpco-stage-help ic-detail"><summary>\ud83d\udea8 D\u00e9compensation aigu\u00eb \u2014 reconna\u00eetre et agir</summary><div class="bpco-stage-help-body">
+        <div class="bpco-help-title">Signes d\u2019alerte \u00e0 la consultation</div>
+        <div>Prise de poids &gt; 2 kg en 3 jours \u00b7 \u0153d\u00e8mesmes des chevilles ou du sacrum \u00b7 orthopn\u00e9e / dyspn\u00e9e paroxystique nocturne nouvelle \u00b7 oligurie \u00b7 FC \u2265 120 \u00b7 SpO\u2082 &lt; 90 % \u00b7 confusion (sujet \u00e2g\u00e9) \u00b7 crackles \u00e0 l\u2019auscultation \u00b7 turgescence jugulaire, h\u00e9patalgie.</div>
+        <div class="bpco-help-title" style="margin-top:8px">Chercher le facteur d\u00e9clenchant</div>
+        <div>Arr\u00eat du traitement ou de la restriction (\u2460 cause la plus fr\u00e9quente) \u00b7 surcharge hydrosod\u00e9e \u00b7 arythmie (FA rapide) \u00b7 infection / bronchite \u00b7 IDM silencieux \u00b7 an\u00e9mie \u00b7 embolie pulmonaire \u00b7 m\u00e9dicaments (AINS, v\u00e9rapamil/diltiazem, glitazones, cortico\u00efdes, fluoroquinolones) \u00b7 alcool \u00b7 pouss\u00e9e hypertensive \u00b7 thyro\u00efdite.</div>
+        <div class="bpco-help-title" style="margin-top:8px">Conduite en ville</div>
+        <div>Restriction hydrique (1,5 L/j) et sod\u00e9e (&lt; 5\u20136 g/j) \u00b7 majoration transitoire du diur\u00e9tique (furos\u00e9mide +50\u2013100 % pendant 3\u20135 j) \u00b7 poids quotidien not\u00e9 \u00b7 revoir \u00e0 48\u201372 h \u00b7 ECG + NT-proBNP + ionogramme \u00b7 <strong>hospitaliser si :</strong> SpO\u2082 &lt; 90 %, PA basse (PAS &lt; 90), FC \u2265 120, trouble du rythme, oligurie/anurie, signes de choc, \u0153d\u00e8me pulmonaire, confusion, comorbidit\u00e9 d\u00e9compens\u00e9e, isolement social.</div>
+        <div><strong>Apr\u00e8s l\u2019\u00e9pisode :</strong> r\u00e9\u00e9valuer les 4 classes (dose optimale non atteinte ?) \u00b7 v\u00e9rifier l\u2019observance et la compr\u00e9hension \u00b7 proposer r\u00e9adaptation \u00b7 chez les patients r\u00e9fractaires : discuter dispositifs (CRT si QRS \u2265 130 ms + FEVG \u2264 35 %, DAI si FEVG \u2264 35 % sous traitement optimal depuis \u2265 3 mois), assistance, greffe, soins palliatifs si fin de vie.</div>
+      </div></details>
+      <details class="bpco-stage-help ic-detail"><summary>\ud83d\udcc5 Suivi, \u00e9ducation et parcours \u2014 programme de s\u00e9ance</summary><div class="bpco-stage-help-body">
+        <div class="bpco-help-title">Suivi standard : tous les 6 mois (ou 3\u20134 semaines apr\u00e8s un changement th\u00e9rapeutique)</div>
+        <div><strong>\u00c0 chaque consultation :</strong> poids, PA, FC, examen (congestion ?), observance (compter les bo\u00eetes), tol\u00e9rance, doses r\u00e9ellement prises de chaque classe.</div>
+        <div><strong>Bilan annuel :</strong> ionogramme + cr\u00e9atinine (plus fr\u00e9quemment si titration), NFS + ferritine, NT-proBNP de contr\u00f4le, ECG/Holter si palpitations, ETT (r\u00e9\u00e9valuer la FEVG apr\u00e8s optimisation \u2265 3\u20136 mois), contr\u00f4le glyc\u00e9mie si DT2 (favoriser iSGLT2/GLP-1), bilan vaccinal.</div>
+        <div class="bpco-help-title" style="margin-top:8px">\u00c9ducation th\u00e9rapeutique \u2014 messages cl\u00e9s</div>
+        <div>Poids quotidien le matin \u00e0 jeun, not\u00e9 dans un carnet \u00b7 signe d\u2019alerte : + 2 kg / 3 jours \u2192 appeler \u00b7 restriction sod\u00e9e \u00b7 hydrique 1,5 L/j si congestion \u00b7 activit\u00e9 physique r\u00e9guli\u00e8re encourag\u00e9e (marche 20\u201330 min/j) \u00b7 ne jamais arr\u00eater seul un traitement \u00b7 pas d\u2019AINS en autom\u00e9dication \u00b7 reconna\u00eetre les signes imposant d\u2019appeler le 15 (dyspn\u00e9e de repos, douleur thoracique, syncope).</div>
+        <div class="bpco-help-title" style="margin-top:8px">Parcours \u2014 qui impliquer ?</div>
+        <div>R\u00e9f\u00e9rent IC / cardiologue (titration, avis dispositifs) \u00b7 infirmier de coordination / t\u00e9l\u00e9suivi (prise de poids \u00e0 domicile) \u00b7 r\u00e9adaptation cardiovasculaire \u00b7 di\u00e9t\u00e9ticien \u00b7 assistance sociale (ALD 5 \u00ab insuffisance cardiaque \u00bb \u2014 100 % pour les soins en lien) \u00b7 aidant proche inform\u00e9 \u00b7 protocole de fin de vie \u00e0 aborder t\u00f4t si FEVG basse et r\u00e9fractaire.</div>
+      </div></details>
       <div class="cvr-layout">
         <div class="cvr-col">
           <div class="cvr-panel-title">\u2460 \u00c9l\u00e9ments \u00e0 \u00e9valuer</div>
