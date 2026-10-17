@@ -816,9 +816,14 @@ function osteoTbsLabel(tbs) {
 }
 // Estimation indicative du FRAX® (à affiner manuellement — le FRAX® officiel reste la référence)
 function osteoFraxEstimate(p) {
-  if (p.age === null || p.age < 40 || p.age > 90 || !p.sex) return null;
+  const ov = window._osteoFx || {};
+  const ageRaw = ov.age !== undefined && ov.age !== null && ov.age !== '' ? ov.age : p.age;
+  const imcRaw = ov.imc !== undefined && ov.imc !== null && ov.imc !== '' ? ov.imc : p.imc;
+  const sex = ov.sex || p.sex;
+  if (ageRaw === null || ageRaw < 40 || ageRaw > 90 || !sex) return null;
   const f = window._osteoF || {};
-  const age = Math.min(90, Math.max(40, p.age));
+  const age = Math.min(90, Math.max(40, ageRaw));
+  const pp = Object.assign({}, p, { imc: imcRaw, sex, tabac: ov.tabac !== undefined && ov.tabac !== null && ov.tabac !== '' ? ov.tabac : p.tabac });
   const interp = (tbl) => {
     const xs = tbl.map((_, i) => 40 + i * 5);
     let lo = 0;
@@ -829,15 +834,15 @@ function osteoFraxEstimate(p) {
   };
   const baseF = [3, 3.4, 4.5, 6.5, 9.5, 14, 20, 27, 34, 40, 45];
   const baseH = [0.2, 0.3, 0.5, 0.9, 1.6, 3, 5.5, 9, 14, 19, 24];
-  let m = interp(isF(p) ? baseF : baseF.map(v => v * 0.55));
-  let h = interp(isF(p) ? baseH : baseH.map(v => v * 0.6));
-  const imc = p.imc !== null ? p.imc : 25;
-  const imcFactor = Math.pow(Math.min(1.8, Math.max(0.6, 22 / imc)), isF(p) ? 1.6 : 1.4);
+  let m = interp(isF(pp) ? baseF : baseF.map(v => v * 0.55));
+  let h = interp(isF(pp) ? baseH : baseH.map(v => v * 0.6));
+  const imc = imcRaw !== null && imcRaw !== undefined ? imcRaw : 25;
+  const imcFactor = Math.pow(Math.min(1.8, Math.max(0.6, 22 / imc)), isF(pp) ? 1.6 : 1.4);
   h *= imcFactor; m *= Math.pow(imcFactor, 0.7);
   if (f.fractureFaibleEnergie) { m *= 1.8; h *= 1.9; }
   if (f.atcdParent) { m *= 1.6; h *= 2.0; }
   if (f.tassements) { m *= 1.9; h *= 1.8; }
-  if (p.tabac === 'actif' || f.tabacActifOsteo) { m *= 1.3; h *= 1.4; }
+  if (pp.tabac === 'actif' || f.tabacActifOsteo) { m *= 1.3; h *= 1.4; }
   if (f.alcool) { m *= 1.3; h *= 1.4; }
   if (f.cortico) { m *= 1.5; h *= 2.0; }
   if (f.polyarthrite) { m *= 1.6; h *= 1.7; }
@@ -847,7 +852,7 @@ function osteoFraxEstimate(p) {
   const dampen = v => v <= 10 ? v : (10 + (v - 10) * 10 / (10 + (v - 10) * 0.55));
   m = Math.min(65, dampen(m));
   h = Math.min(45, dampen(h));
-  return { majeure: Math.round(m * 10) / 10, hanche: Math.round(h * 10) / 10 };
+  return { majeure: Math.round(m * 10) / 10, hanche: Math.round(h * 10) / 10, age, imc, sex, tabac: pp.tabac };
 }
 function osteoFraxHigh(p) {
   const fm = osteoNum('fraxMajeure'), fh = osteoNum('fraxHanche');
@@ -887,6 +892,11 @@ function renderOsteoCvr(p) {
   const tbs = osteoNum('tbs');
   const tbsL = osteoTbsLabel(tbs);
   const est = osteoFraxEstimate(p);
+  const ov = window._osteoFx || {};
+  const estAge = ov.age !== undefined && ov.age !== null && ov.age !== '' ? ov.age : (p.age ?? '');
+  const estImc = ov.imc !== undefined && ov.imc !== null && ov.imc !== '' ? ov.imc : (p.imc ?? '');
+  const estSex = ov.sex || p.sex || '';
+  const estTabac = ov.tabac !== undefined && ov.tabac !== null && ov.tabac !== '' ? ov.tabac : (p.tabac || '');
   const evalRows = [
     ['Terrain', isF(p) ? (femmeMenop ? 'Femme ménopausée' : 'Femme — ménopause non renseignée') : (hommeTerrain ? 'Homme avec facteur de risque osseux' : 'Homme — pas de dépistage systématique')],
     ['Facteurs', ctx.length ? ctx.join(' · ') : 'aucun renseigné'],
@@ -941,11 +951,17 @@ function renderOsteoCvr(p) {
           ${toggle('alcool', 'Alcool ≥ 3 verres/j')}
           ${toggle('tabacActifOsteo', 'Tabac actif')}
         </div>
-        ${est ? `<div class="osteo-est">
-          <span class="osteo-est-k">🧮 Précalcul FRAX® indicatif (données de la fiche) :</span>
-          <span class="osteo-est-v">fracture majeure ≈ <strong>${String(est.majeure).replace('.', ',')} %</strong> · hanche ≈ <strong>${String(est.hanche).replace('.', ',')} %</strong> à 10 ans</span>
-          <button type="button" class="osteo-est-btn" data-osteo-inject="1">⬇ Injecter dans les champs, à affiner</button>
-          <span class="osteo-est-note">estimation indicative — à ajuster après calcul du FRAX® officiel (âge, sexe, IMC, facteurs cochés${p.imc !== null ? '' : ' ; IMC non renseigné = 25 supposé'})</span>
+        ${(est || p.age !== null) ? `<div class="osteo-est">
+          <span class="osteo-est-k">🧮 Précalcul FRAX® indicatif :</span>
+          <span class="osteo-est-fields">
+            <label>Âge <input type="number" data-osteo-fx="age" min="40" max="90" step="1" value="${estAge}" placeholder="ans"></label>
+            <label>Sexe <select data-osteo-fx="sex"><option value=""${estSex === '' ? ' selected' : ''}>—</option><option value="F"${estSex === 'F' ? ' selected' : ''}>Femme</option><option value="M"${estSex === 'M' ? ' selected' : ''}>Homme</option></select></label>
+            <label>IMC <input type="number" data-osteo-fx="imc" min="10" max="60" step="0.1" value="${estImc}" placeholder="= fiche"></label>
+            <label>Tabac <select data-osteo-fx="tabac"><option value=""${estTabac === '' ? ' selected' : ''}>—</option><option value="jamais"${estTabac === 'jamais' ? ' selected' : ''}>Non</option><option value="sevré"${estTabac === 'sevré' ? ' selected' : ''}>Sevré</option><option value="actif"${estTabac === 'actif' ? ' selected' : ''}>Oui</option></select></label>
+          </span>
+          ${est ? `<span class="osteo-est-v">fracture majeure ≈ <strong>${String(est.majeure).replace('.', ',')} %</strong> · hanche ≈ <strong>${String(est.hanche).replace('.', ',')} %</strong> à 10 ans</span>
+          <button type="button" class="osteo-est-btn" data-osteo-inject="1">⬇ Injecter dans les champs, à affiner</button>` : '<span class="osteo-est-note">renseigner âge (40–90) et sexe pour estimer</span>'}
+          <span class="osteo-est-note">estimation indicative (âge/sexe/IMC/tabac modifiables ci-dessus · autres variables = cases cochées + traitements) — à ajuster après calcul du FRAX® officiel${p.imc === null && estImc === '' ? ' · IMC non renseigné = 25 supposé' : ''}</span>
         </div>` : ''}
         <div class="bpco-stage-bar" style="margin-bottom:0">
           <span class="bpco-stage-label">⬩ Stadifier ici :</span>
@@ -1034,6 +1050,7 @@ function renderOsteoCvr(p) {
   if (inT) inT.addEventListener('change', e => { const v = parseFloat(String(e.target.value).replace(',', '.')); window._osteoT = isNaN(v) ? null : v; render(); });
   const inj = panel.querySelector('[data-osteo-inject]');
   if (inj) inj.addEventListener('click', () => { window._osteoVals = window._osteoVals || {}; window._osteoVals.fraxMajeure = est.majeure; window._osteoVals.fraxHanche = est.hanche; render(); });
+  panel.querySelectorAll('[data-osteo-fx]').forEach(el => el.addEventListener('change', e => { window._osteoFx = window._osteoFx || {}; const k = e.target.dataset.osteoFx; if (e.target.type === 'number') { const v = parseFloat(String(e.target.value).replace(',', '.')); if (isNaN(v)) delete window._osteoFx[k]; else window._osteoFx[k] = v; } else { window._osteoFx[k] = e.target.value || null; } render(); }));
   [['#osteo-in-fraxm', 'fraxMajeure'], ['#osteo-in-fraxh', 'fraxHanche'], ['#osteo-in-tbs', 'tbs']].forEach(([sel, key]) => {
     const el = panel.querySelector(sel);
     if (el) el.addEventListener('change', e => { const v = parseFloat(String(e.target.value).replace(',', '.')); window._osteoVals = window._osteoVals || {}; if (isNaN(v)) delete window._osteoVals[key]; else window._osteoVals[key] = v; render(); });

@@ -649,6 +649,10 @@ header { padding: 12px 24px; }
 .osteo-check input { margin-top: 3px; }
 .osteo-check strong { color: #1a2b3c; }
 .osteo-est { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: #fffdf5; border: 1px solid #f0e6c8; border-left: 4px solid #c9a227; border-radius: 10px; padding: 8px 14px; font-size: .8rem; color: #4e4a3a; }
+.osteo-est-fields { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.osteo-est-fields label { display: flex; align-items: center; gap: 4px; font-size: .74rem; font-weight: 700; color: #6d5a10; }
+.osteo-est-fields input, .osteo-est-fields select { width: 64px; padding: 3px 6px; border: 1px solid #d9c98a; border-radius: 6px; font-size: .76rem; background: #fff; }
+.osteo-est-fields select { width: auto; }
 .osteo-est-k { font-weight: 800; color: #8a6d1a; text-transform: uppercase; letter-spacing: .03em; font-size: .72rem; }
 .osteo-est-v strong { color: #1a2b3c; }
 .osteo-est-btn { border: 1px solid #c9a227; background: #fdf6e3; color: #6d5a10; font-weight: 700; font-size: .74rem; padding: 4px 10px; border-radius: 8px; cursor: pointer; }
