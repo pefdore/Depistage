@@ -3410,6 +3410,31 @@ document.addEventListener('change', e => {
 
 document.getElementById('pat-date').value = new Date().toISOString().slice(0, 10);
 
+// Remise à zéro complète du dossier avant une nouvelle injection :
+// champs patient, coches de dépistage, examens et tous les états internes des cartes
+// (FRAX, facteurs ostéo, mMRC, contraception, IC, thyroïde…) — aucune valeur du dossier
+// précédent ne doit survivre au changement de patient.
+function resetDossier() {
+  document.querySelectorAll('[id^="pat-"]').forEach(el => {
+    if (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA') {
+      el.value = el.tagName === 'INPUT' && el.defaultValue !== undefined ? el.defaultValue : '';
+    }
+  });
+  const dateEl = document.getElementById('pat-date');
+  if (dateEl) dateEl.value = new Date().toISOString().slice(0, 10);
+  Object.keys(overrides).forEach(k => delete overrides[k]);
+  Object.keys(doneExams).forEach(k => delete doneExams[k]);
+  Object.keys(dmChecks).forEach(k => delete dmChecks[k]);
+  [
+    '_osteoVals', '_osteoF', '_osteoFx', '_osteoT',
+    '_bpcoMmrc', '_icFevg', '_icNyha', '_thyTirads',
+    '_contraMigraine', '_contraThrombose', '_contraPostpartum', '_contraEpilepsie',
+    '_contraDrepano', '_contraLupus', '_contraCancerSein', '_contraProb',
+    '_patientTouched',
+  ].forEach(k => { window[k] = undefined; });
+  window._bpcoHints = { factors: [] };
+}
+
 document.getElementById('btn-reset').addEventListener('click', () => {
   if (confirm('Réinitialiser les coches ?')) {
     Object.keys(overrides).forEach(k => delete overrides[k]);
@@ -4045,6 +4070,7 @@ document.getElementById('btn-paste-clear')?.addEventListener('click', () => {
   document.getElementById('paste-report').classList.add('hidden');
 });
 function pasteInjectFromText(text) {
+  resetDossier();
   const res = parsePasteVolet(text);
   const report = document.getElementById('paste-report');
   const filledHtml = res.filled.length
