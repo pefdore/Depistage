@@ -688,3 +688,10 @@ header { padding: 12px 24px; }
 .rx-group-E { background: #c62828; }
 .rx-drug-rules { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .rx-drug-rules span { font-size: .76rem; color: #6d4c41; background: #fff3e0; border: 1px solid #ffe0b2; border-radius: 8px; padding: 5px 11px; font-weight: 600; }
+
+/* ---------- Carte contraception ---------- */
+.contraception-cvr .contra-switch { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; background: #f9f4fc; border: 1px solid #e8d5f0; border-radius: 10px; margin-bottom: 10px; }
+.contraception-cvr .contra-switch-row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.contraception-cvr .contra-switch-row label { display: inline-flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 600; color: #4a148c; }
+.contraception-cvr .contra-switch-row select { font-size: .78rem; padding: 3px 6px; border: 1px solid #ce93d8; border-radius: 7px; background: #fff; }
+.contra-badge { display: inline-block; min-width: 52px; text-align: center; padding: 1px 8px; border-radius: 999px; font-size: .68rem; font-weight: 800; margin-right: 6px; }
