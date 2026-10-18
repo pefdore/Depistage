@@ -727,6 +727,319 @@ function renderThyroideCvr(p) {
   const inTirads = panel.querySelector('#thy-in-tirads');
   if (inTirads) inTirads.addEventListener('change', e => { window._thyTirads = e.target.value; render(); });
 }
+// ---------- Carte Contraception (femme) ----------
+// Recommandations fondées sur les critères de recevabilité médicale OMS (CRM/MEC),
+// HAS « Stratégies de choix de méthodes contraceptives » et recommandations françaises (post-partum, contraception d'urgence).
+const CONTRA_METHODS = [
+  { id: 'implant', label: 'Implant (étonogestrel)', cat: 'LARC — progestatif' },
+  { id: 'siu', label: 'SIU-LNG (Jaydess® / Mirena®)', cat: 'LARC — progestatif' },
+  { id: 'diu', label: 'DIU cuivre (non hormonal)', cat: 'LARC — non hormonal' },
+  { id: 'cp', label: 'Pilule combinée œstro-progestative', cat: 'Courte durée' },
+  { id: 'mp', label: 'Microprogestatif (désogestrel)', cat: 'Courte durée' },
+];
+const CONTRA_GRADE_INFO = {
+  1: { label: 'OMS 1', txt: 'aucune restriction', color: '#2e7d32', bg: '#e8f5e9' },
+  2: { label: 'OMS 2', txt: 'avantages > inconvénients — généralement utilisable', color: '#558b2f', bg: '#f1f8e9' },
+  3: { txt: 'inconvénients > avantages — envisageable avec suivi', color: '#f9a825', bg: '#fffde7', label: 'OMS 3' },
+  4: { txt: 'contre-indiqué', color: '#c62828', bg: '#fdecea', label: 'OMS 4' },
+};
+function contraP() {
+  const s = id => (document.getElementById(id)?.value || '').trim();
+  const num = id => { const v = parseFloat((document.getElementById(id)?.value || '').replace(',', '.')); return isNaN(v) ? null : v; };
+  const pat = P();
+  return {
+    age: pat.age,
+    imc: pat.imc,
+    dfg: pat.dfg,
+    tabac: pat.tabac,
+    hta: pat.hta,
+    diabete: pat.diabete,
+    sbp: pat.sbp,
+    migraine: window._contraMigraine === undefined ? '' : window._contraMigraine,
+    thrombose: window._contraThrombose === undefined ? false : window._contraThrombose,
+    postpartum: window._contraPostpartum === undefined ? '' : window._contraPostpartum,
+    epilepsie: window._contraEpilepsie === undefined ? false : window._contraEpilepsie,
+    drepano: window._contraDrepano === undefined ? false : window._contraDrepano,
+    lupus: window._contraLupus === undefined ? false : window._contraLupus,
+    cancerSein: window._contraCancerSein === undefined ? false : window._contraCancerSein,
+    prob: window._contraProb === undefined ? '' : window._contraProb,
+  };
+}
+function contraIsFumeuse35(c) { return c.tabac === 'actif' && c.age !== null && c.age >= 35; }
+function contraHasFdrCv(c) { return !!(c.hta || c.diabete || contraIsFumeuse35(c)); }
+function contraIsPostPartumPrecoce(c) { return c.postpartum === 'pp0-6' || c.postpartum === 'pp6sem-6mo'; }
+function contraIsAllaitemment(c) { return c.postpartum === 'allaitement'; }
+function contraIsObese(c) { return c.imc !== null && c.imc >= 30; }
+// --- grades OMS (CRM) par méthode et situation ---
+function contraGrades(c) {
+  const obese = contraIsObese(c);
+  const postPP = contraIsPostPartumPrecoce(c);
+  const allaite = contraIsAllaitemment(c);
+  const g = {
+    implant: { g: 1, why: 'Progestatif : aucune CI identifiée' },
+    siu: { g: 1, why: 'SIU-LNG : aucune CI identifiée' },
+    diu: { g: 1, why: 'DIU cuivre : aucune CI identifiée' },
+    cp: { g: 2, why: 'Pas de CI identifiée aux œstrogènes' },
+    mp: { g: 1, why: 'Microprogestatif : aucune CI identifiée' },
+  };
+  const defaults = new Set(['Progestatif : aucune CI identifiée', 'SIU-LNG : aucune CI identifiée', 'DIU cuivre : aucune CI identifiée', 'Pas de CI identifiée aux œstrogènes', 'Microprogestatif : aucune CI identifiée']);
+  const why = (id, txt) => {
+    const cur = g[id];
+    const nextG = Math.max(cur.g, txt[0]);
+    const nextWhy = defaults.has(cur.why) && nextG === txt[0] ? txt[1] : defaults.has(cur.why) ? cur.why : cur.why + ' · ' + txt[1];
+    g[id] = { g: nextG, why: nextWhy };
+  };
+  // --- migraine ---
+  if (c.migraine === 'aura') {
+    why('cp', [4, 'Migraine AVEC aura : CI absolue aux œstrogènes (OMS 4) — risque AVC ischémique x2-3']);
+  } else if (c.migraine === 'sansaura') {
+    if (contraIsFumeuse35(c) || contraHasFdrCv(c)) why('cp', [4, 'Migraine sans aura + FdR CV / tabac ≥ 35 ans : CI œstrogènes (OMS 4)']);
+    else why('cp', [3, 'Migraine sans aura : prudence œstrogènes (OMS 3 si ≥ 35 ans ou FdR CV, OMS 2 sinon)']);
+  }
+  // --- thrombose ---
+  if (c.thrombose) {
+    why('cp', [4, 'ATCD thrombose veineuse : CI absolue œstrogènes (OMS 4)']);
+    why('mp', [3, 'ATCD thrombose : microprogestatif possible mais prudence (données limitées)']);
+  }
+  // --- FdR CV ---
+  if (contraHasFdrCv(c)) why('cp', [3, 'FdR cardiovasculaire (HTA, diabète, tabac ≥ 35 ans) : œstrogènes OMS 3-4']);
+  if (contraIsFumeuse35(c)) why('cp', [4, 'Tabac ≥ 15 cig/j + ≥ 35 ans : CI œstrogènes (OMS 4)']);
+  // --- obésité ---
+  if (obese) why('cp', [3, 'IMC ≥ 30 : risque thrombotique ↑ — œstrogènes OMS 3 (4 si obésité morbide + autre FdR)']);
+  // --- post-partum / allaitement ---
+  if (c.postpartum === 'pp0-6') {
+    why('cp', [4, '< 6 semaines post-partum : œstrogènes CI (OMS 4 — risque thrombose ↑)']);
+  } else if (c.postpartum === 'pp6sem-6mo') {
+    why('cp', [3, '6 semaines–6 mois post-partum : œstrogènes OMS 3 (thrombose) — progestatif/DIU à privilégier']);
+  }
+  if (allaite) {
+    why('cp', [3, 'Allaitement : œstrogènes OMS 3 (baisse lactation) — préférer implant, SIU, DIU, microprogestatif']);
+  }
+  // --- drépanocytose ---
+  if (c.drepano) {
+    why('cp', [3, 'Drépanocytose : œstrogènes OMS 3 (risque thrombose) — grossesse = haut risque, contraception essentielle']);
+  }
+  // --- lupus ---
+  if (c.lupus) {
+    why('cp', [3, 'Lupus : œstrogènes OMS 3 (CI 4 si antiphospholipides) — progestatifs/contraception locale privilégiés']);
+  }
+  // --- épilepsie ---
+  if (c.epilepsie) {
+    why('cp', [2, 'Épilepsie : efficacité pilule/implant ↓ avec enzymo-inducteurs — privilégier SIU ou DIU cuivre']);
+    why('implant', [2, 'Épilepsie : enzymo-inducteurs ↓ efficacité implant — SIU/DIU à privilégier']);
+  }
+  // --- cancer du sein ---
+  if (c.cancerSein) {
+    why('implant', [4, 'Cancer du sein hormonodépendant : CI progestatifs (OMS 4) — avis gynéco/onco']);
+    why('siu', [4, 'Cancer du sein hormonodépendant : CI SIU-LNG (OMS 4)']);
+    why('mp', [4, 'Cancer du sein hormonodépendant : CI microprogestatif (OMS 4)']);
+    why('cp', [4, 'Cancer du sein hormonodépendant : CI œstrogènes (OMS 4)']);
+  }
+  // --- insuffisance rénale ---
+  if (c.dfg !== null && c.dfg < 60) {
+    why('cp', [3, 'DFGe < 60 : œstrogènes OMS 3 (4 si < 30)']);
+    why('diu', [2, 'DFGe < 60 : DIU possible avec suivi (données limitées)']);
+  }
+  return g;
+}
+function contraRecommend(c) {
+  const gr = contraGrades(c);
+  const ranked = CONTRA_METHODS.map(m => ({ ...m, res: gr[m.id] })).sort((a, b) => a.res.g - b.res.g);
+  const best = ranked.find(x => x.res.g <= 2) || ranked[0];
+  const reasons = [];
+  if (c.migraine === 'aura') reasons.push('migraine avec aura → pas d’œstrogènes');
+  if (c.thrombose) reasons.push('ATCD thrombose → pas d’œstrogènes');
+  if (contraIsFumeuse35(c)) reasons.push('tabac + ≥ 35 ans → pas d’œstrogènes');
+  if (contraHasFdrCv(c)) reasons.push('FdR CV → éviter œstrogènes');
+  if (contraIsObese(c)) reasons.push('IMC ' + String(c.imc).replace('.', ',') + ' → éviter œstrogènes');
+  if (contraIsPostPartumPrecoce(c)) reasons.push('post-partum → éviter œstrogènes');
+  if (contraIsAllaitemment(c)) reasons.push('allaitement → progestatif/DIU');
+  if (c.epilepsie) reasons.push('épilepsie → éviter interactions (SIU/DIU)');
+  if (c.drepano) reasons.push('drépanocytose → contraception hautement efficace');
+  if (c.lupus) reasons.push('lupus → éviter œstrogènes');
+  if (c.cancerSein) reasons.push('cancer du sein → avis spécialisé');
+  if (c.dfg !== null && c.dfg < 60) reasons.push('DFGe < 60 → éviter œstrogènes');
+  if (c.age !== null && c.age < 20) reasons.push('adolescente → LARC (implant/SIU) efficacité et observance ++');
+  if (c.age !== null && c.age >= 40) reasons.push('≥ 40 ans → LARC à privilégier, œstrogènes prudence');
+  return { ranked, best, reasons };
+}
+// --- switch : conduite à tenir selon problème rencontré ---
+const CONTRA_PROBLEMS = {
+  spotting: { label: 'Spotting / saignements irréguliers', cat: [
+    ['Rassurer', 'Fréquent et bénin les 3–6 premiers mois (implant, SIU, microprogestatif) — si persistance > 6 mois : éliminer une cause'],
+    ['Éliminer', 'Grossesse (test urinaire), IST, infection génitale, lésion cervicale (frottis à jour ?), polype, pathologie utérine (échographie si doute)'],
+    ['Si implant', 'Spotting invalidant > 6 mois : *soit* patience + acide tranexamique ponctuel, *soit* retrait → SIU-LNG ou DIU cuivre'],
+    ['Si microprogestatif', 'Switch → pilule combinée (si pas de CI œstrogènes) ou SIU-LNG (aménorrhée fréquente)'],
+    ['Anémie', 'Si carence martiale : la traiter et revoir la méthode'],
+  ]},
+  cephalees: { label: 'Céphalées / migraines', cat: [
+    ['Signes d’alerte', 'Rechercher une AURA (troubles visuels, sensitifs, du langage) : si aura sous œstrogènes → ARRÊT IMMÉDIAT (OMS 4)'],
+    ['Migraine sans aura', 'Nouvelle ou aggravée sous pilule : arrêter les œstrogènes (switch progestatif/DIU)'],
+    ['Alternatives', 'Implant, SIU-LNG, DIU cuivre : aucune CI migraine'],
+    ['Urgence', 'Céphalée brutale « en coup de tonnerre » : urgences (thrombose veineuse cérébrale, hémorragie)'],
+  ]},
+  acanthose: { label: 'Acné sous contraception', cat: [
+    ['Évaluer', 'Acné liée à l’androgénicité du progestatif (lévonorgestrel, norgestrel...) ou au LNG (implant/SIU)'],
+    ['Pilule combinée', 'Bénéfique dans l’acné : préférer EE + drospirénone (anti-androgénique) — si pas de CI œstrogènes'],
+    ['Microprogestatif', 'Désogestrel neutre/bénéfique possible (pas androgénique)'],
+    ['Implant/SIU', 'Acné possible sous lévonorgestrel : si gênante → switch (DIU cuivre, EE+drospirénone, désogestrel)'],
+    ['Avis dermato', 'Si acné nodulaire/kystique ou réfractaire — traitement spécifique (voir carte Acné)'],
+  ]},
+  poids: { label: 'Prise de poids', cat: [
+    ['Évaluer', 'IMC, variation depuis l’initiation, hygiène de vie — la prise de poids n’est PAS démontrée pour la plupart des méthodes'],
+    ['Injection', 'Méthode injectable (non listée ici) : seule méthode avec prise de poids démontrée — éviter si ce souci'],
+    ['Implant', 'Prise modeste possible (≈ 1–2 kg) : si gêne → retrait et SIU/DIU cuivre'],
+    ['Pilule', 'Œstrogène-rétention hydrosodée possible : switch EE+drospirénone ou progestatif/DIU'],
+    ['Rassurer', 'DIU cuivre et SIU-LNG : pas de prise de poids démontrée'],
+  ]},
+  libido: { label: 'Baisse de libido / humeur', cat: [
+    ['Évaluer', 'Contexte relationnel, dépression (à dépister — EPDS/PHQ), fatigue, causes organiques — lien contraception complexe et non systématique'],
+    ['Pilule combinée', 'Baisse de testostérone libre possible → switch vers progestatif ou DIU cuivre'],
+    ['Implant', 'Humeur/libido affectée : si persiste > 3 mois → retrait, remplacer par SIU ou DIU'],
+    ['Suivi', 'Réévaluer à 3 mois — orientation sexologue/médecin si troubles persistants hors contraception'],
+  ]},
+  oubli: { label: 'Oublis de pilule (observance)', cat: [
+    ['Pilule combinée', '< 12 h : prendre immédiatement + poursuivre normalement · > 12 h : prendre + préservatif 7 j + CU si rapport dans les 5 j'],
+    ['Microprogestatif', '> 3 h de retard : CU nécessaire si rapport dans les 3-5 j'],
+    ['Oublis répétés', 'Oubli ≥ 2×/mois → proposer LARC (implant, SIU, DIU) : efficacité indépendante de l’observance'],
+    ['Contraception d’urgence', 'Cuivre < 72 h · UPA < 120 h · LNG < 72 h — + dépistage IST si rapport à risque'],
+  ]},
+  ta: { label: 'TA élevée sous pilule', cat: [
+    ['Arrêter', 'TA ≥ 140/90 sous œstrogènes : arrêter la pilule combinée — switch progestatif/DIU'],
+    ['Bilan HTA', 'Confirmer (MAPA), éliminer causes secondaires, évaluer FdR CV, atteinte des organes cibles (rein, œil, ECG)'],
+    ['Alternative', 'Implant, SIU-LNG, DIU cuivre : pas d’effet TA démontré'],
+    ['Suivi', 'Recontrôler TA sous la nouvelle méthode — voir carte HTA'],
+  ]},
+  douleur: { label: 'Douleurs/règles abondantes sous DIU cuivre', cat: [
+    ['Rassurer', 'Règles plus abondantes/douloureuses fréquentes la 1re année sous DIU cuivre — souvent décroissantes'],
+    ['Éliminer', 'Expulsion partielle (filer), infection, grossesse (test), GEU si douleur + saignement'],
+    ['Prise en charge', 'AINS pendant les règles, antispasmodiques ; carence martiale à dépister/traiter'],
+    ['Si invalidant', 'Switch → SIU-LNG (règles ↓↓, aménorrhée fréquente) — ou méthode hormonale selon CI'],
+  ]},
+  amenorrhee: { label: 'Aménorrhée sous SIU/implant/pilule', cat: [
+    ['Rassurer', 'Aménorrhée attendue et bénigne : SIU-LNG 20-50 % à 1 an (Mirena®), pilule continue, implant ≈ 20 % — pas de danger, pas de « cumul »'],
+    ['Éliminer', 'Toujours une grossesse si aménorrhée nouvelle + signes associés (test)'],
+    ['Suivi', 'Pas de conséquence osseuse du SIU ; pilule : pas de danger à l’aménorrhée sous EE (à distinguer de la pilule microprogestative)'],
+    ['Si angoissante', 'Discuter une méthode avec cycles conservés (DIU cuivre, formulation à cycle)'],
+  ]},
+};
+// --- aide à l'introduction (pour "je suis archi nulle en contraception") ---
+function contraIntroSteps(c) {
+  const steps = [];
+  const rec = contraRecommend(c);
+  const needProgest = c.migraine === 'aura' || c.thrombose || contraIsFumeuse35(c) || contraIsAllaitemment(c) || c.postpartum === 'pp0-6';
+  steps.push(['Étape 1 — Annonce', 'S’assurer d’une grossesse éventuelle (test si doute), informer sur les 2–3 options adaptées, décision partagée (efficacité, observance, réversibilité, confort des règles, effets non contraceptifs).']);
+  steps.push(['Étape 2 — Choix proposé', rec.best.label + ' : ' + rec.best.res.why]);
+  if (needProgest) steps.push(['Étape 3 — Cadrage', 'Contexte = œstrogènes à éviter : privilégier une méthode progestative ou non hormonale (implant, SIU-LNG, DIU cuivre, désogestrel).']);
+  else steps.push(['Étape 3 — Cadrage', 'Pas de CI œstrogènes majeure relevée : pilule combinée possible si préférence patiente, mais LARC = efficacité réelle supérieure (pregnancy rate implant/SIU ≈ 0,05-0,8/100 femmes/an vs pilule ≈ 9 en usage réel).']);
+  steps.push(['Étape 4 — Modalités', c.postpartum && c.postpartum !== 'non' ? 'Post-partum : implant/SIU-LNG dès J0 (insertion immédiate post-placentaire possible du SIU) ; DIU cuivre ≥ 4 semaines ; EE seulement ≥ 6 semaines et si pas d’allaitement.' : 'Démarrage : J1 des règles ou quick start le jour même (préservatif 7 j) ; implant/SIU : pose au cabinet/en cabinet de sage-femme/gynéco.']);
+  steps.push(['Étape 5 — Suivi', 'Tolérance à 3 mois (poids, TA, saignements, humeur, libido, acné) puis annuel ; rappeler les signes d’alerte (voir plus bas) ; dépistage IST + frottis selon programme.']);
+  return steps;
+}
+function renderContraceptionCvr(p) {
+  const panel = document.getElementById('contraception-panel') || (() => { const d = document.createElement('div'); d.id = 'contraception-panel'; const ref = document.getElementById('ic-panel') || document.getElementById('bpco-panel'); ref.parentNode.insertBefore(d, ref); return d; })();
+  if (!(p.sex === 'F' && p.age !== null && p.age >= 12 && p.age <= 60)) { panel.innerHTML = ''; return; }
+  const c = contraP();
+  const rec = contraRecommend(c);
+  const gr = contraGrades(c);
+  const prob = c.prob && CONTRA_PROBLEMS[c.prob] ? CONTRA_PROBLEMS[c.prob] : null;
+  const gradeBadge = g => { const i = CONTRA_GRADE_INFO[g]; return `<span class="contra-badge" style="color:${i.color}; background:${i.bg}">${i.label}</span>`; };
+  const selVal = (opts, v) => opts.map(o => `<option value="${o.v}"${v === o.v ? ' selected' : ''}>${o.label}</option>`).join('');
+  const migraineOpts = [
+    { v: '', label: '— Migraine ? —' },
+    { v: 'aucune', label: 'Pas de migraine' },
+    { v: 'sansaura', label: 'Migraine SANS aura' },
+    { v: 'aura', label: 'Migraine AVEC aura' },
+  ];
+  const ppOpts = [
+    { v: '', label: '— Post-partum / allaitement ? —' },
+    { v: 'non', label: 'Non concernée' },
+    { v: 'pp0-6', label: '< 6 semaines post-partum' },
+    { v: 'pp6sem-6mo', label: '6 semaines–6 mois post-partum' },
+    { v: 'allaitement', label: 'Allaitement (< 6 mois)' },
+  ];
+  const probOpts = [{ v: '', label: '— Problème rencontré (switch) —' }].concat(Object.entries(CONTRA_PROBLEMS).map(([k, v]) => ({ v: k, label: v.label })));
+  const introSteps = contraIntroSteps(c);
+  const txt = 'Contraception — Recommandation : ' + rec.best.label + ' (' + rec.best.res.why + ')' + (rec.reasons.length ? ' · Justification : ' + rec.reasons.join(', ') : '');
+  (window._copyTexts = window._copyTexts || {}).contraception = txt;
+  const flag = (cond, txtIf) => cond ? txtIf : null;
+  const evalRows = [
+    ['Âge', p.age + ' ans' + (p.age < 20 ? ' — LARC (implant/SIU) souvent premier choix chez l’adolescente' : p.age >= 40 ? ' — ≥ 40 ans : privilégier LARC, prudence œstrogènes' : '')],
+    ['Tabac', flag(p.tabac === 'actif', p.age >= 35 ? '⚠️ Fumeuse + ≥ 35 ans → CI œstrogènes (OMS 4)' : 'Fumeuse — à arrêter avant 35 ans (CI œstrogènes ensuite)') || (p.tabac === 'sevré' ? 'Sevrée' : 'Non fumeuse')],
+    ['IMC', p.imc !== null ? String(p.imc).replace('.', ',') + ' kg/m²' + (p.imc >= 30 ? ' — obésité : éviter œstrogènes (OMS 3)' : '') : 'à renseigner (volet patient)'],
+    ['FdR CV', contraHasFdrCv(c) ? '⚠️ FdR cardiovasculaire' + (c.hta ? ' (HTA' + (c.sbp !== null ? ' ' + c.sbp + ' mmHg' : '') + ')' : '') + (c.diabete ? ' (diabète)' : '') + ' → éviter œstrogènes' : 'pas de FdR CV identifié'],
+    ['Migraine', c.migraine === 'aura' ? '⚠️ AVEC aura → CI absolue œstrogènes (OMS 4)' : c.migraine === 'sansaura' ? 'Sans aura — prudence œstrogènes (OMS 2-3)' : 'non renseignée (menu ci-dessus)'],
+    ['Risque thrombotique', c.thrombose ? '⚠️ ATCD thrombose veineuse → CI œstrogènes (OMS 4)' : 'pas d’ATCD identifié (menu ci-dessus)'],
+    ['Post-partum', c.postpartum === 'pp0-6' ? '⚠️ < 6 semaines : œstrogènes CI (OMS 4) — implant/SIU/DIU dès J0' : c.postpartum === 'pp6sem-6mo' ? '6 sem–6 mois : éviter œstrogènes (OMS 3)' : c.postpartum === 'allaitement' ? '⚠️ Allaitement : éviter œstrogènes (OMS 3) — implant/SIU/désogestrel/DIU' : 'non concernée'],
+    ['Pathologies', [c.epilepsie ? 'épilepsie (interactions enzymo-inducteurs)' : null, c.drepano ? 'drépanocytose (OMS 3 EE, contraception hautement efficace)' : null, c.lupus ? 'lupus (OMS 3-4 EE selon antiphospholipides)' : null, c.cancerSein ? 'cancer du sein (CI hormonales OMS 4 — avis spécialisé)' : null, (c.dfg !== null && c.dfg < 60) ? 'DFGe ' + String(c.dfg).replace('.', ',') + ' mL/min (EE OMS 3)' : null].filter(Boolean).join(' · ') || 'aucune renseignée (cases à cocher)'],
+  ];
+  panel.innerHTML = `
+  <div class="cvr-box contraception-cvr${window._contraOpen ? ' open' : ''}" style="--sc:#8e24aa">
+    <div class="cvr-head" role="button" tabindex="0" aria-expanded="${window._contraOpen ? 'true' : 'false'}" data-contra-toggle="1">
+      <span class="cvr-title">🎀 Contraception</span>
+      <span class="cvr-verdict" style="color:${rec.best.res.g <= 2 ? '#2e7d32' : '#e65100'}; background:${rec.best.res.g <= 2 ? '#e8f5e9' : '#fff3e0'}">${escapeHtml(rec.best.label)}${rec.best.res.g > 2 ? ' — avis spécialisé' : ''}</span>
+      <button type="button" class="cvr-copy" data-copy-id="contraception" title="Copier le résumé contraception">⭩</button>
+      <span class="cvr-chevron">▸</span>
+    </div>
+    <div class="cvr-detail"><div class="cvr-detail-inner">
+      <div class="contra-switch">
+        <div class="contra-switch-row">
+          <label>Migraine <select id="contra-migraine">${selVal(migraineOpts, c.migraine)}</select></label>
+          <label>ATCD thrombose <input type="checkbox" id="contra-thrombose" ${c.thrombose ? 'checked' : ''}></label>
+          <label>Épilepsie <input type="checkbox" id="contra-epilepsie" ${c.epilepsie ? 'checked' : ''}></label>
+          <label>Drépanocytose <input type="checkbox" id="contra-drepano" ${c.drepano ? 'checked' : ''}></label>
+          <label>Lupus <input type="checkbox" id="contra-lupus" ${c.lupus ? 'checked' : ''}></label>
+          <label>Cancer du sein <input type="checkbox" id="contra-cancer-sein" ${c.cancerSein ? 'checked' : ''}></label>
+        </div>
+        <div class="contra-switch-row">
+          <label>Post-partum <select id="contra-postpartum">${selVal(ppOpts, c.postpartum)}</select></label>
+          <label>Problème actuel <select id="contra-probleme">${selVal(probOpts, c.prob)}</select></label>
+        </div>
+      </div>
+      <div class="cvr-layout">
+        <div class="cvr-col">
+          <div class="cvr-panel-title">① Aide au choix — proposition adaptée</div>
+          <div class="cvr-row"><strong>Recommandation :</strong> ${escapeHtml(rec.best.label)} — ${escapeHtml(rec.best.res.why)}</div>
+          <div class="cvr-row"><strong>Justification :</strong> ${escapeHtml(rec.reasons.join(' · ') || 'aucun facteur d’adaptation identifié — choix selon préférence patiente (décision partagée)')}</div>
+          <div class="cvr-row"><strong>Méthodes CI :</strong> ${CONTRA_METHODS.filter(m => gr[m.id].g === 4).map(m => escapeHtml(m.label) + ' (OMS 4)').join(', ') || 'aucune CI absolue relevée'}</div>
+          <div class="cvr-row"><strong>Efficacité comparée (usage réel /100 femmes/an) :</strong> implant 0,05 · SIU/DIU 0,2-0,8 · pilule ≈ 9 (observance) · préservatif ≈ 13 — présenter ces chiffres à la patiente</div>
+          <div class="cvr-row"><strong>Double protection :</strong> préservatif si risque IST (partenaires multiples, < 25 ans, nouveau partenaire) + dépistage IST à proposer</div>
+          <div class="cvr-panel-title">② Classes OMS par méthode (critères de recevabilité)</div>
+          ${CONTRA_METHODS.map(m => `<div class="cvr-row">${gradeBadge(gr[m.id].g)} <strong>${escapeHtml(m.label)} :</strong> ${escapeHtml(gr[m.id].why)}</div>`).join('')}
+          <div class="cvr-row"><small>CRM OMS : 1 = aucune restriction · 2 = avantages > inconvénients · 3 = envisageable avec suivi · 4 = contre-indiqué.</small></div>
+        </div>
+        <div class="cvr-col">
+          <div class="cvr-panel-title">③ Introduction pas-à-pas (choix raisonné)</div>
+          ${introSteps.map(([k, v]) => `<div class="cvr-row"><strong>${escapeHtml(k)} :</strong> ${escapeHtml(v)}</div>`).join('')}
+          <div class="cvr-panel-title">④ Switch — problème sélectionné</div>
+          ${(prob ? prob.cat : [['—', 'Choisir un problème dans le menu ci-dessus pour afficher la conduite à tenir']]).map(([k, v]) => `<div class="cvr-row"><strong>${escapeHtml(k)} :</strong> ${escapeHtml(v)}</div>`).join('')}
+          <div class="cvr-panel-title">⑤ Urgences & signes d’alerte</div>
+          <div class="cvr-row"><strong>Contraception d’urgence :</strong> DIU cuivre < 5 j (le plus efficace) · ulipristal (ellaOne®) < 120 h · lévonorgestrel < 72 h · vomissement < 3 h → reprise ; ensuite : dépister IST, planifier la contraception de durée, VVP à proposer</div>
+          <div class="cvr-row"><strong>Signes d’alerte (arrêt + urgences) :</strong> douleur thoracique, dyspnée, céphalée brutale, trouble visuel, douleur/œdème d’un membre inférieur (thrombose) · douleur pelvienne + fièvre (IGPD/GEU sous DIU) · test de grossesse positif sous méthode → échographie (GEU)</div>
+          <div class="cvr-row"><strong>Suivi :</strong> tolérance à 3 mois, puis annuel (TA, poids, IMC) · frottis/HPV selon dépistage organisé · réévaluer le projet de grossesse à chaque consultation</div>
+        </div>
+      </div>
+      <details class="bpco-stage-help"><summary>❓ Précisions : initiation, cas particuliers</summary><div class="bpco-stage-help-body">
+        <div class="bpco-help-title">Initiation</div>
+        <div><strong>Quick start :</strong> débuter le jour de la consultation + préservatif 7 j (pilule) · implant : pose sous anesthésie locale, retrait à tout moment · SIU : pose au cabinet/gynéco, vérifier les fils à 4-6 semaines · DIU cuivre : idem, efficace immédiatement si pose < 5 j après début des règles.</div>
+        <div class="bpco-help-title" style="margin-top:8px">Cas particuliers</div>
+        <div><strong>Adolescente :</strong> LARC premier choix (HAS), confidentialité, gratuité (≤ 25 ans) — <strong>Post-partum :</strong> SIU-LNG insertion immédiate post-placentaire possible, implant avant la sortie — <strong>≥ 40 ans :</strong> SIU-DIU jusqu’à la ménopause confirmée (FSH si doute) — <strong>Épilepsie :</strong> éviter les enzymo-inducteurs vs pilule/implant (efficacité ↓), préférer SIU/DIU — <strong>Obésité :</strong> implant reste très efficace (données rassurantes HAS), EE OMS 3.</div>
+        <div class="bpco-help-title" style="margin-top:8px">Rappel efficacité (indice de Pearl, usage réel)</div>
+        <div>Implant 0,05 · SIU 0,2 · DIU 0,8 · pilule 9 · patch/anneau 9 · préservatif 13 · retrait 20-22 (parfait rappeler la CU). LARC > pilule en usage réel.</div>
+      </div></details>
+    </div></div>
+  </div>`;
+  const bind = (id, ev, fn) => { const el = panel.querySelector('#' + id); if (el) el.addEventListener(ev, fn); };
+  bind('contra-migraine', 'change', e => { window._contraMigraine = e.target.value; render(); });
+  bind('contra-thrombose', 'change', e => { window._contraThrombose = e.target.checked; render(); });
+  bind('contra-epilepsie', 'change', e => { window._contraEpilepsie = e.target.checked; render(); });
+  bind('contra-drepano', 'change', e => { window._contraDrepano = e.target.checked; render(); });
+  bind('contra-lupus', 'change', e => { window._contraLupus = e.target.checked; render(); });
+  bind('contra-cancer-sein', 'change', e => { window._contraCancerSein = e.target.checked; render(); });
+  bind('contra-postpartum', 'change', e => { window._contraPostpartum = e.target.value; render(); });
+  bind('contra-probleme', 'change', e => { window._contraProb = e.target.value; render(); });
+}
+
 function icVerdict(p, fevg, nyha) {
   if (fevg === null && nyha === null) return { label: p.ic ? 'IC \u2014 \u00e0 stadifier (FEVG, NYHA)' : 'Suspect\u00e9e \u2014 bilan \u00e0 faire', color: '#37474f', bg: '#eceff1' };
   const phen = fevg === null ? null : fevg >= 50 ? 'HFpEF (FEVG \u2265 50 %)' : fevg >= 40 ? 'HFmrEF (FEVG 40\u201349 %)' : 'HFrEF (FEVG < 40 %)';
@@ -2680,6 +2993,7 @@ function render() {
   renderPedia(p);
   renderBpcoCvr(p);
   renderThyroideCvr(p);
+  renderContraceptionCvr(p);
   renderIcCvr(p);
   renderOsteoCvr(p);
   if (!pedia) {
@@ -3032,6 +3346,8 @@ document.addEventListener('click', e => {
   }
   const bpcoHead = e.target.closest('[data-bpco-toggle]');
   if (bpcoHead) { window._bpcoOpen = !window._bpcoOpen; render(); return; }
+  const contraHead = e.target.closest('[data-contra-toggle]');
+  if (contraHead) { window._contraOpen = !window._contraOpen; render(); return; }
   const thyHead = e.target.closest('[data-thy-toggle]');
   if (thyHead) { window._thyOpen = !window._thyOpen; render(); return; }
   const icHead = e.target.closest('[data-ic-toggle]');
