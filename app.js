@@ -1387,7 +1387,8 @@ function renderOsteoCvr(p) {
             <label>Tabac <select data-osteo-fx="tabac"><option value=""${estTabac === '' ? ' selected' : ''}>—</option><option value="jamais"${estTabac === 'jamais' ? ' selected' : ''}>Non</option><option value="sevré"${estTabac === 'sevré' ? ' selected' : ''}>Sevré</option><option value="actif"${estTabac === 'actif' ? ' selected' : ''}>Oui</option></select></label>
           </span>
           ${est ? `<span class="osteo-est-v">fracture majeure ≈ <strong>${String(est.majeure).replace('.', ',')} %</strong> · hanche ≈ <strong>${String(est.hanche).replace('.', ',')} %</strong> à 10 ans</span>
-          <button type="button" class="osteo-est-btn" data-osteo-inject="1">⬇ Injecter dans les champs, à affiner</button>` : '<span class="osteo-est-note">renseigner âge (40–90) et sexe pour estimer</span>'}
+          <button type="button" class="osteo-est-btn" data-osteo-inject="1">⬇ Injecter dans les champs, à affiner</button>
+          <button type="button" class="osteo-est-btn" data-osteo-fraxweb="1" title="Ouvre le calculateur FRAX® officiel (fraxplus.org) dans un onglet — reporter ensuite les résultats dans les champs">🌐 FRAX® officiel</button>` : '<span class="osteo-est-note">renseigner âge (40–90) et sexe pour estimer</span>'}
           <span class="osteo-est-note">estimation indicative (âge/sexe/IMC/tabac modifiables ci-dessus · autres variables = cases cochées + traitements) — à ajuster après calcul du FRAX® officiel${p.imc === null && estImc === '' ? ' · IMC non renseigné = 25 supposé' : ''}</span>
         </div>` : ''}
         <div class="bpco-stage-bar" style="margin-bottom:0">
@@ -1477,6 +1478,8 @@ function renderOsteoCvr(p) {
   if (inT) inT.addEventListener('change', e => { const v = parseFloat(String(e.target.value).replace(',', '.')); window._osteoT = isNaN(v) ? null : v; render(); });
   const inj = panel.querySelector('[data-osteo-inject]');
   if (inj) inj.addEventListener('click', () => { window._osteoVals = window._osteoVals || {}; window._osteoVals.fraxMajeure = est.majeure; window._osteoVals.fraxHanche = est.hanche; render(); });
+  const fraxWeb = panel.querySelector('[data-osteo-fraxweb]');
+  if (fraxWeb) fraxWeb.addEventListener('click', () => { window.open('https://www.fraxplus.org/fr/calculation-tool', '_blank', 'noopener'); });
   panel.querySelectorAll('[data-osteo-fx]').forEach(el => el.addEventListener('change', e => { window._osteoFx = window._osteoFx || {}; const k = e.target.dataset.osteoFx; if (e.target.type === 'number') { const v = parseFloat(String(e.target.value).replace(',', '.')); if (isNaN(v)) delete window._osteoFx[k]; else window._osteoFx[k] = v; } else { window._osteoFx[k] = e.target.value || null; } render(); }));
   [['#osteo-in-fraxm', 'fraxMajeure'], ['#osteo-in-fraxh', 'fraxHanche'], ['#osteo-in-tbs', 'tbs']].forEach(([sel, key]) => {
     const el = panel.querySelector(sel);
