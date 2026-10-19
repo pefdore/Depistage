@@ -1260,12 +1260,12 @@ function osteoFraxEstimate(p) {
     return tbl[lo] * (1 - t) + tbl[hi] * t;
   };
   const baseF = [3, 3.4, 4.5, 6.5, 9.5, 14, 20, 27, 34, 40, 45];
-  const baseH = [0.2, 0.3, 0.5, 0.9, 1.6, 3, 5.5, 9, 14, 19, 24];
+  const baseH = [0.2, 0.3, 0.5, 0.9, 1.6, 3, 5.5, 9, 13, 16, 19];
   let m = interp(isF(pp) ? baseF : baseF.map(v => v * 0.55));
   let h = interp(isF(pp) ? baseH : baseH.map(v => v * 0.6));
   const imc = imcRaw !== null && imcRaw !== undefined ? imcRaw : 25;
-  const imcFactor = Math.pow(Math.min(1.8, Math.max(0.6, 22 / imc)), isF(pp) ? 1.6 : 1.4);
-  h *= imcFactor; m *= Math.pow(imcFactor, 0.7);
+  const imcFactor = Math.pow(Math.min(1.8, Math.max(0.6, 22 / imc)), isF(pp) ? 2.2 : 1.9);
+  h *= imcFactor; m *= Math.pow(imcFactor, 0.6);
   if (f.fractureFaibleEnergie) { m *= 1.8; h *= 1.9; }
   if (f.atcdParent) { m *= 1.6; h *= 2.0; }
   if (f.tassements) { m *= 1.9; h *= 1.8; }
