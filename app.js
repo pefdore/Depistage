@@ -727,6 +727,122 @@ function renderThyroideCvr(p) {
   const inTirads = panel.querySelector('#thy-in-tirads');
   if (inTirads) inTirads.addEventListener('change', e => { window._thyTirads = e.target.value; render(); });
 }
+// ---------- Carte EPP (électrophorèse des protéines sériques) ----------
+// Repères : recommandations IMWG (myélome, MGUS 2010/2018), hémogramme et CAT en médecine générale.
+// Normes usuelles : protides totaux 64–83 g/L · albumine 35–52 g/L · gammaglobulines 8–14 g/L (8–13 %).
+const EPP_NORMS = { pt: [64, 83], alb: [35, 52], gg: [8, 14] };
+function eppVals() {
+  const num = id => { const v = parseFloat((document.getElementById(id)?.value || '').replace(',', '.')); return isNaN(v) ? null : v; };
+  return { pt: num('pat-pt'), alb: num('pat-alb'), gg: num('pat-gg'), pic: num('pat-pic') };
+}
+function eppInterp(v) {
+  const crab = window._eppCrab || {};
+  const crabCount = Object.keys(crab).filter(k => crab[k]).length;
+  if (v.pic !== null && v.pic >= 30) return { id: 'high', label: 'Pic ≥ 30 g/L — prolifération clonale majeure (myélome, Waldenström…) — bilan complet + avis hématologie', color: '#c62828', bg: '#fdecea' };
+  if (v.pic !== null && v.pic > 0 && crabCount > 0) return { id: 'crab', label: 'Pic + critère CRAB — suspicion myélome symptomatique — avis hématologie urgent', color: '#c62828', bg: '#fdecea' };
+  if (v.pic !== null && v.pic > 0) return { id: 'mgus', label: 'Pic monoclonal < 30 g/L sans critère CRAB — éliminer un myélome (MGUS probable si bilan négatif)', color: '#e65100', bg: '#fff3e0' };
+  if (v.gg !== null && v.gg > EPP_NORMS.gg[1]) return { id: 'poly', label: 'Hypergammaglobulinémie sans pic — polyclonale probable (inflammation, hépatopathie, infection)', color: '#f9a825', bg: '#fffde7' };
+  if (v.gg !== null && v.gg < EPP_NORMS.gg[0]) return { id: 'hypo', label: 'Hypogammaglobulinémie — chercher perte rénale (protéinurie), immunodépression, hémopathie', color: '#e65100', bg: '#fff3e0' };
+  if (v.pt !== null && v.pt > EPP_NORMS.pt[1]) return { id: 'hyperpt', label: 'Hyperprotidémie — préciser le profil (albumine vs gammaglobulines)', color: '#f9a825', bg: '#fffde7' };
+  if (v.pt !== null && v.pt < EPP_NORMS.pt[0]) return { id: 'hypopt', label: 'Hypoprotidémie — chercher dénutrition, perte rénale/digestive, hépatopathie', color: '#e65100', bg: '#fff3e0' };
+  return { id: 'ok', label: 'Proteinogramme sans anomalie significative', color: '#2e7d32', bg: '#e8f5e9' };
+}
+const EPP_CRAB = [
+  { id: 'calc', label: 'HyperCalcémie (> 2,65 mmol/L corrigée)' },
+  { id: 'renal', label: 'Insuffisance Rénale (DFG < 40 ou créat > 170 µmol/L)' },
+  { id: 'anemia', label: 'Anémie (Hb < 10 g/dL ou > 20 g/dL sous le nadir)' },
+  { id: 'bone', label: 'Lésions osseuses (Bone disease : douleurs, fractures, tassements, lacunes IRM/TDM)' },
+  { id: 'slim60', label: 'Plasmocytes médullaires ≥ 60 % (SLiM)' },
+  { id: 'slim100', label: 'Ratio chaînes légères libres ≥ 100 (SLiM)' },
+  { id: 'slimfoci', label: '> 1 lésion focale IRM médullaire (SLiM)' },
+];
+const EPP_SYMPTOMS = [
+  { id: 'douleur', label: 'Douleurs osseuses (côtes, rachis, bassin), tassements' },
+  { id: 'fatigue', label: 'Fatigue inhabituelle, essoufflement (anémie)' },
+  { id: 'infect', label: 'Infections à répétition (hypogammaglobulinémie fonctionnelle)' },
+  { id: 'neuro', label: 'Neuropathie sensitive (IgM anti-MAG, amylose)' },
+  { id: 'amylose', label: 'Syndrome néphrotique, macroglossie, purpura péri-orbiculaire, cardiomyopathie — amylose AL ?' },
+  { id: 'viscosite', label: 'Syndrome d’hyperviscosité : céphalées, troubles visuels, saignements de nez (IgM/Waldenström)' },
+  { id: 'cryo', label: 'Purpura, arthralgies, faiblesse au froid — cryoglobulinémie (chercher VHC)' },
+];
+function renderEppCvr(p) {
+  const panel = document.getElementById('epp-panel') || (() => { const d = document.createElement('div'); d.id = 'epp-panel'; const diab = document.getElementById('diabete-panel'); diab.parentNode.insertBefore(d, diab); return d; })();
+  const v = eppVals();
+  const any = v.pt !== null || v.alb !== null || v.gg !== null || v.pic !== null;
+  if (!any) { panel.innerHTML = ''; return; }
+  const verdict = eppInterp(v);
+  window._eppVerdict = verdict;
+  const crab = window._eppCrab || {};
+  const sym = window._eppSym || {};
+  const f = x => x === null ? '—' : String(x).replace('.', ',');
+  const norm = (x, [a, b]) => x === null ? '' : (x < a ? ' — bas' : x > b ? ' — haut' : ' — normal');
+  const evalRows = [
+    ['Protides totaux', v.pt === null ? 'à doser si indication (norme 64–83 g/L)' : f(v.pt) + ' g/L' + norm(v.pt, EPP_NORMS.pt)],
+    ['Albumine', v.alb === null ? 'à doser (35–52 g/L) — basse = dénutrition, hépatopathie, perte rénale/néphrotique (amylose AL ?)' : f(v.alb) + ' g/L' + norm(v.alb, EPP_NORMS.alb)],
+    ['Gammaglobulines', v.gg === null ? 'à doser (8–14 g/L)' : f(v.gg) + ' g/L' + norm(v.gg, EPP_NORMS.gg)],
+    ['Pic gamma', v.pic === null ? 'EPP : chercher un pic étroit (clone monoclonal) — si présent, immunofixation + chaînes légères libres' : v.pic > 0 ? f(v.pic) + ' g/L' + (v.pic >= 30 ? ' — ≥ 30 g/L : prolifération plasmocellulaire (myélome/Waldenström) jusqu’à preuve du contraire' : ' — < 30 g/L : éliminer un myélome (MGUS probable si bilan négatif)') : 'pas de pic renseigné'],
+  ];
+  const rxRows = (verdict.id === 'high' || verdict.id === 'crab') ? [
+    ['Confirmation', 'Immunofixation (type d’Ig : G, A, M, D, E + chaîne légère κ/λ) · chaînes légères libres sériques (ratio normal 0,26–1,65) · électrophorèse urinaire / immunofixation (Bence-Jones)'],
+    ['Bilan myélome', 'NFS (anémie), calcémie corrigée, créatinine/DFG, bilan phosphocalcique, β2-microglobuline, LDH, CRP, albumine · radiographies du rachis, thorax, bassin, crâne ou IRM corps entier (lésions osseuses, infiltration)'],
+    ['Avis hématologie', 'Pic ≥ 30 g/L et/ou critère CRAB/SLiM ou amylose AL → avis hématologique rapide, myélogramme ± biopsie ostéomédullaire'],
+    ['Urgences', 'Hypercalcémie symptomatique (réhydratation IV ++, avis urgent) · insuffisance rénale aiguë (éviter iode/Contrastes + déshydratation, bicarbonates si chaînes légères) · compression médullaire (IRM urgente) · hyperviscosité (IgM élevée)'],
+    ['Éducation', 'Hydratation abondante (au moins 1,5–2 L/j si pas de contre-indication) · éviter les injections intra-médullaires et gestes osseux agressifs avant bilan · prévenir : fièvre, douleur osseuse brutale → consult']
+  ] : verdict.id === 'mgus' ? [
+    ['Confirmation', 'Immunofixation (type et concentration) · chaînes légères libres sériques (ratio) · NFS, calcémie, créatinine/DFG — éliminer un myélome (critères IMWG : pic < 30 g/L, clone < 10 %, pas de CRAB/amylose)'],
+    ['Type d’Ig', 'IgG/IgA les plus fréquentes (voie myélome) · IgM → Waldenström/lymphome, neuropathie anti-MAG · pic bicanal → double gammapathie · chaînes légères isolées (LCMS) → chaînes légères urinaires +'],
+    ['MGUS confirmé', 'Surveillance : contrôle à 6 mois puis annuel si stable · plus rapproché si pic ≥ 15 g/L, IgA/IgM, ratio chaînes légères anormal, cytopénie, âge < 40 ans'],
+    ['Re-signes', 'Signes d’alerte à réévaluer : douleurs osseuses, fatigue, infections répétées, amaigrissement, syndrome néphrotique, neuropathie — réadresser si apparition'],
+    ['Injections', 'Attention : une gammapathie monoclonale peut fausser la VS et le dosage des Ig totales — interpréter selon le pic (une Ig polyclonale basse ne préjuge pas de l’Ig monoclonale)']
+  ] : verdict.id === 'poly' ? [
+    ['Origine', 'Hypergammaglobulinémie polyclonale : chercher infection chronique (VHC, VIH, endocardite), hépatopathie (cirrhose, hépatite auto-immune), maladie auto-immune/systemique (lupus, Gougerot-Sjögren), sarcoïdose'],
+    ['Bilan', 'Selon contexte clinique : sérologies VHC/VIH, bilan hépatique, auto-anticorps (FAN, anti-ADN, anti-SSA/SSB), EFR + DSLV/DNT des lignes J si suspicion (BPCO, DLCO), NFS, CRP/VS'],
+    ['Particularité', 'Gougerot-Sjögren : hypergammaglobulinémie + syndrome sec — HLADR + anti-SSA/SSB · Hépatite auto-immune : IgG élevées, anti-LKM1/ANA']
+  ] : verdict.id === 'hypo' ? [
+    ['Étiologies', 'Perte rénale (protéinurie néphrotique, dose protéinurie/créatinurie) · entéropathie exsudative · immunodépression (chimiothérapie, corticothérapie, lymphome, myélome avancé) · hypogammaglobulinémie congénitale (rare, avis immunologiste)'],
+    ['Bilan', 'Protéinurie/24h ou ratio protéinurie/créatinurie · NFS · à adapter selon contexte (infections répétées → dosages pondéraux IgG/A/M)']
+  ] : [
+    ['Suivi', 'Proteinogramme sans anomalie significative — pas d’action spécifique · interpréter selon le contexte clinique (VS, CRP, syndrome inflammatoire si demandé)']
+  ];
+  const txt = 'EPP — ' + verdict.label + (v.pic !== null && v.pic > 0 ? ' · pic : ' + f(v.pic) + ' g/L' : '') + (v.gg !== null ? ' · gammaglobulines : ' + f(v.gg) + ' g/L' : '') + (v.pt !== null ? ' · protides : ' + f(v.pt) + ' g/L' : '');
+  (window._copyTexts = window._copyTexts || {}).epp = txt;
+  const gaugeW = v.pic !== null && v.pic > 0 ? Math.min(100, Math.max(8, v.pic / 40 * 100)) : v.gg !== null ? Math.min(100, Math.max(8, v.gg / 20 * 100)) : 0;
+  panel.innerHTML = `  <div class="cvr-box epp-cvr${window._eppOpen ? ' open' : ''}" style="--sc:${verdict.color}">
+    <div class="cvr-head" role="button" tabindex="0" aria-expanded="${window._eppOpen ? 'true' : 'false'}" data-epp-toggle="1">
+      <span class="cvr-title">\ud83e\ude7a EPP (électrophorèse des protéines)</span>
+      <span class="cvr-verdict" style="color:${verdict.color}; background:${verdict.bg}">${verdict.label}</span>
+      <button type="button" class="cvr-copy" data-copy-id="epp" title="Copier le résumé EPP (puis Ctrl-V)">\u29c9</button>
+      <span class="cvr-chevron">\u25b8</span>
+    </div>
+    <div class="cvr-detail"><div class="cvr-detail-inner">
+      <div class="cvr-layout">
+        <div class="cvr-col">
+          <div class="cvr-panel-title">\u2460 Proteinogramme</div>
+          ${evalRows.map(([k, val]) => `<div class="cvr-row"><strong>${escapeHtml(k)} :</strong> ${escapeHtml(val)}</div>`).join('')}
+          <div class="cvr-panel-title" style="margin-top:8px">\u2461 Critères CRAB / SLiM (myélome — cocher si présents)</div>
+          ${EPP_CRAB.map(c => `<div class="cvr-row"><label style="display:flex;gap:6px;align-items:flex-start"><input type="checkbox" data-epp-crab="${c.id}"${crab[c.id] ? ' checked' : ''}> <span>${escapeHtml(c.label)}</span></label></div>`).join('')}
+          <div class="cvr-panel-title" style="margin-top:8px">\u2462 Signes d’appel à rechercher (consultation)</div>
+          ${EPP_SYMPTOMS.map(s => `<div class="cvr-row"><label style="display:flex;gap:6px;align-items:flex-start"><input type="checkbox" data-epp-sym="${s.id}"${sym[s.id] ? ' checked' : ''}> <span>${escapeHtml(s.label)}</span></label></div>`).join('')}
+        </div>
+        <div class="cvr-col">
+          <div class="cvr-scorecard" style="--sc:${verdict.color}">
+            <div class="cvr-scorecard-top">
+              <div class="cvr-gauge"><div class="cvr-gauge-fill" style="width:${gaugeW}%; background:${verdict.color}"></div></div>
+              <div class="cvr-scorecard-pct">${v.pic !== null && v.pic > 0 ? f(v.pic) : v.gg !== null ? f(v.gg) : '—'}<span class="cvr-pct-unit">g/L</span></div>
+            </div>
+            <div class="cvr-scorecard-cat" style="color:${verdict.color}">${verdict.id === 'high' || verdict.id === 'crab' ? 'Avis hématologie' : verdict.id === 'mgus' ? 'Éliminer un myélome' : verdict.label}</div>
+            <div class="cvr-scorecard-sub">${v.pic !== null && v.pic > 0 ? 'Pic monoclonal' : 'Gammaglobulines'}</div>
+            <div class="cvr-scorecard-act">${verdict.id === 'high' || verdict.id === 'crab' ? 'Immunofixation + chaînes légères + bilan myélome — avis hématologique.' : verdict.id === 'mgus' ? 'Immunofixation, chaînes légères, NFS/calcémie/créat — si négatif : surveillance.' : 'Interpréter selon le contexte clinique.'}</div>
+          </div>
+          <div class="cvr-panel-title">\u2463 Conduite à tenir</div>
+          ${rxRows.map(([k, val]) => `<div class="cvr-row"><strong>${escapeHtml(k)} :</strong> ${escapeHtml(val)}</div>`).join('')}
+        </div>
+      </div>
+    </div></div>
+  </div>`;
+  panel.querySelectorAll('[data-epp-crab]').forEach(cb => cb.addEventListener('change', e => { window._eppCrab = window._eppCrab || {}; window._eppCrab[e.target.dataset.eppCrab] = e.target.checked; render(); }));
+  panel.querySelectorAll('[data-epp-sym]').forEach(cb => cb.addEventListener('change', e => { window._eppSym = window._eppSym || {}; window._eppSym[e.target.dataset.eppSym] = e.target.checked; render(); }));
+}
 // ---------- Carte Contraception (femme) ----------
 // Recommandations fondées sur les critères de recevabilité médicale OMS (CRM/MEC),
 // HAS « Stratégies de choix de méthodes contraceptives » et recommandations françaises (post-partum, contraception d'urgence).
@@ -2996,6 +3112,7 @@ function render() {
   renderPedia(p);
   renderBpcoCvr(p);
   renderThyroideCvr(p);
+  renderEppCvr(p);
   renderContraceptionCvr(p);
   renderIcCvr(p);
   renderOsteoCvr(p);
@@ -3353,6 +3470,8 @@ document.addEventListener('click', e => {
   if (contraHead) { window._contraOpen = !window._contraOpen; render(); return; }
   const thyHead = e.target.closest('[data-thy-toggle]');
   if (thyHead) { window._thyOpen = !window._thyOpen; render(); return; }
+  const eppHead = e.target.closest('[data-epp-toggle]');
+  if (eppHead) { window._eppOpen = !window._eppOpen; render(); return; }
   const icHead = e.target.closest('[data-ic-toggle]');
   if (icHead) { window._icOpen = !window._icOpen; render(); return; }
   const osHead = e.target.closest('[data-osteo-toggle]');
@@ -3408,7 +3527,7 @@ document.addEventListener('change', e => {
   if (e.target.closest('#diabete-panel input[type=checkbox]')) render();
 });
 
-['pat-nom', 'pat-prenom', 'pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-ic', 'pat-bpco', 'pat-vems', 'pat-exac', 'pat-dfg', 'pat-rac', 'pat-imc', 'pat-ldl', 'pat-sbp', 'pat-chol', 'pat-hdl', 'pat-hba1c', 'pat-age-mois', 'pat-traitement'].forEach(idn =>
+['pat-nom', 'pat-prenom', 'pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-ic', 'pat-bpco', 'pat-vems', 'pat-exac', 'pat-dfg', 'pat-rac', 'pat-imc', 'pat-ldl', 'pat-sbp', 'pat-chol', 'pat-hdl', 'pat-hba1c', 'pat-age-mois', 'pat-traitement', 'pat-pt', 'pat-alb', 'pat-gg', 'pat-pic'].forEach(idn =>
   document.getElementById(idn).addEventListener('change', render));
 
 document.getElementById('pat-date').value = new Date().toISOString().slice(0, 10);
@@ -3430,7 +3549,7 @@ function resetDossier() {
   Object.keys(dmChecks).forEach(k => delete dmChecks[k]);
   [
     '_osteoVals', '_osteoF', '_osteoFx', '_osteoT',
-    '_bpcoMmrc', '_icFevg', '_icNyha', '_thyTirads',
+    '_bpcoMmrc', '_icFevg', '_icNyha', '_thyTirads', '_eppCrab', '_eppSym',
     '_contraMigraine', '_contraThrombose', '_contraPostpartum', '_contraEpilepsie',
     '_contraDrepano', '_contraLupus', '_contraCancerSein', '_contraProb',
     '_patientTouched',
@@ -3854,6 +3973,10 @@ const PASTE_LABELS = [
   { id: 'pat-k', re: /potassium/i, kind: 'num' },
   { id: 'pat-na', re: /sodium|natr[ée]mie/i, kind: 'num' },
   { id: 'pat-tp', re: /\bTP\s*%|\bTP\b/i, kind: 'num' },
+  { id: 'pat-pt', re: /prot[eéè]ines totales|protides totales(?!\s+urin)/i, kind: 'num' },
+  { id: 'pat-alb', re: /\balbumine(?!\s*urin)/i, kind: 'num' },
+  { id: 'pat-gg', re: /gamma.?globulines/i, kind: 'num' },
+  { id: 'pat-pic', re: /pic\s*gamma|pic\s*monoclonal|pic\s*\(m\)|pic\s*:\s*[0-9]/i, kind: 'num' },
 ];
 // Synonymes d'antécédents médicaux -> champs à cocher (section Antécédents médicaux du volet)
 const PASTE_ATCD = [
