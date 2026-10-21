@@ -4148,12 +4148,23 @@ function parsePasteVolet(text) {
       const after = lines[li].slice(m.index + m[0].length);
       const vm = /(?<![A-Za-z0-9])([0-9]+([.,][0-9]+)?)(?![A-Za-z0-9])/.exec(after);
       if (vm) val = vm[1].replace(',', '.');
+      // Champ texte : valeur littérale sur la même ligne (ex. « Microalbuminurie/créatinine : Non calculable »)
+      else if (kind === 'txt') {
+        const afterTxt = after.replace(/^[\s:—-]*/, '').trim();
+        if (afterTxt && !/^[0-9]/.test(afterTxt) && afterTxt.length <= 40) val = afterTxt;
+      }
     }
     if (val === null) {
       for (let j = li + 1; j < Math.min(li + 4, lines.length); j++) {
         if (!lines[j]) continue;
         const vm = /^([0-9]+([.,][0-9]+)?)/.exec(lines[j]);
         if (vm) { val = vm[1].replace(',', '.'); break; }
+        // Champ texte : accepter une valeur littérale sur la ligne suivante
+        // (ex. « Microalbuminurie/créatinine » puis « Non calculable »)
+        if (kind === 'txt') {
+          const afterLine = lines[j].trim();
+          if (afterLine && afterLine.length <= 40 && !/^\d/.test(afterLine)) { val = afterLine; break; }
+        }
         break; // ligne non vide non numérique => pas de valeur
       }
     }
