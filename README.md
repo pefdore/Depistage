@@ -28,6 +28,7 @@ Le champ **Traitements** du dossier patient est analysé automatiquement (DCI et
 - Oncologie : dépistage organisé colorectal (50–74 ans), frottis/HPV (25–65 ans), mammographie (50–74 ans), PSA (décision partagée), poumon (fumeur 50–74 ans), signes d'alerte
 - 💉 Vaccinations (grippe, COVID, pneumocoque, RSV ≥ 75 ans, zona, DTP, HPV)
 - 🌸 Santé de la femme (contraception, grossesse, ménopause)
+- 🧠 Parkinson (critères d'évocation en MG : anosmie, sommeil paradoxal, micrographie, petits pas…, parkinsonisme médicamenteux, suivi annuel du patient connu)
 - 🧠 Autres : audition, vision, dénutrition, cognition, chutes, VIH, hépatite C, iatrogénie…
 
 ## Listes CPAM (ameli pro) — dépistages ciblés

@@ -30,6 +30,7 @@ const P = () => {
     hta: document.getElementById('pat-hta').value === 'oui',
     ic: document.getElementById('pat-ic').value === 'oui',
     bpco: document.getElementById('pat-bpco')?.value === 'oui',
+    parkinson: document.getElementById('pat-parkinson')?.value === 'oui',
     thyroide: document.getElementById('pat-thyroide')?.value || null, // 'hypo' | 'hyper' | 'goitre' | 'thyroidite' | 'non' | null
     tsh: isNaN(parseFloat(document.getElementById('pat-tsh')?.value)) ? null : parseFloat(document.getElementById('pat-tsh')?.value),
     vems: isNaN(parseFloat(document.getElementById('pat-vems')?.value)) ? null : parseFloat(document.getElementById('pat-vems').value),
@@ -613,6 +614,111 @@ function renderBpcoCvr(p) {
   if (inVems) inVems.addEventListener('change', e => { const el = document.getElementById('pat-vems'); el.value = e.target.value; el.dispatchEvent(new Event('change', { bubbles: true })); });
   if (inExac) inExac.addEventListener('change', e => { const el = document.getElementById('pat-exac'); el.value = e.target.value; el.dispatchEvent(new Event('change', { bubbles: true })); });
   if (inMmrc) inMmrc.addEventListener('change', e => { window._bpcoMmrc = e.target.value === '' ? null : +e.target.value; render(); });
+}
+// ---------- Carte Maladie de Parkinson ----------
+// Évocation : triade motrice (bradykinésie + tremblement de repos et/ou rigidité)
+// + critères d'évocation en MG (anosmie, trouble du sommeil paradoxal, micrographie,
+// marche à petits pas, hypomimie, perte du ballant du bras).
+const PARK_EVOC = [
+  ['Bradykinésie (lenteur des mouvements, difficulté à initier)', /bradykinesie|bradykinesie|lenteur des mouvements|lenteur a initier|lenteur du geste|micrographie|ecriture plus petite|ecriture petite/],
+  ['Tremblement de repos (unilatéral, disparaît au mouvement)', /tremblement de repos|tremblement unilateral|tremblement de la main|tremblement au repos/],
+  ['Rigidité (hypertonie plastique, roue dentée)', /rigidite|hypertonie plastique|roue dentee/],
+  ['Anosmie / hyposmie', /anosmie|hyposmie|perte d.odorat|odorat.?diminue/],
+  ['Trouble du sommeil paradoxal (songes agités, gestes nocturnes)', /sommeil paradoxal|songes agites|comportement anomal du sommeil|rem sleep|rbd/],
+  ['Micrographie / écriture qui rapetisse', /micrographie|ecriture plus petite|rapetisse/],
+  ['Marche à petits pas / festination / perte du ballant du bras', /petits pas|festination|perte du ballant|ballant du bras reduit|absence de ballant/],
+  ['Hypomimie / visage figé', /hypomimie|visage fig|facies fig|amimie/],
+  ['Trouble de la parole (voix monotone, basse)', /voix monotone|voix basse|hypophonie|parole monotone/],
+  ['Dépression / anxiété / apathie inaugurales', /depression|anxiete|apathie/],
+  ['Constipation chronique (souvent inaugurale, années avant les signes moteurs)', /constipation|transit lent|intestinal lent/],
+  ['Antécédents familiaux de parkinsonisme', /parkinson familial|antecedent familial.*parkinson/],
+];
+function parkHints() {
+  const hints = (window._parkHints && window._parkHints.factors) || [];
+  return hints;
+}
+function renderParkinsonCvr(p) {
+  const panel = document.getElementById('parkinson-panel') || (() => {
+    const d = document.createElement('div');
+    d.id = 'parkinson-panel';
+    const bpcoPanel = document.getElementById('bpco-panel');
+    if (bpcoPanel && bpcoPanel.parentNode) bpcoPanel.parentNode.insertBefore(d, bpcoPanel.nextSibling);
+    else {
+      const diab = document.getElementById('diabete-panel');
+      diab.parentNode.insertBefore(d, diab);
+    }
+    return d;
+  })();
+  const hints = parkHints();
+  const ageRisk = p.age !== null && p.age >= 60;
+  const suspect = !p.parkinson && hints.length >= 2;
+  const singleHint = !p.parkinson && hints.length === 1;
+  if (!p.parkinson && !suspect && !singleHint) { panel.innerHTML = ''; return; }
+  let verdict;
+  if (p.parkinson) verdict = { label: 'Maladie connue — suivi annuel à structurer', color: '#5d4037', bg: '#efebe9' };
+  else if (suspect) verdict = { label: 'Évocation possible — à explorer (examen moteur + avis neuro)', color: '#e65100', bg: '#fff3e0' };
+  else verdict = { label: 'Signe isolé — à surveiller, examen moteur simple', color: '#37474f', bg: '#eceff1' };
+  const evalRows = [
+    ['Triade motrice', 'Bradykinésie + (tremblement de repos OU rigidité) — asymétrie initiale fréquente'],
+    ['Critères d\u2019évocation', 'anosmie, trouble du sommeil paradoxal, micrographie, hypomimie, petits pas, perte du ballant du bras'],
+    ['Examen rapide en MG', 'rotation poignet/main, ouverture-fermeture rapide des doigts, marche (ballant des bras), écriture (micrographie), odorat'],
+    ['Signes absents (utiles si doute)', 'chute précoce, atteinte cérébelleuse, signes pyramidaux, dystonie précoce → chercher un parkinsonisme secondaire ou atypique'],
+    ['Éliminer une cause médicamenteuse', 'neuroleptiques (y compris antiémétiques : métoclopramide), certains antihypertenseurs (réserpine) → parkinsonisme iatrogène'],
+    ['Traitements en cours (volet)', (window._parkHints && window._parkHints.medic) ? '⚠️ Médicament potentiellement parkinsonogène détecté (neuroleptique, métoclopramide…) — réévaluer la nécessité avant d’imputer à une maladie de Parkinson' : 'aucun médicament parkinsonogène détecté dans le volet'],
+  ];
+  const rxRows = p.parkinson ? [
+    ['Suivi annuel', 'consultation neurologique + réévaluation motrice (UPDRS simplifiée / pulling test)'],
+    ['Traitements à ne pas oublier', 'lévodopa (dose fractionnée, éviter prises protéiques simultanées), agonistes dopaminergiques (surveillance impulsions), IMAO-B (sélégiline, rasagiline)'],
+    ['Surveillance spécifique', 'hypotension orthostatique, somnolence/SCS (conduite), troubles impulsifs, nausées, dyskinésies, confusion'],
+    ['Rééducation', 'kinésithétrie motrice + orthophonie (dysarthrie/déglutition) — atelier équilibre ; SSTP à visée occupationnelle si besoin'],
+    ['Signes d\u2019alerte', 'chutes répétées, dysphagie (fausses routes), hallucinations, dépression, délire → avis urgent'],
+    ['Vaccins', 'grippe annuelle, pneumocoque, COVID, VRS ≥ 75 ans, zona ≥ 65 ans'],
+    ['Nutrition / constipation', 'laxatif de fond, hydratation, surévaluation de la dénutrition (IMC à chaque consultation)'],
+    ['Plan avancé', 'discuter directives anticipées précocement (autonomie préservée)'],
+  ] : [
+    ['Objectif', suspect ? 'Confirmer / infirmer : examen moteur orienté ± avis neurologique' : 'Surveillance clinique simple, pas d\u2019examen paraclinique systématique'],
+    ['Examen moteur', 'rotation des poignets, tapping digital, marche, ballant des bras, écriture, odorat'],
+    ['Imagerie', 'IRM cérébrale non systématique — réservée aux présentations atypiques ou doute diagnostique'],
+    ['DaTSCAN', 'non recommandé en 1re intention en MG — avis spécialisé si atypie'],
+    ['Si diagnostic posé', 'traitement symptomatique + suivi annuel + kinésithérapie + vaccination à jour'],
+    ['Éducation', 'information patient, associations (France Parkinson), plan d\u2019action chutes/fausses routes'],
+  ];
+  const txt = (p.parkinson
+    ? 'Maladie de Parkinson connue — suivi annuel à structurer'
+    : suspect
+      ? 'Évocation possible de Parkinson — ' + hints.join(', ') + ' — examen moteur + avis neuro'
+      : 'Signe isolé évocateur (' + (hints[0] || 'non précisé') + ') — à surveiller') ;
+  (window._copyTexts = window._copyTexts || {}).parkinson = txt;
+  panel.innerHTML = `  <div class="cvr-box parkinson-cvr${window._parkOpen ? ' open' : ''}" style="--sc:${verdict.color}">
+    <div class="cvr-head" role="button" tabindex="0" aria-expanded="${window._parkOpen ? 'true' : 'false'}" data-park-toggle="1">
+      <span class="cvr-title">🧠 ${p.parkinson ? 'Maladie de Parkinson' : 'Parkinson — dépistage / évocation'}</span>
+      <span class="cvr-verdict" style="color:${verdict.color}; background:${verdict.bg}">${verdict.label}</span>
+      <button type="button" class="cvr-copy" data-copy-id="parkinson" title="Copier le résumé Parkinson (puis Ctrl-V)">⧉</button>
+      <span class="cvr-chevron">▸</span>
+    </div>
+    <div class="cvr-detail"><div class="cvr-detail-inner">
+      <div class="cvr-layout">
+        <div class="cvr-col">
+          <div class="cvr-panel-title">① Éléments à évaluer</div>
+          ${evalRows.map(([k, val]) => `<div class="cvr-row"><strong>${escapeHtml(k)} :</strong> ${escapeHtml(val)}</div>`).join('')}
+          ${!p.parkinson && hints.length ? `<div class="cvr-banner" style="--bc:${verdict.color}"><strong>Signes retrouvés dans le volet</strong><p>${hints.map(escapeHtml).join(' · ')}</p></div>` : ''}
+        </div>
+        <div class="cvr-col">
+          <div class="cvr-scorecard" style="--sc:${verdict.color}">
+            <div class="cvr-scorecard-top">
+              <div class="cvr-gauge"><div class="cvr-gauge-fill" style="width:${p.parkinson ? 100 : Math.min(100, hints.length * 25)}%; background:${verdict.color}"></div></div>
+              <div class="cvr-scorecard-pct">${p.parkinson ? '✓' : hints.length}<span class="cvr-pct-unit">${p.parkinson ? 'suivi' : 'signe' + (hints.length > 1 ? 's' : '')}</span></div>
+            </div>
+            <div class="cvr-scorecard-cat" style="color:${verdict.color}">${verdict.label}</div>
+            <div class="cvr-scorecard-sub">${p.parkinson ? 'suivi annuel · kinésithérapie · vaccination' : hints.length + ' signe(s) évocateur(s)'}</div>
+            <div class="cvr-scorecard-act">${p.parkinson ? 'Réévaluer traitements, chutes, déglutition, humeur.' : (ageRisk ? 'Âge ≥ 60 ans : examen moteur simple à chaque consultation.' : 'Examen moteur si nouveaux signes.')}</div>
+          </div>
+          <div class="cvr-panel-title">${p.parkinson ? '② Suivi — recommandations' : '② Conduite à tenir'}</div>
+          ${rxRows.map(([k, val]) => `<div class="cvr-row"><strong>${escapeHtml(k)} :</strong> ${escapeHtml(val)}</div>`).join('')}
+        </div>
+      </div>
+    </div></div>
+  </div>`;
 }
 // ---------- Carte Dysthyroïdie ----------
 // Seuils TSH usuels de l'adulte : 0,4–4,0 mUI/L (à confronter aux normes du laboratoire)
@@ -2989,6 +3095,19 @@ const VACCINS = [
 // ---------- Suivi des maladies chroniques (protocoles) ----------
 const SUIVI = [
   {
+    id: 'suivi-parkinson', need: p => p.parkinson, icon: '\ud83e\udde0', title: 'Maladie de Parkinson connue — protocole de suivi annuel',
+    items: [
+      { label: 'Consultation annuelle : réévaluation motrice (bradykinésie, tremblement, rigidité, marche/chutes) + autonomie (schwab & england simplifié)' },
+      { label: 'Réévaluation du traitement dopaminergique : efficacité, dyskinésies, fluctuations, impulsions' },
+      { label: 'Surveillance : tension orthostatique, somnolence (conduite), humeur (dépression/anxiété), cognition, hallucinations' },
+      { label: 'Orthophonie si dysarthrie/déglutition — kinésithérapie motrice régulière — atelier équilibre/chutes' },
+      { label: 'Nutrition : poids/IMC à chaque consultation, constipation (laxatif de fond), déglutition (fausses routes)' },
+      { label: 'Vaccins : grippe annuelle, pneumocoque, COVID, VRS ≥ 75 ans, zona ≥ 65 ans' },
+      { label: 'Signes d’alerte : chutes répétées, fausses routes, hallucinations, délire, confusion → avis urgent' },
+      { label: 'Avis neurologique : à 1–2 ans du diagnostic, à toute modification de traitement, ou si présentation atypique' },
+    ],
+  },
+  {
     id: 'suivi-dt2', need: p => p.diabete, icon: '\ud83c\udf6a', title: 'Diab\u00e8te de type 2 connu \u2014 protocole de suivi annuel',
     items: [
       { label: 'HbA1c : 2\u20134x/an (objectif individualis\u00e9, en g\u00e9n\u00e9ral < 7 %)' },
@@ -3111,6 +3230,7 @@ function render() {
   const reminders = [];
   renderPedia(p);
   renderBpcoCvr(p);
+  renderParkinsonCvr(p);
   renderThyroideCvr(p);
   renderEppCvr(p);
   renderContraceptionCvr(p);
@@ -3466,6 +3586,8 @@ document.addEventListener('click', e => {
   }
   const bpcoHead = e.target.closest('[data-bpco-toggle]');
   if (bpcoHead) { window._bpcoOpen = !window._bpcoOpen; render(); return; }
+  const parkHead = e.target.closest('[data-park-toggle]');
+  if (parkHead) { window._parkOpen = !window._parkOpen; render(); return; }
   const contraHead = e.target.closest('[data-contra-toggle]');
   if (contraHead) { window._contraOpen = !window._contraOpen; render(); return; }
   const thyHead = e.target.closest('[data-thy-toggle]');
@@ -3527,7 +3649,7 @@ document.addEventListener('change', e => {
   if (e.target.closest('#diabete-panel input[type=checkbox]')) render();
 });
 
-['pat-nom', 'pat-prenom', 'pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-ic', 'pat-bpco', 'pat-vems', 'pat-exac', 'pat-dfg', 'pat-rac', 'pat-imc', 'pat-ldl', 'pat-sbp', 'pat-chol', 'pat-hdl', 'pat-hba1c', 'pat-age-mois', 'pat-traitement', 'pat-pt', 'pat-alb', 'pat-gg', 'pat-pic'].forEach(idn =>
+['pat-nom', 'pat-prenom', 'pat-age', 'pat-sex', 'pat-tabac', 'pat-pa', 'pat-diabete', 'pat-hta', 'pat-ic', 'pat-bpco', 'pat-parkinson', 'pat-vems', 'pat-exac', 'pat-dfg', 'pat-rac', 'pat-imc', 'pat-ldl', 'pat-sbp', 'pat-chol', 'pat-hdl', 'pat-hba1c', 'pat-age-mois', 'pat-traitement', 'pat-pt', 'pat-alb', 'pat-gg', 'pat-pic'].forEach(idn =>
   document.getElementById(idn).addEventListener('change', render));
 
 document.getElementById('pat-date').value = new Date().toISOString().slice(0, 10);
@@ -3549,12 +3671,13 @@ function resetDossier() {
   Object.keys(dmChecks).forEach(k => delete dmChecks[k]);
   [
     '_osteoVals', '_osteoF', '_osteoFx', '_osteoT',
-    '_bpcoMmrc', '_icFevg', '_icNyha', '_thyTirads', '_eppCrab', '_eppSym',
+    '_bpcoMmrc', '_parkHints', '_icFevg', '_icNyha', '_thyTirads', '_eppCrab', '_eppSym',
     '_contraMigraine', '_contraThrombose', '_contraPostpartum', '_contraEpilepsie',
     '_contraDrepano', '_contraLupus', '_contraCancerSein', '_contraProb',
     '_patientTouched',
   ].forEach(k => { window[k] = undefined; });
   window._bpcoHints = { factors: [] };
+  window._parkHints = { factors: [] };
 }
 
 document.getElementById('btn-reset').addEventListener('click', () => {
@@ -3885,6 +4008,23 @@ document.getElementById('btn-print').addEventListener('click', () => {
       </div>
 
       ${(() => {
+        if (!p.parkinson) return '';
+        const parkRows = [
+          ['Réévaluation motrice annuelle (marche, chutes, écriture, autonomie)', 'La maladie évolue dans le temps : adapter le traitement et la rééducation permet de maintenir l’autonomie le plus longtemps possible.'],
+          ['Kinésithérapie + orthophonie selon besoins', 'L’activité physique régulière ralentit le déclin moteur ; l’orthophonie aide si la voix ou la déglutition sont gênées.'],
+          ['Surveillance des effets du traitement', 'Certains médicaments peuvent entraîner somnolence, vertiges au lever, nausées ou troubles du contrôle des impulsions : n’hésitez pas à en parler.'],
+          ['Nutrition : poids, constipation, hydratation', 'La constipation est très fréquente ; un transit régulier améliore aussi l’absorption du traitement.'],
+          ['Signes d’alerte à consulter vite', 'Chutes répétées, fausses routes (toux en mangeant), hallucinations, confusion, idées noires : contactez rapidement votre médecin.'],
+        ];
+        return `<div class="exam-box">
+          <div class="exam-title">\ud83e\udde0 Votre maladie de Parkinson — points de suivi</div>
+          <table class="ind-table">
+            <tr><th>Ce qui est recommandé</th><th>Pourquoi c'est utile pour vous</th></tr>
+            ${parkRows.map(([a, b]) => `<tr><td class="ind-label">${escapeHtml(a)}</td><td class="ind-why">${escapeHtml(b)}</td></tr>`).join('')}
+          </table>
+        </div>`;
+      })()}
+      ${(() => {
         if (!p.diabete) return '';
         const dms = dmStrategy(p, cvrCompute(p));
         const comp = dmComplications();
@@ -4197,6 +4337,11 @@ function parsePasteVolet(text) {
     ['Exposition professionnelle (poussières, fumées, solvants)', /poussiere|solvant|soudage|exposition professionnelle/],
   ].forEach(([label, re]) => { if (re.test(nText)) bpcoFactors.push(label); });
   window._bpcoHints = { factors: bpcoFactors };
+  const parkFactors = [];
+  PARK_EVOC.forEach(([label, re]) => { if (re.test(nText)) parkFactors.push(label); });
+  window._parkHints = { factors: parkFactors, medic: /metoclopramide|neuroleptique|haloperidol|tiapride|cyamemazine|levomepromazine|reserpine|primperan|nozinan/.test(nText) };
+  const patParkEl = document.getElementById('pat-parkinson');
+  if (patParkEl && patParkEl.value !== 'oui' && /parkinson(?!isme)/.test(nText) && !/parkinsonisme (medicamenteux|secondaire)/.test(nText)) set('pat-parkinson', 'oui', 'ATCD : maladie de Parkinson');
   return res;
 }
 document.getElementById('btn-paste-toggle')?.addEventListener('click', () => {

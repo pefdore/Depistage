@@ -627,6 +627,10 @@ header { padding: 12px 24px; }
 /* Carte Insuffisance cardiaque (style CVR) */
 .ic-cvr .cvr-head { background: linear-gradient(135deg, #f2f8f4 0%, #f5faf6 100%); }
 
+/* Carte Parkinson (style CVR) */
+.parkinson-cvr .cvr-head { background: linear-gradient(135deg, #f5f0ec 0%, #f4f9fd 100%); }
+.parkinson-cvr .cvr-row { font-size: .8rem; color: #333; line-height: 1.5; padding: 4px 0; border-bottom: 1px solid #f0ece8; }
+.parkinson-cvr .cvr-row strong { color: #1a2b3c; }
 /* Carte BPCO (style CVR) */
 .bpco-cvr .cvr-head { background: linear-gradient(135deg, #f1f8fc 0%, #f4f9fd 100%); }
 .bpco-cvr .cvr-row { font-size: .8rem; color: #333; line-height: 1.5; padding: 4px 0; border-bottom: 1px solid #f0f4f8; }
